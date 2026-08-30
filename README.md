@@ -10,7 +10,7 @@ follows its phases in order.
 
 ## Status
 
-**Phase 0 (specification and scaffold) is complete.** What runs today:
+**Phases 0 and 1 are complete.** What runs today:
 
 | Piece | State |
 |---|---|
@@ -20,8 +20,9 @@ follows its phases in order.
 | Chat tool registry and tier enforcement | done, with handlers arriving in Phase 8 |
 | AI provider interface | done, Ollama / MLX / OpenAI-compatible / fake |
 | Worker, broker, timezone-aware scheduler | done, actors arrive with their phases |
-| Web app shell | done, dashboard and chat-policy views |
-| CV ingestion, discovery, matching, applications | not started (Phases 1-7) |
+| CV upload, text extraction, profile parsing | done |
+| Fact provenance, answer bank, profile editor | done |
+| Discovery, matching, applications | not started (Phases 2-7) |
 
 ## What it will not do
 
@@ -32,7 +33,11 @@ These are design constraints, not defaults:
 - The chat agent has no tool that can submit, start a form, or change a policy.
   Attempting to register one raises; the database rejects the row as well.
 - It never invents an employer, date, skill, metric, or certification that is
-  not in your verified facts.
+  not in your verified facts. Every value a model extracts from your CV is
+  checked back against the document; anything it cannot find is discarded and
+  shown to you rather than stored.
+- Nothing a model produces is ever marked as confirmed by you. That provenance
+  has one source: you, in the UI.
 - It does not bypass CAPTCHA or OTP, and it does not scrape authenticated
   LinkedIn pages.
 
@@ -83,6 +88,7 @@ apps/worker     Dramatiq actors and the APScheduler schedule
 apps/web        Vue 3 + TypeScript front end
 packages/domain           models, enums, settings, state machine
 packages/ai               provider interface, structured output, fake provider
+packages/cv               CV text extraction, grounded parsing, merge rules
 packages/chat             tool registry, tiers, prompt zones, injection scanner
 packages/connectors       job source contract (adapters in Phase 2)
 packages/matching         scoring (Phase 3)
@@ -104,9 +110,21 @@ The ones that change behaviour most:
 | `MAX_APPLICATIONS_PER_DAY` | hard cap on submissions |
 | `DISCOVERY_CRON` / `DISCOVERY_TIMEZONE` | when discovery runs, in your timezone |
 | `CHAT_DAILY_TOKEN_BUDGET` | chat degrades to read-only tools past this |
+| `STORAGE_DIR` | where uploaded CVs are written, encrypted |
+| `MAX_RESUME_BYTES` | upload size cap, 10 MB by default |
 
 Secrets are read from the environment only. In production, placeholder values
 for `SECRET_KEY` or `ENCRYPTION_KEY` refuse to start.
+
+Uploaded CVs and the text extracted from them are encrypted at rest with
+`ENCRYPTION_KEY`. Rotating that key makes existing uploads unreadable.
+
+## Working with your own CV
+
+`fixtures/resumes/sample_engineering_lead.docx` is a synthetic CV used by the
+tests; a real CV is personal data and is not committed. To work with yours,
+upload it through the profile page, or drop it in `fixtures/resumes/` locally —
+that directory is gitignored apart from the sample.
 
 ## Decision records
 
@@ -115,3 +133,4 @@ for `SECRET_KEY` or `ENCRYPTION_KEY` refuse to start.
 - [0003 Job source policy](docs/adr/0003-job-source-policy.md)
 - [0004 Application consent and the approval gate](docs/adr/0004-application-consent.md)
 - [0005 Chat agent tool tiers](docs/adr/0005-chat-tool-tiers.md)
+- [0006 Every extracted claim is checked against the CV](docs/adr/0006-cv-grounding.md)

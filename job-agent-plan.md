@@ -529,6 +529,7 @@ job-agent/
 │   ├── matching/
 │   ├── ai/
 │   ├── chat/
+│   ├── cv/
 │   ├── application_automation/
 │   └── observability/
 ├── migrations/

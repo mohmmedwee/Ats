@@ -35,11 +35,15 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from job_agent_domain.columns import StrEnumType
+from job_agent_domain.crypto import EncryptedText
 from job_agent_domain.enums import (
     ApplicationStatus,
     ChatRole,
+    FactKind,
     FactProvenance,
     MatchRouting,
+    ResumeParseStatus,
     ToolCallState,
     ToolTier,
 )
@@ -96,9 +100,13 @@ class CandidateProfile(Base, TimestampMixin):
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     #: Bumped on every user edit so generated artifacts can pin the version they used.
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    #: Profile fields the user edited by hand. Reprocessing a CV skips these, so
+    #: a correction is never silently undone by a re-parse (Phase 1 acceptance).
+    locked_fields: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="profile")
     facts: Mapped[list[CandidateFact]] = relationship(back_populates="profile")
+    answers: Mapped[list[AnswerBankEntry]] = relationship(back_populates="profile")
 
 
 class CandidateFact(Base, TimestampMixin):
@@ -110,14 +118,30 @@ class CandidateFact(Base, TimestampMixin):
     profile_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    kind: Mapped[FactKind] = mapped_column(StrEnumType(FactKind, 50), nullable=False, index=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
-    provenance: Mapped[FactProvenance] = mapped_column(String(30), nullable=False)
+    provenance: Mapped[FactProvenance] = mapped_column(
+        StrEnumType(FactProvenance, 30), nullable=False, index=True
+    )
     #: Points back into the immutable resume snapshot the fact was taken from.
     evidence_ref: Mapped[str | None] = mapped_column(String(500))
+    source_resume_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("resume_files.id", ondelete="SET NULL")
+    )
+    #: Set only when the user explicitly confirms. A generated draft never gets
+    #: this, which is what keeps an inferred claim out of an application.
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
 
     profile: Mapped[CandidateProfile] = relationship(back_populates="facts")
+
+    __table_args__ = (
+        CheckConstraint(
+            "provenance <> 'user_confirmed' OR confirmed_at IS NOT NULL",
+            name="ck_fact_confirmed_has_timestamp",
+        ),
+    )
 
 
 class ResumeFile(Base, TimestampMixin):
@@ -134,9 +158,56 @@ class ResumeFile(Base, TimestampMixin):
     byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     storage_path: Mapped[str] = mapped_column(String(1000), nullable=False)
-    extracted_text: Mapped[str | None] = mapped_column(Text)
+    #: Encrypted at rest by the column type (plan section 10).
+    extracted_text: Mapped[str | None] = mapped_column(EncryptedText)
+    parse_status: Mapped[ResumeParseStatus] = mapped_column(
+        StrEnumType(ResumeParseStatus, 30), default=ResumeParseStatus.UPLOADED, nullable=False
+    )
+    parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    parse_error: Mapped[str | None] = mapped_column(Text)
+    #: True for the CV that represents the candidate right now.
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     __table_args__ = (UniqueConstraint("user_id", "sha256", name="uq_resume_user_hash"),)
+
+
+class AnswerBankEntry(Base, TimestampMixin):
+    """Reusable answers to recurring application questions (plan section 7.1).
+
+    An answer is only offered to a form when the user has confirmed it. Drafts
+    live here too, clearly marked, so the review queue can show what still needs
+    a decision instead of quietly filling something in.
+    """
+
+    __tablename__ = "answer_bank"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("candidate_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    #: Normalised form of the question, used for lookup across differently
+    #: worded versions of the same ask.
+    question_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(EncryptedText, nullable=False)
+    provenance: Mapped[FactProvenance] = mapped_column(
+        StrEnumType(FactProvenance, 30), nullable=False
+    )
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    #: Where the question was first seen, for context when reviewing.
+    source_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL")
+    )
+
+    profile: Mapped[CandidateProfile] = relationship(back_populates="answers")
+
+    __table_args__ = (
+        UniqueConstraint("profile_id", "question_key", name="uq_answer_profile_question"),
+        CheckConstraint(
+            "provenance <> 'user_confirmed' OR confirmed_at IS NOT NULL",
+            name="ck_answer_confirmed_has_timestamp",
+        ),
+    )
 
 
 class JobSource(Base, TimestampMixin):
@@ -200,7 +271,9 @@ class JobMatch(Base, TimestampMixin):
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), nullable=False
     )
     score: Mapped[float] = mapped_column(Float, nullable=False)
-    routing: Mapped[MatchRouting] = mapped_column(String(30), nullable=False, index=True)
+    routing: Mapped[MatchRouting] = mapped_column(
+        StrEnumType(MatchRouting, 30), nullable=False, index=True
+    )
     #: Per-dimension breakdown using the weights in plan section 7.4.
     breakdown: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     matched_requirements: Mapped[dict[str, Any]] = mapped_column(
@@ -230,7 +303,9 @@ class Application(Base, TimestampMixin):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    status: Mapped[ApplicationStatus] = mapped_column(String(40), nullable=False, index=True)
+    status: Mapped[ApplicationStatus] = mapped_column(
+        StrEnumType(ApplicationStatus, 40), nullable=False, index=True
+    )
     #: Hash of the exact pack the user approved. A submit token is bound to it.
     approved_pack_hash: Mapped[str | None] = mapped_column(String(64))
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -295,7 +370,7 @@ class ChatMessage(Base):
     thread_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("chat_threads.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    role: Mapped[ChatRole] = mapped_column(String(20), nullable=False)
+    role: Mapped[ChatRole] = mapped_column(StrEnumType(ChatRole, 20), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     #: Resolvable references such as ``job:<uuid>`` rendered as chips in the UI.
     citations: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
@@ -318,11 +393,13 @@ class ChatToolCall(Base, TimestampMixin):
     )
     tool_name: Mapped[str] = mapped_column(String(100), nullable=False)
     #: Recorded from the registry at dispatch time, not from the model's request.
-    tier: Mapped[ToolTier] = mapped_column(String(30), nullable=False)
+    tier: Mapped[ToolTier] = mapped_column(StrEnumType(ToolTier, 30), nullable=False)
     arguments: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     #: A confirmation is bound to this hash; changed arguments need a new card.
     args_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    state: Mapped[ToolCallState] = mapped_column(String(30), nullable=False, index=True)
+    state: Mapped[ToolCallState] = mapped_column(
+        StrEnumType(ToolCallState, 30), nullable=False, index=True
+    )
     idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

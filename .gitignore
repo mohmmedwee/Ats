@@ -16,3 +16,8 @@ dist/
 storage/
 browser_state/
 .DS_Store
+
+# Real CVs are personal data. The synthetic fixture is committed; anything else
+# dropped in here stays local.
+fixtures/resumes/*
+!fixtures/resumes/sample_engineering_lead.docx

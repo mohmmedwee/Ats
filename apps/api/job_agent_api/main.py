@@ -13,7 +13,7 @@ from job_agent_observability import configure_logging, get_logger
 
 from job_agent_api.middleware.idempotency import IdempotencyMiddleware
 from job_agent_api.middleware.request_context import RequestContextMiddleware
-from job_agent_api.routers import health, meta
+from job_agent_api.routers import health, meta, profile
 
 log = get_logger("api")
 
@@ -55,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(meta.router)
+    app.include_router(profile.router)
     return app
 
 

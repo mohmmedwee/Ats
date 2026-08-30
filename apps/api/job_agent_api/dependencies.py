@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from functools import lru_cache
 
+from job_agent_ai.factory import build_provider
+from job_agent_ai.provider import AIProvider
 from job_agent_chat.tools import ToolRegistry
 from job_agent_domain.db import get_sessionmaker
 from job_agent_domain.settings import Settings, get_settings
@@ -18,6 +20,12 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 def get_app_settings() -> Settings:
     return get_settings()
+
+
+@lru_cache(maxsize=1)
+def get_ai_provider() -> AIProvider:
+    """One provider per process; the HTTP client underneath is pooled."""
+    return build_provider(get_settings())
 
 
 @lru_cache(maxsize=1)

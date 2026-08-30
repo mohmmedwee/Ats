@@ -93,6 +93,36 @@ class FactProvenance(StrEnum):
     GENERATED_DRAFT = "generated_draft"
 
 
+class ResumeParseStatus(StrEnum):
+    """Where an uploaded CV is in the ingestion pipeline."""
+
+    UPLOADED = "uploaded"
+    TEXT_EXTRACTED = "text_extracted"
+    PARSED = "parsed"
+    FAILED = "failed"
+
+
+class FactKind(StrEnum):
+    """The shapes a verified candidate fact can take.
+
+    Kept closed so the match engine and the pack generator agree on what they
+    are reading, and so an LLM cannot invent a new category of claim.
+    """
+
+    HEADLINE = "headline"
+    SUMMARY = "summary"
+    LOCATION = "location"
+    YEARS_EXPERIENCE = "years_experience"
+    SKILL = "skill"
+    EMPLOYER = "employer"
+    ROLE = "role"
+    ACHIEVEMENT = "achievement"
+    EDUCATION = "education"
+    CERTIFICATION = "certification"
+    LANGUAGE = "language"
+    LINK = "link"
+
+
 class MatchRouting(StrEnum):
     """Plan section 7.4 default routing."""
 

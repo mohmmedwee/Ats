@@ -8,6 +8,7 @@ a known key.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, PostgresDsn, RedisDsn, field_validator
@@ -51,6 +52,15 @@ class Settings(BaseSettings):
     max_applications_per_day: int = 10
     discovery_cron: str = "0 7 * * *"
     discovery_timezone: str = "Asia/Amman"
+
+    #: Single-user MVP: the local account the API acts as until authentication
+    #: lands. Role-based access is already modelled; this is the seat that holds.
+    local_user_email: str = "owner@localhost"
+    local_user_name: str = "Local User"
+
+    #: Uploaded CVs are written here, encrypted. Keep it off a synced folder.
+    storage_dir: Path = Path("storage")
+    max_resume_bytes: int = 10 * 1024 * 1024
 
     chat_daily_token_budget: int = 200_000
     chat_max_tool_calls_per_turn: int = 8

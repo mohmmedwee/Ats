@@ -43,3 +43,33 @@ describe('api client', () => {
     )
   })
 })
+
+describe('uploads', () => {
+  it('does not set Content-Type on multipart bodies', async () => {
+    const fetchMock = fetchStub()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('crypto', { randomUUID: () => 'fixed-uuid' })
+
+    const body = new FormData()
+    body.append('file', new Blob(['x']), 'cv.docx')
+    await request('/api/v1/resumes', { method: 'POST', body })
+
+    const headers = headersOf(fetchMock.mock.calls[0])
+    // The browser has to pick the multipart boundary itself.
+    expect(headers.has('Content-Type')).toBe(false)
+    expect(headers.get('Idempotency-Key')).toBe('fixed-uuid')
+  })
+
+  it('surfaces the server detail message on failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 400, json: async () => ({ detail: 'not a CV' }) }) as Response),
+    )
+    await expect(request('/api/v1/resumes', { method: 'POST' })).rejects.toThrow('not a CV')
+  })
+
+  it('returns nothing for a 204', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 204 }) as Response))
+    await expect(request('/api/v1/profile/facts/x', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+})

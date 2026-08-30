@@ -7,6 +7,7 @@ dependencies = [
     "job-agent-domain",
     "job-agent-ai",
     "job-agent-chat",
+    "job-agent-cv",
     "job-agent-matching",
     "job-agent-connectors",
     "job-agent-observability",
