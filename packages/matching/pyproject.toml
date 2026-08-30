@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "job-agent-domain",
     "job-agent-ai",
+    "job-agent-chat",
+    "job-agent-connectors",
 ]
 
 [build-system]

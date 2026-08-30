@@ -169,6 +169,63 @@ export interface JobFilters {
   offset?: number
 }
 
+export interface MatchSummary {
+  match_id: string
+  job_id: string
+  score: number
+  routing: string
+  company: string
+  title: string
+  location: string | null
+  remote_type: string
+  seniority: string
+  application_url: string
+  posted_at: string | null
+  injection_flagged: boolean
+  top_strengths: string[]
+  top_gaps: string[]
+  blocker_reasons: string[]
+  shortlisted: boolean
+}
+
+export interface MatchPage {
+  items: MatchSummary[]
+  total: number
+  limit: number
+  offset: number
+  counts_by_routing: Record<string, number>
+}
+
+export interface MatchEvidence {
+  kind: string
+  dimension: string
+  requirement: string
+  reference: string | null
+  detail: string | null
+  source: string
+}
+
+export interface MatchDetail {
+  match_id: string
+  job_id: string
+  score: number
+  routing: string
+  breakdown: Record<string, { score: number; weight: number; contribution: number; detail: string }>
+  hard_blockers: { rule: string; reason: string; evidence: string | null }[]
+  evidence: MatchEvidence[]
+  explanation: string | null
+  explanation_data: {
+    strengths?: string[]
+    gaps?: string[]
+    red_flags?: string[]
+    questions_to_ask?: string[]
+    error?: string | null
+  }
+  semantic_similarity: number | null
+  inputs_hash: string
+  scored_at: string
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -264,6 +321,31 @@ export const api = {
     const query = params.toString()
     return request<JobPage>(`/api/v1/jobs${query ? `?${query}` : ''}`)
   },
+
+  matches: (params: { routing?: string; min_score?: number; include_rejected?: boolean } = {}) => {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== '' && value !== false) query.set(key, String(value))
+    }
+    const suffix = query.toString()
+    return request<MatchPage>(`/api/v1/matches${suffix ? `?${suffix}` : ''}`)
+  },
+  matchDetail: (jobId: string) => request<MatchDetail>(`/api/v1/jobs/${jobId}/match`),
+  scoreJob: (jobId: string, explain = false) =>
+    request<MatchDetail>(`/api/v1/jobs/${jobId}/score`, {
+      method: 'POST',
+      body: JSON.stringify({ explain }),
+    }),
+  runScoring: (explain = false) =>
+    request<{ scored: number; reused: number; explained: number }>('/api/v1/matches/run', {
+      method: 'POST',
+      body: JSON.stringify({ explain }),
+    }),
+  shortlist: (jobId: string) =>
+    request<{ application_id: string; status: string; created: boolean }>(
+      `/api/v1/jobs/${jobId}/shortlist`,
+      { method: 'POST' },
+    ),
 
   answers: () => request<Answer[]>('/api/v1/answers'),
   saveAnswer: (question: string, answer: string, confirmed = true) =>

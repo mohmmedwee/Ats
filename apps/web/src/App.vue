@@ -15,6 +15,13 @@ import { RouterLink, RouterView } from 'vue-router'
           Dashboard
         </RouterLink>
         <RouterLink
+          to="/queue"
+          class="text-sm text-slate-600 hover:text-slate-900"
+          active-class="text-slate-900 font-medium"
+        >
+          Queue
+        </RouterLink>
+        <RouterLink
           to="/jobs"
           class="text-sm text-slate-600 hover:text-slate-900"
           active-class="text-slate-900 font-medium"

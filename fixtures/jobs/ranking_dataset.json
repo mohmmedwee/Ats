@@ -1,0 +1,245 @@
+{
+  "description": "A fixed candidate and eight postings with the order they must rank in. Titles are run through the real normaliser, so this exercises the same path discovery does. Any change to the scorer that reorders these is a deliberate decision, and this fixture is where it gets made.",
+  "candidate": {
+    "profile_id": "p-fixture",
+    "profile_version": 1,
+    "headline": "Engineering Lead / Senior Backend Engineer",
+    "location": "Amman, Jordan",
+    "country": "Jordan",
+    "years_experience": 7,
+    "seniority": "senior",
+    "skills": {
+      "python": "f-python",
+      "fastapi": "f-fastapi",
+      "django": "f-django",
+      "node.js": "f-node",
+      "laravel": "f-laravel",
+      "postgresql": "f-postgres",
+      "mongodb": "f-mongo",
+      "redis": "f-redis",
+      "elasticsearch": "f-elastic",
+      "kubernetes": "f-k8s",
+      "docker": "f-docker",
+      "azure": "f-azure",
+      "ci/cd": "f-cicd",
+      "microservices": "f-micro",
+      "distributed systems": "f-dist",
+      "rest api": "f-rest",
+      "oauth 2.0": "f-oauth"
+    },
+    "roles": {
+      "r-lead": "Engineering Lead at Northwind Systems",
+      "r-senior": "Senior Backend Engineer at Cedar Analytics"
+    },
+    "achievements": {
+      "a-team": "Led a team of six engineers delivering a multi-tenant SaaS platform",
+      "a-latency": "Cut p95 API latency from 840 ms to 210 ms by reworking the query layer",
+      "a-migration": "Migrated a monolith to microservices on AKS with zero planned downtime"
+    }
+  },
+  "preferences": {
+    "target_countries": [
+      "Jordan"
+    ],
+    "commutable_cities": [
+      "Amman"
+    ],
+    "desired_titles": [
+      "Engineering Lead",
+      "Senior Backend Engineer"
+    ],
+    "excluded_companies": [
+      "Initech"
+    ],
+    "excluded_titles": [
+      "Sales"
+    ]
+  },
+  "jobs": [
+    {
+      "id": "rank-1-lead-remote",
+      "company": "Northwind Systems",
+      "title": "Engineering Lead, Platform",
+      "seniority": "lead",
+      "description": "Lead the platform team. Mentor engineers. Own the roadmap. Microservices on Kubernetes with Azure and CI/CD.",
+      "required_skills": [
+        "Python",
+        "Kubernetes",
+        "PostgreSQL",
+        "Microservices"
+      ],
+      "preferred_skills": [
+        "Azure",
+        "FastAPI"
+      ],
+      "responsibilities": [
+        "Lead the platform team",
+        "Own the technical roadmap"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "remote",
+      "content_hash": "r1",
+      "visa_sponsorship": null
+    },
+    {
+      "id": "rank-2-senior-backend-amman",
+      "company": "Cedar Analytics",
+      "title": "Senior Backend Engineer",
+      "seniority": "senior",
+      "description": "Build distributed backend services. Mentor two juniors. Python, FastAPI, PostgreSQL, Docker.",
+      "required_skills": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL"
+      ],
+      "preferred_skills": [
+        "Docker"
+      ],
+      "responsibilities": [
+        "Design and ship backend services"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "onsite",
+      "content_hash": "r2"
+    },
+    {
+      "id": "rank-3-backend-remote-partial",
+      "company": "Levant Web Works",
+      "title": "Backend Engineer",
+      "seniority": "unknown",
+      "description": "Work on REST APIs. Some Node.js and MongoDB.",
+      "required_skills": [
+        "Node.js",
+        "MongoDB",
+        "REST API"
+      ],
+      "preferred_skills": [],
+      "responsibilities": [
+        "Build and maintain REST APIs"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "remote",
+      "content_hash": "r3"
+    },
+    {
+      "id": "rank-4-devops-adjacent",
+      "company": "Cloudpeak",
+      "title": "Senior DevOps Engineer",
+      "seniority": "senior",
+      "description": "Own Kubernetes, Terraform, and CI/CD pipelines across Azure.",
+      "required_skills": [
+        "Kubernetes",
+        "Terraform",
+        "CI/CD"
+      ],
+      "preferred_skills": [
+        "Azure"
+      ],
+      "responsibilities": [
+        "Run the platform"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "remote",
+      "content_hash": "r4"
+    },
+    {
+      "id": "rank-5-junior-frontend",
+      "company": "Pixelworks",
+      "title": "Junior Frontend Developer",
+      "seniority": "junior",
+      "description": "Build React interfaces and CSS components.",
+      "required_skills": [
+        "React",
+        "CSS",
+        "TypeScript"
+      ],
+      "preferred_skills": [
+        "Figma"
+      ],
+      "responsibilities": [
+        "Implement designs"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "onsite",
+      "content_hash": "r5"
+    },
+    {
+      "id": "rank-6-unrelated",
+      "company": "Bright Smiles",
+      "title": "Dental Hygienist",
+      "seniority": "unknown",
+      "description": "Clean teeth and advise patients on oral care.",
+      "required_skills": [
+        "Dental hygiene",
+        "Patient care"
+      ],
+      "preferred_skills": [],
+      "responsibilities": [
+        "See patients"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "onsite",
+      "content_hash": "r6"
+    },
+    {
+      "id": "blocked-excluded-company",
+      "company": "Initech",
+      "title": "Engineering Lead",
+      "seniority": "lead",
+      "description": "Lead the team. Python, Kubernetes, PostgreSQL.",
+      "required_skills": [
+        "Python",
+        "Kubernetes",
+        "PostgreSQL"
+      ],
+      "preferred_skills": [],
+      "responsibilities": [
+        "Lead the team"
+      ],
+      "country": "Jordan",
+      "city": "Amman",
+      "remote_type": "remote",
+      "content_hash": "r7"
+    },
+    {
+      "id": "blocked-wrong-country",
+      "company": "Bavaria Tech",
+      "title": "Senior Backend Engineer",
+      "seniority": "senior",
+      "description": "Python and Kubernetes in Munich. On-site only.",
+      "required_skills": [
+        "Python",
+        "Kubernetes"
+      ],
+      "preferred_skills": [],
+      "responsibilities": [
+        "Build services"
+      ],
+      "country": "Germany",
+      "city": "Munich",
+      "remote_type": "onsite",
+      "content_hash": "r8"
+    }
+  ],
+  "expected_order": [
+    "rank-2-senior-backend-amman",
+    "rank-1-lead-remote",
+    "rank-3-backend-remote-partial",
+    "rank-4-devops-adjacent"
+  ],
+  "expected_rejected": {
+    "blocked-excluded-company": "excluded_company",
+    "blocked-wrong-country": "country"
+  },
+  "expected_order_note": "Only the jobs that survive filtering and clear the archive threshold are ordered here. Two roles the candidate would never take have no meaningful rank against each other, so asserting one is worth more than the other would be a test of noise.",
+  "expected_archived": [
+    "rank-5-junior-frontend",
+    "rank-6-unrelated"
+  ]
+}

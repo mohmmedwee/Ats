@@ -378,13 +378,51 @@ class JobMatch(Base, TimestampMixin):
     )
     hard_blockers: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     explanation: Mapped[str | None] = mapped_column(Text)
+    #: The grounded explanation: strengths, gaps, red flags, questions. Only
+    #: points that cited real evidence survive into here.
+    explanation_data: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    #: The embedding signal, when one was available. None means the score was
+    #: computed without it, which is different from a similarity of zero.
+    semantic_similarity: Mapped[float | None] = mapped_column(Float)
+    embedding_model: Mapped[str | None] = mapped_column(String(200))
     #: Same inputs must reproduce the same score (plan Phase 3 acceptance).
     inputs_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    evidence: Mapped[list[MatchEvidence]] = relationship(back_populates="match")
 
     __table_args__ = (
         UniqueConstraint("job_id", "profile_id", "inputs_hash", name="uq_match_job_profile_inputs"),
         CheckConstraint("score >= 0 AND score <= 100", name="ck_match_score_range"),
     )
+
+
+class MatchEvidence(Base):
+    """One justified claim behind a score.
+
+    Stored as rows rather than buried in JSON so the review queue can filter on
+    them — "show me roles whose only gap is Kubernetes" is a query, not a scan.
+    """
+
+    __tablename__ = "match_evidence"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("job_matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    dimension: Mapped[str] = mapped_column(String(60), nullable=False)
+    requirement: Mapped[str] = mapped_column(Text, nullable=False)
+    #: ``fact:<uuid>`` for something the candidate has, ``job:<uuid>#field`` for
+    #: something the posting says. Never empty for a matched or missing
+    #: requirement (plan Phase 3 acceptance).
+    reference: Mapped[str | None] = mapped_column(String(300))
+    detail: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(10), default="job", nullable=False)
+
+    match: Mapped[JobMatch] = relationship(back_populates="evidence")
 
 
 class Application(Base, TimestampMixin):

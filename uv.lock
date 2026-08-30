@@ -827,12 +827,16 @@ version = "0.1.0"
 source = { editable = "packages/matching" }
 dependencies = [
     { name = "job-agent-ai" },
+    { name = "job-agent-chat" },
+    { name = "job-agent-connectors" },
     { name = "job-agent-domain" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "job-agent-ai", editable = "packages/ai" },
+    { name = "job-agent-chat", editable = "packages/chat" },
+    { name = "job-agent-connectors", editable = "packages/connectors" },
     { name = "job-agent-domain", editable = "packages/domain" },
 ]
 
