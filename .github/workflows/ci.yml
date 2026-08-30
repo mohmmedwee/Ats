@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Tests never call a real model provider.
+  AI_PROVIDER: fake
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: jobagent
+          POSTGRES_PASSWORD: jobagent
+          POSTGRES_DB: jobagent
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U jobagent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://jobagent:jobagent@localhost:5432/jobagent
+      REDIS_URL: redis://localhost:6379/0
+      ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.11"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-packages
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy apps packages
+
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
+      - name: Verify migrations match the models
+        # A model change without a migration fails here rather than in production.
+        run: |
+          uv run alembic check
+
+      - name: Test
+        run: uv run pytest --cov --cov-report=term-missing -m "not e2e"
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the compose stack
+        run: |
+          cp .env.example .env
+          docker compose config --quiet

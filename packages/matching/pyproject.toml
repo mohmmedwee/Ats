@@ -1,0 +1,16 @@
+[project]
+name = "job-agent-matching"
+version = "0.1.0"
+description = "Hard filters, weighted scoring, and embeddings"
+requires-python = ">=3.12"
+dependencies = [
+    "job-agent-domain",
+    "job-agent-ai",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["job_agent_matching"]
