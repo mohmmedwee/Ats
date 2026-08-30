@@ -13,7 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 from job_agent_domain.settings import get_settings
 from job_agent_observability import configure_logging, get_logger
 
-from job_agent_worker.actors import run_discovery
+from job_agent_worker.actors import discover
 
 log = get_logger("scheduler")
 
@@ -22,7 +22,7 @@ def build_scheduler() -> AsyncIOScheduler:
     settings = get_settings()
     scheduler = AsyncIOScheduler(timezone=settings.discovery_timezone)
     scheduler.add_job(
-        run_discovery.send,
+        discover.send,
         CronTrigger.from_crontab(settings.discovery_cron, timezone=settings.discovery_timezone),
         id="daily_discovery",
         replace_existing=True,

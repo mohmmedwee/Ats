@@ -123,6 +123,50 @@ class FactKind(StrEnum):
     LINK = "link"
 
 
+class RemoteType(StrEnum):
+    ONSITE = "onsite"
+    HYBRID = "hybrid"
+    REMOTE = "remote"
+    UNKNOWN = "unknown"
+
+
+class Seniority(StrEnum):
+    """Ordered coarsely; the match engine compares these, not raw titles."""
+
+    INTERN = "intern"
+    JUNIOR = "junior"
+    MID = "mid"
+    SENIOR = "senior"
+    STAFF = "staff"
+    LEAD = "lead"
+    PRINCIPAL = "principal"
+    MANAGER = "manager"
+    DIRECTOR = "director"
+    UNKNOWN = "unknown"
+
+
+#: Rough ladder used for compatibility checks. Manager and director sit outside
+#: the individual-contributor track, so they are deliberately not on it.
+SENIORITY_RANK: dict[Seniority, int] = {
+    Seniority.INTERN: 0,
+    Seniority.JUNIOR: 1,
+    Seniority.MID: 2,
+    Seniority.SENIOR: 3,
+    Seniority.STAFF: 4,
+    Seniority.LEAD: 4,
+    Seniority.PRINCIPAL: 5,
+}
+
+
+class DuplicateReason(StrEnum):
+    """Which rule matched, in the order plan section 7.3 requires."""
+
+    SOURCE_EXTERNAL_ID = "source_external_id"
+    CANONICAL_URL = "canonical_url"
+    COMPANY_TITLE_LOCATION = "company_title_location"
+    CONTENT_FINGERPRINT = "content_fingerprint"
+
+
 class MatchRouting(StrEnum):
     """Plan section 7.4 default routing."""
 

@@ -90,6 +90,85 @@ export interface Answer {
   confirmed_at: string | null
 }
 
+export interface Source {
+  id: string
+  kind: string
+  name: string
+  config: Record<string, unknown>
+  enabled: boolean
+  auto_submit_allowed: boolean
+  rate_limit_per_minute: number
+  cursor: string | null
+  last_run_at: string | null
+  last_success_at: string | null
+  last_error: string | null
+  consecutive_failures: number
+  paused_until: string | null
+}
+
+export interface SourceKind {
+  kind: string
+  required_config: string[]
+  optional_config: string[]
+}
+
+export interface SourceResult {
+  source_id: string
+  source_name: string
+  kind: string
+  fetched: number
+  created: number
+  updated: number
+  duplicates_linked: number
+  injection_flagged: number
+  skipped: boolean
+  error: string | null
+}
+
+export interface DiscoveryReport {
+  started_at: string
+  finished_at: string
+  results: SourceResult[]
+}
+
+export interface Job {
+  id: string
+  source_id: string
+  company: string
+  title: string
+  seniority: string
+  location: string | null
+  country: string | null
+  remote_type: string
+  employment_type: string | null
+  application_url: string
+  required_skills: string[]
+  preferred_skills: string[]
+  posted_at: string | null
+  injection_flagged: boolean
+  injection_signals: string[]
+  possible_duplicate_of: string | null
+  duplicate_reason: string | null
+  duplicate_confidence: number | null
+}
+
+export interface JobPage {
+  items: Job[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface JobFilters {
+  q?: string
+  country?: string
+  remote_type?: string
+  seniority?: string
+  include_duplicates?: boolean
+  limit?: number
+  offset?: number
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -160,6 +239,31 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ kind, value }),
     }),
+
+  sources: () => request<Source[]>('/api/v1/sources'),
+  sourceKinds: () => request<{ kinds: SourceKind[]; supported: string[] }>('/api/v1/sources/kinds'),
+  createSource: (kind: string, name: string, config: Record<string, string>) =>
+    request<Source>('/api/v1/sources', {
+      method: 'POST',
+      body: JSON.stringify({ kind, name, config }),
+    }),
+  updateSource: (id: string, body: Record<string, unknown>) =>
+    request<Source>(`/api/v1/sources/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteSource: (id: string) => request<void>(`/api/v1/sources/${id}`, { method: 'DELETE' }),
+  runDiscovery: (sourceId?: string) =>
+    request<DiscoveryReport>(
+      `/api/v1/discovery/run${sourceId ? `?source_id=${sourceId}` : ''}`,
+      { method: 'POST' },
+    ),
+
+  jobs: (filters: JobFilters = {}) => {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== '' && value !== false) params.set(key, String(value))
+    }
+    const query = params.toString()
+    return request<JobPage>(`/api/v1/jobs${query ? `?${query}` : ''}`)
+  },
 
   answers: () => request<Answer[]>('/api/v1/answers'),
   saveAnswer: (question: string, answer: string, confirmed = true) =>

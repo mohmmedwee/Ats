@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, request } from '@/api/client'
+import { ApiError, api, request } from '@/api/client'
 
 const okResponse = () =>
   ({ ok: true, status: 200, json: async () => ({ status: 'ok' }) }) as Response
@@ -71,5 +71,29 @@ describe('uploads', () => {
   it('returns nothing for a 204', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 204 }) as Response))
     await expect(request('/api/v1/profile/facts/x', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+})
+
+describe('job filters', () => {
+  it('omits empty and false filters from the query string', async () => {
+    const fetchMock = fetchStub()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.jobs({ q: 'backend', country: '', include_duplicates: false, limit: 25 })
+
+    const url = String(fetchMock.mock.calls[0]?.[0])
+    expect(url).toContain('q=backend')
+    expect(url).toContain('limit=25')
+    expect(url).not.toContain('country')
+    expect(url).not.toContain('include_duplicates')
+  })
+
+  it('sends no query string when there are no filters', async () => {
+    const fetchMock = fetchStub()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.jobs()
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/v1/jobs')
   })
 })

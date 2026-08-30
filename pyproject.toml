@@ -6,6 +6,7 @@ job-agent-domain = { workspace = true }
 job-agent-ai = { workspace = true }
 job-agent-chat = { workspace = true }
 job-agent-cv = { workspace = true }
+job-agent-discovery = { workspace = true }
 job-agent-connectors = { workspace = true }
 job-agent-matching = { workspace = true }
 job-agent-application-automation = { workspace = true }

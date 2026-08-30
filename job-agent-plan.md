@@ -530,6 +530,7 @@ job-agent/
 │   ├── ai/
 │   ├── chat/
 │   ├── cv/
+│   ├── discovery/
 │   ├── application_automation/
 │   └── observability/
 ├── migrations/

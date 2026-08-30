@@ -14,6 +14,7 @@ members = [
     "job-agent-chat",
     "job-agent-connectors",
     "job-agent-cv",
+    "job-agent-discovery",
     "job-agent-domain",
     "job-agent-matching",
     "job-agent-observability",
@@ -684,6 +685,7 @@ dependencies = [
     { name = "job-agent-chat" },
     { name = "job-agent-connectors" },
     { name = "job-agent-cv" },
+    { name = "job-agent-discovery" },
     { name = "job-agent-domain" },
     { name = "job-agent-matching" },
     { name = "job-agent-observability" },
@@ -700,6 +702,7 @@ requires-dist = [
     { name = "job-agent-chat", editable = "packages/chat" },
     { name = "job-agent-connectors", editable = "packages/connectors" },
     { name = "job-agent-cv", editable = "packages/cv" },
+    { name = "job-agent-discovery", editable = "packages/discovery" },
     { name = "job-agent-domain", editable = "packages/domain" },
     { name = "job-agent-matching", editable = "packages/matching" },
     { name = "job-agent-observability", editable = "packages/observability" },
@@ -775,6 +778,25 @@ requires-dist = [
 ]
 
 [[package]]
+name = "job-agent-discovery"
+version = "0.1.0"
+source = { editable = "packages/discovery" }
+dependencies = [
+    { name = "job-agent-chat" },
+    { name = "job-agent-connectors" },
+    { name = "job-agent-domain" },
+    { name = "job-agent-observability" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "job-agent-chat", editable = "packages/chat" },
+    { name = "job-agent-connectors", editable = "packages/connectors" },
+    { name = "job-agent-domain", editable = "packages/domain" },
+    { name = "job-agent-observability", editable = "packages/observability" },
+]
+
+[[package]]
 name = "job-agent-domain"
 version = "0.1.0"
 source = { editable = "packages/domain" }
@@ -839,6 +861,7 @@ dependencies = [
     { name = "apscheduler" },
     { name = "dramatiq", extra = ["redis"] },
     { name = "job-agent-connectors" },
+    { name = "job-agent-discovery" },
     { name = "job-agent-domain" },
     { name = "job-agent-matching" },
     { name = "job-agent-observability" },
@@ -850,6 +873,7 @@ requires-dist = [
     { name = "apscheduler", specifier = ">=3.11" },
     { name = "dramatiq", extras = ["redis"], specifier = ">=1.17" },
     { name = "job-agent-connectors", editable = "packages/connectors" },
+    { name = "job-agent-discovery", editable = "packages/discovery" },
     { name = "job-agent-domain", editable = "packages/domain" },
     { name = "job-agent-matching", editable = "packages/matching" },
     { name = "job-agent-observability", editable = "packages/observability" },

@@ -11,6 +11,7 @@ from logging.config import fileConfig
 from typing import Any
 
 from alembic import context
+from job_agent_domain.columns import StrEnumType
 from job_agent_domain.models import Base
 from job_agent_domain.settings import get_settings
 from sqlalchemy import Connection, pool
@@ -24,12 +25,26 @@ config.set_main_option("sqlalchemy.url", str(get_settings().database_url))
 target_metadata = Base.metadata
 
 
+def _render_item(type_: str, obj: Any, autogen_context: Any) -> str | bool:
+    """Render custom column types as what they actually are in the database.
+
+    ``StrEnumType`` takes its enum class as a required argument, so the default
+    rendering (``StrEnumType()``) produces a migration that cannot be imported.
+    A migration should describe the database anyway, and there the column is a
+    VARCHAR.
+    """
+    if type_ == "type" and isinstance(obj, StrEnumType):
+        return f"sa.String(length={obj.impl_instance.length})"
+    return False
+
+
 def _configure(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
         compare_server_default=True,
+        render_item=_render_item,
     )
 
 
@@ -39,6 +54,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_item=_render_item,
     )
     with context.begin_transaction():
         context.run_migrations()

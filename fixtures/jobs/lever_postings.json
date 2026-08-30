@@ -1,0 +1,46 @@
+[
+  {
+    "id": "b1e7c2a4-1111-4a2b-9c3d-0f1e2d3c4b5a",
+    "text": "Staff Software Engineer, Payments",
+    "hostedUrl": "https://jobs.lever.co/cedar/b1e7c2a4-1111-4a2b-9c3d-0f1e2d3c4b5a?lever-source=LinkedIn",
+    "applyUrl": "https://jobs.lever.co/cedar/b1e7c2a4-1111-4a2b-9c3d-0f1e2d3c4b5a/apply",
+    "createdAt": 1755600000000,
+    "workplaceType": "hybrid",
+    "categories": {
+      "commitment": "Full-time",
+      "location": "Dubai, United Arab Emirates",
+      "team": "Payments",
+      "department": "Engineering"
+    },
+    "descriptionPlain": "Cedar is hiring a staff engineer for the payments platform.",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<ul><li>Own the ledger service</li><li>Set technical direction for the team</li></ul>"
+      },
+      {
+        "text": "Requirements",
+        "content": "<ul><li>8+ years building distributed systems</li><li>Strong Go or Java</li></ul>"
+      },
+      {
+        "text": "Nice to have",
+        "content": "<ul><li>Payments domain experience</li></ul>"
+      }
+    ]
+  },
+  {
+    "id": "c2f8d3b5-2222-4b3c-8d4e-1a2b3c4d5e6f",
+    "text": "Backend Engineer",
+    "hostedUrl": "https://jobs.lever.co/cedar/c2f8d3b5-2222-4b3c-8d4e-1a2b3c4d5e6f",
+    "applyUrl": "https://jobs.lever.co/cedar/c2f8d3b5-2222-4b3c-8d4e-1a2b3c4d5e6f/apply",
+    "createdAt": 1756200000000,
+    "workplaceType": "remote",
+    "categories": {
+      "commitment": "Contract",
+      "location": "Remote",
+      "team": "Core"
+    },
+    "descriptionPlain": "Join the core team.",
+    "lists": []
+  }
+]

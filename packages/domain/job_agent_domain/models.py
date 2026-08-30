@@ -40,10 +40,13 @@ from job_agent_domain.crypto import EncryptedText
 from job_agent_domain.enums import (
     ApplicationStatus,
     ChatRole,
+    DuplicateReason,
     FactKind,
     FactProvenance,
     MatchRouting,
+    RemoteType,
     ResumeParseStatus,
+    Seniority,
     ToolCallState,
     ToolTier,
 )
@@ -222,9 +225,31 @@ class JobSource(Base, TimestampMixin):
     auto_submit_allowed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     cursor: Mapped[str | None] = mapped_column(String(500))
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(Text)
+    #: Requests per minute this source tolerates. Enforced per source, so a slow
+    #: board cannot be starved by a fast one sharing the run.
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    #: Drives exponential backoff. Reset on the first success.
+    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    #: Set while backing off after repeated failures.
+    paused_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (UniqueConstraint("kind", "name", name="uq_source_kind_name"),)
+
+
+class Company(Base, TimestampMixin):
+    """One employer, however many boards it posts on."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String(300), nullable=False)
+    #: Case- and punctuation-folded, so "Acme, Inc." and "acme inc" are one row.
+    normalized_name: Mapped[str] = mapped_column(String(300), nullable=False, unique=True)
+    website: Mapped[str | None] = mapped_column(String(500))
+
+    __table_args__ = (Index("ix_company_normalized_name", "normalized_name"),)
 
 
 class Job(Base, TimestampMixin):
@@ -236,9 +261,21 @@ class Job(Base, TimestampMixin):
     )
     external_id: Mapped[str] = mapped_column(String(300), nullable=False)
     company: Mapped[str] = mapped_column(String(300), nullable=False)
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("companies.id", ondelete="SET NULL"), index=True
+    )
     title: Mapped[str] = mapped_column(String(300), nullable=False)
+    #: Title with seniority and noise stripped, used for duplicate matching.
+    normalized_title: Mapped[str | None] = mapped_column(String(300), index=True)
+    seniority: Mapped[Seniority] = mapped_column(
+        StrEnumType(Seniority, 30), default=Seniority.UNKNOWN, nullable=False
+    )
     location: Mapped[str | None] = mapped_column(String(300))
-    remote: Mapped[bool | None] = mapped_column(Boolean)
+    country: Mapped[str | None] = mapped_column(String(100))
+    city: Mapped[str | None] = mapped_column(String(150))
+    remote_type: Mapped[RemoteType] = mapped_column(
+        StrEnumType(RemoteType, 20), default=RemoteType.UNKNOWN, nullable=False
+    )
     employment_type: Mapped[str | None] = mapped_column(String(80))
     description: Mapped[str] = mapped_column(Text, nullable=False)
     application_url: Mapped[str] = mapped_column(String(1000), nullable=False)
@@ -250,13 +287,70 @@ class Job(Base, TimestampMixin):
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    required_skills: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    preferred_skills: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    responsibilities: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    #: None means the posting says nothing, which is different from "no".
+    visa_sponsorship: Mapped[bool | None] = mapped_column(Boolean)
+    #: Fingerprint of the normalised body, for the last dedup rule.
+    fingerprint: Mapped[str | None] = mapped_column(String(64), index=True)
+    #: Set when a job looks like another one but not confidently enough to merge.
+    #: Plan 7.3: below the threshold, link rather than merge.
+    possible_duplicate_of: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL")
+    )
+    duplicate_reason: Mapped[DuplicateReason | None] = mapped_column(
+        StrEnumType(DuplicateReason, 40)
+    )
+    duplicate_confidence: Mapped[float | None] = mapped_column(Float)
     #: Set when a hostile posting attempts prompt injection (plan 7.8).
     injection_flagged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    injection_signals: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
+
+    snapshots: Mapped[list[JobRawSnapshot]] = relationship(back_populates="job")
 
     __table_args__ = (
         UniqueConstraint("source_id", "external_id", name="uq_job_source_external"),
         Index("ix_job_company_title", "company", "title"),
+        Index("ix_job_dedup", "company", "normalized_title", "location"),
+    )
+
+
+class JobRawSnapshot(Base):
+    """Exactly what a source returned, kept immutable.
+
+    Plan Phase 2 acceptance: raw snapshots make every normalised field
+    traceable. Without this, a wrong location is unattributable — parser bug, or
+    the board actually said that?
+    """
+
+    __tablename__ = "job_raw_snapshots"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="CASCADE"), index=True
+    )
+    source_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("job_sources.id", ondelete="CASCADE"), nullable=False
+    )
+    external_id: Mapped[str] = mapped_column(String(300), nullable=False)
+    source_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+
+    job: Mapped[Job | None] = relationship(back_populates="snapshots")
+
+    __table_args__ = (
+        # One snapshot per distinct content: re-fetching an unchanged posting
+        # should not grow the table without bound.
+        UniqueConstraint(
+            "source_id", "external_id", "content_hash", name="uq_snapshot_source_ext_hash"
+        ),
     )
 
 

@@ -8,6 +8,8 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+    { path: '/jobs', name: 'jobs', component: () => import('@/views/JobsView.vue') },
+    { path: '/sources', name: 'sources', component: () => import('@/views/SourcesView.vue') },
     { path: '/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
     { path: '/chat', name: 'chat', component: () => import('@/views/ChatView.vue') },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue') },

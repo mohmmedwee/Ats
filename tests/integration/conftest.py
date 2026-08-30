@@ -34,7 +34,7 @@ async def clean_db() -> AsyncIterator[None]:
     tables = (
         "chat_tool_calls, chat_messages, chat_threads, audit_events, answer_bank, "
         "candidate_facts, candidate_profiles, resume_files, applications, job_matches, "
-        "jobs, job_sources, users"
+        "job_raw_snapshots, jobs, companies, job_sources, users"
     )
     async with get_sessionmaker()() as session:
         await session.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))

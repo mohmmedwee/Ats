@@ -10,7 +10,7 @@ follows its phases in order.
 
 ## Status
 
-**Phases 0 and 1 are complete.** What runs today:
+**Phases 0, 1, and 2 are complete.** What runs today:
 
 | Piece | State |
 |---|---|
@@ -22,7 +22,10 @@ follows its phases in order.
 | Worker, broker, timezone-aware scheduler | done, actors arrive with their phases |
 | CV upload, text extraction, profile parsing | done |
 | Fact provenance, answer bank, profile editor | done |
-| Discovery, matching, applications | not started (Phases 2-7) |
+| Greenhouse, Lever, and Ashby connectors | done |
+| Normalization, deduplication, raw snapshots | done |
+| Scheduled discovery, sources and jobs UI | done |
+| Matching, application packs, applying | not started (Phases 3-7) |
 
 ## What it will not do
 
@@ -40,6 +43,9 @@ These are design constraints, not defaults:
   has one source: you, in the UI.
 - It does not bypass CAPTCHA or OTP, and it does not scrape authenticated
   LinkedIn pages.
+- It reads job boards through their documented public APIs, one source at a
+  time, at a rate limit you set. A posting that tries to instruct the agent is
+  flagged and shown to you; it is never followed.
 
 ## Quick start
 
@@ -90,7 +96,8 @@ packages/domain           models, enums, settings, state machine
 packages/ai               provider interface, structured output, fake provider
 packages/cv               CV text extraction, grounded parsing, merge rules
 packages/chat             tool registry, tiers, prompt zones, injection scanner
-packages/connectors       job source contract (adapters in Phase 2)
+packages/connectors       ATS adapters, normalization, deduplication
+packages/discovery        discovery orchestration shared by the API and worker
 packages/matching         scoring (Phase 3)
 packages/application_automation  ATS adapters and form filling (Phase 5)
 packages/observability    structured logging and PII redaction
@@ -119,6 +126,20 @@ for `SECRET_KEY` or `ENCRYPTION_KEY` refuse to start.
 Uploaded CVs and the text extracted from them are encrypted at rest with
 `ENCRYPTION_KEY`. Rotating that key makes existing uploads unreadable.
 
+## Adding job sources
+
+Add a board on the Sources page, or:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/sources \
+  -H 'Idempotency-Key: 1' -H 'Content-Type: application/json' \
+  -d '{"kind":"greenhouse","name":"acme","config":{"board_token":"acme"}}'
+```
+
+`GET /api/v1/sources/kinds` lists what each kind needs. Discovery runs on the
+schedule in `DISCOVERY_CRON`, or on demand with `POST /api/v1/discovery/run`.
+Contract tests replay recorded fixtures, so CI never calls a real board.
+
 ## Working with your own CV
 
 `fixtures/resumes/sample_engineering_lead.docx` is a synthetic CV used by the
@@ -134,3 +155,4 @@ that directory is gitignored apart from the sample.
 - [0004 Application consent and the approval gate](docs/adr/0004-application-consent.md)
 - [0005 Chat agent tool tiers](docs/adr/0005-chat-tool-tiers.md)
 - [0006 Every extracted claim is checked against the CV](docs/adr/0006-cv-grounding.md)
+- [0007 Deduplication order and per-source failure isolation](docs/adr/0007-discovery-dedup-and-isolation.md)
