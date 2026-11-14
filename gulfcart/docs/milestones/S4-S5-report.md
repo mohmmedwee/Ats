@@ -56,7 +56,7 @@ codes) → dashboard shows paid revenue.
 | Arabic and English supported | ✅ |
 | AED and SAR pricing operational | ✅ |
 | Supplier mapping operational | ✅ |
-| Approved supplier connector available | ⏳ mock + manual connectors ready; a real connector needs a signed supplier agreement |
+| Approved supplier connector available | ⏳ CJdropshipping connector built ([setup](../suppliers/CJ_DROPSHIPPING.md)); needs a CJ account, API key and one live test order |
 | Payment gateway approved for both markets | ⏳ gateway contract + sandbox ready; provider pending (D2) |
 | Procurement idempotency verified | ✅ (scenarios 5, 11, 13, 14 tested) |
 | Multiple supplier orders supported | ✅ |
@@ -109,7 +109,7 @@ browser journey re-verified (phone OTP, invoice link and print view, forgot pass
 
 | Item | Blocked by |
 |---|---|
-| Real supplier connector(s) | Signed supplier agreement and API access |
+| Real supplier connector(s) | CJdropshipping ready: create account + API key; other suppliers need agreement and API access |
 | Real payment gateway adapter | Payment provider choice (D2) |
 | Real SMS/WhatsApp adapter | Provider choice |
 | ZATCA Phase 2 e-invoicing | Legal entity + ZATCA onboarding |

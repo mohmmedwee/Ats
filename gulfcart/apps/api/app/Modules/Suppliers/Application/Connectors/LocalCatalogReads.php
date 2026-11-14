@@ -50,7 +50,7 @@ trait LocalCatalogReads
             : new AvailabilityResult($variant->stockStatus, $variant->cost, $variant->currency);
     }
 
-    public function getQuote(array $lines): SupplierQuote
+    public function getQuote(array $lines, ?string $countryCode = null): SupplierQuote
     {
         $unit = [];
         $total = '0';

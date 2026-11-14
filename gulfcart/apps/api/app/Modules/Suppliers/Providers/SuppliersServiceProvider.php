@@ -7,6 +7,8 @@ use App\Modules\Catalog\Contracts\SellabilityRule;
 use App\Modules\Suppliers\Application\DefaultConnectorResolver;
 use App\Modules\Suppliers\Application\EloquentSourcingDirectory;
 use App\Modules\Suppliers\Application\HasAuthorizedSource;
+use App\Modules\Suppliers\Console\CjImportCommand;
+use App\Modules\Suppliers\Console\CjSetupCommand;
 use App\Modules\Suppliers\Console\SyncSuppliersCommand;
 use App\Modules\Suppliers\Contracts\ConnectorResolver;
 use App\Modules\Suppliers\Contracts\SourcingDirectory;
@@ -32,7 +34,7 @@ final class SuppliersServiceProvider extends ModuleServiceProvider
     {
         parent::boot();
         if ($this->app->runningInConsole()) {
-            $this->commands([SyncSuppliersCommand::class]);
+            $this->commands([SyncSuppliersCommand::class, CjSetupCommand::class, CjImportCommand::class]);
         }
     }
 }

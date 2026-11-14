@@ -4,7 +4,7 @@ Cross-border, multi-source e-commerce **reseller** platform for the UAE and Saud
 GulfCart is the seller of record to the customer: it buys from commercially authorized
 suppliers and ships directly to the customer.
 
-> **Status:** MVP software complete (Sprints 0–5 + follow-up round). 196 backend tests, storefront in Arabic and English,
+> **Status:** MVP software complete (Sprints 0–5 + follow-up round) plus a CJdropshipping connector. 208 backend tests, storefront in Arabic and English,
 > full purchase journey verified in a browser. Commercial launch still needs the business decisions in
 > [`docs/milestones/S4-S5-report.md`](docs/milestones/S4-S5-report.md#what-remains-before-commercial-launch)
 > (suppliers, payment provider, jurisdiction, customs).
@@ -61,6 +61,7 @@ and `npm run dev` in `apps/storefront` (see each app's README).
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Docker services, environments, production hardening |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Scheduled jobs, daily checks, procurement exception playbook, incidents, backups |
 | [`docs/SUPPLIER_IMPORT.md`](docs/SUPPLIER_IMPORT.md) | Supplier CSV feed format |
+| [`docs/suppliers/CJ_DROPSHIPPING.md`](docs/suppliers/CJ_DROPSHIPPING.md) | Ready-made CJdropshipping supplier: setup, import, verification |
 | [`docs/SPEC_REVIEW.md`](docs/SPEC_REVIEW.md) | Corrections made to the v1.0 draft and open decisions |
 | [`docs/architecture/`](docs/architecture/) | System context, containers, ADRs |
 

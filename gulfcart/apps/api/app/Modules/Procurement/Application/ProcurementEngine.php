@@ -63,7 +63,7 @@ final class ProcurementEngine
                     return $this->toException($task, $so, 'OUT_OF_STOCK', ['external_variant_id' => $line->externalVariantId]);
                 }
             }
-            $quote = $connector->getQuote($lines);
+            $quote = $connector->getQuote($lines, isset($so->shipping_address['country']) ? (string) $so->shipping_address['country'] : null);
             $current = Decimal::add($quote->itemsTotal, $quote->shippingTotal);
             $increase = Decimal::cmp($so->expected_cost, '0') > 0
                 ? Decimal::mul(Decimal::div(Decimal::sub($current, $so->expected_cost, 6), $so->expected_cost, 6), '100', 2)

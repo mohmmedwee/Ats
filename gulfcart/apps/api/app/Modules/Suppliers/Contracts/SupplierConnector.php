@@ -26,8 +26,11 @@ interface SupplierConnector
 
     public function checkAvailability(string $externalProductId, string $externalVariantId): AvailabilityResult;
 
-    /** @param list<PurchaseLine> $lines */
-    public function getQuote(array $lines): SupplierQuote;
+    /**
+     * @param  list<PurchaseLine>  $lines
+     * @param  string|null  $countryCode  destination, when known (shipping cost depends on it)
+     */
+    public function getQuote(array $lines, ?string $countryCode = null): SupplierQuote;
 
     public function createOrder(PurchaseRequest $request, string $idempotencyKey): PurchaseResult;
 

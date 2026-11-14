@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Suppliers\Application\Connectors\Cj\CjDropshippingConnector;
+
 return [
     'locales' => array_values(array_filter(explode(',', (string) env('SUPPORTED_LOCALES', 'en,ar')))),
     'default_locale' => env('DEFAULT_LOCALE', 'en'),
@@ -11,9 +13,29 @@ return [
     // Filesystem disk for product images (S3 in production).
     'catalog_disk' => env('CATALOG_DISK', 'public'),
 
-    // Authorized supplier connectors: connector_type => class implementing SupplierConnector.
-    // Add an entry only after written authorization (docs/PROCUREMENT_WORKFLOW.md §5).
-    'supplier_connectors' => [],
+    // Supplier connectors: connector_type => class implementing SupplierConnector.
+    // Registering a type does not activate anyone: a supplier using it still needs an approved
+    // authorization record before it can be activated (docs/PROCUREMENT_WORKFLOW.md §5).
+    'supplier_connectors' => [
+        'cj' => CjDropshippingConnector::class,
+    ],
+
+    // CJdropshipping (docs/suppliers/CJ_DROPSHIPPING.md).
+    'cj' => [
+        'api_key' => env('CJ_API_KEY', ''),
+        'base_url' => env('CJ_API_BASE_URL', 'https://developers.cjdropshipping.com/api2.0/v1/'),
+        'timeout' => (int) env('CJ_TIMEOUT_SECONDS', 20),
+        'from_country' => env('CJ_FROM_COUNTRY', 'CN'),
+        // Preferred CJ logistic names in order; the cheapest available is used otherwise.
+        'logistics' => env('CJ_LOGISTICS', ''),
+        // Pay new CJ orders from the CJ wallet balance automatically.
+        'auto_pay' => (bool) env('CJ_AUTO_PAY', true),
+        'confirm_before_pay' => (bool) env('CJ_CONFIRM_BEFORE_PAY', true),
+        'low_stock_units' => (int) env('CJ_LOW_STOCK_UNITS', 10),
+        // Destination used for shipping estimates when the order country is unknown.
+        'quote_country' => 'SA',
+        'tracking_url' => env('CJ_TRACKING_URL', 'https://www.17track.net/en/track?nums={number}'),
+    ],
 
     'pricing' => [
         // Gateway fee charged on the gross (VAT-inclusive) amount.
