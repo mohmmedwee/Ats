@@ -20,6 +20,9 @@ final class Outbox
             throw new LogicException('Outbox::record() must be called inside a database transaction.');
         }
 
+        // Publish as soon as the surrounding transaction commits; the scheduler is the safety net.
+        DB::afterCommit(static fn () => DispatchOutboxJob::dispatch());
+
         return OutboxEvent::query()->create([
             'aggregate_type' => $aggregateType,
             'aggregate_id' => $aggregateId,

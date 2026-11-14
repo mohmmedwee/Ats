@@ -51,6 +51,7 @@ abstract class TestCase extends BaseTestCase
     /** Authorization header for an MFA-verified staff token with the given roles. @return array<string, string> */
     protected function asStaff(array $roles = ['admin']): array
     {
+        $this->app['auth']->forgetGuards(); // the guard caches the previous request's user
         $token = $this->staff($roles)->createToken('test', ['*'])->plainTextToken;
 
         return ['Authorization' => 'Bearer '.$token];

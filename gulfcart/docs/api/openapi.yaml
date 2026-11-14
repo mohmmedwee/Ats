@@ -12,6 +12,11 @@ servers:
 security:
   - sanctum: []
 tags:
+  - name: Orders
+  - name: Payments
+  - name: Admin Orders
+  - name: Admin Procurement
+  - name: Admin Refunds
   - name: Cart
   - name: Checkout
   - name: Admin Pricing
@@ -922,6 +927,292 @@ paths:
       summary: Update a shipping method
       parameters: [{ name: shippingMethod, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' } }
+
+  # ---------- Orders (customer) ----------
+  /orders:
+    get:
+      tags: [Orders]
+      summary: Customer orders (cursor pagination)
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+    post:
+      tags: [Orders]
+      summary: Create an order (pending_payment) from a valid checkout session
+      description: >
+        One order per checkout session; repeating the call returns the same order.
+        Requires an Idempotency-Key header. 410 QUOTE_EXPIRED when the session expired.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [checkout_session_id]
+              properties:
+                checkout_session_id: { type: string, format: uuid }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410':
+          description: QUOTE_EXPIRED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Order details grouped into packages (one per supplier shipment) with tracking
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /orders/{id}/tracking:
+    get:
+      tags: [Orders]
+      summary: Shipments with carrier, tracking number and events
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel an order
+      description: >
+        Unpaid orders are cancelled immediately. Paid orders are cancelled and fully refunded
+        only while no supplier purchase exists; otherwise 409 CANCELLATION_NOT_POSSIBLE.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  # ---------- Payments ----------
+  /payments/intent:
+    post:
+      tags: [Payments]
+      summary: Create (or reuse) a payment intent for the amount due; returns redirect_url
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id]
+              properties:
+                order_id: { type: string, format: uuid }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '409':
+          description: ORDER_ALREADY_PAID or ORDER_NOT_PAYABLE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Payment status (own orders only)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /payments/{id}/sandbox-complete:
+    post:
+      tags: [Payments]
+      summary: Sandbox gateway only (never in production) - simulate the customer completing payment
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome: { type: string, enum: [success, failure] }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /webhooks/payments/{provider}:
+    post:
+      tags: [Payments]
+      summary: Payment provider webhook
+      description: >
+        Unauthenticated; trust comes only from the provider signature, checked together with a
+        5-minute timestamp tolerance. Events are deduplicated by provider event ID and processed
+        in a transaction. Captures with a mismatched amount or currency are rejected and logged.
+      security: []
+      parameters: [{ name: provider, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: 'data.result is processed, duplicate, ignored or failed'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401':
+          description: WEBHOOK_SIGNATURE_INVALID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  # ---------- Admin orders, procurement, refunds ----------
+  /admin/orders:
+    get:
+      tags: [Admin Orders]
+      summary: Orders with estimated landed cost and contribution (orders.view_any)
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/orders/{order}:
+    get:
+      tags: [Admin Orders]
+      summary: Order with items, costs and fulfilment state
+      parameters: [{ name: order, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/procurement:
+    get:
+      tags: [Admin Procurement]
+      summary: Procurement tasks, exceptions first, with counts per status in meta.counts (procurement.view)
+      parameters:
+        - name: status
+          in: query
+          description: Comma-separated task statuses
+          schema: { type: string, examples: ['exception,manual'] }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/procurement/{task}:
+    get:
+      tags: [Admin Procurement]
+      summary: Task with supplier order, items and the attempt log
+      parameters: [{ name: task, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/procurement/{task}/retry:
+    post:
+      tags: [Admin Procurement]
+      summary: Retry an exception (procurement.act)
+      description: >
+        Set new_idempotency_key=true only after confirming with the supplier that no order exists
+        for the previous key. It is required after UNKNOWN_OUTCOME_UNRESOLVED.
+      parameters:
+        - { name: task, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/procurement/{task}/approve:
+    post:
+      tags: [Admin Procurement]
+      summary: Record a purchase placed manually by an operator
+      parameters:
+        - { name: task, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [external_order_id, actual_cost]
+              properties:
+                external_order_id: { type: string }
+                actual_cost: { type: number }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/procurement/{task}/switch-source:
+    post:
+      tags: [Admin Procurement]
+      summary: Move the items to another eligible supplier; the old supplier order is cancelled
+      parameters:
+        - { name: task, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supplier_product_id]
+              properties:
+                supplier_product_id: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+  /admin/procurement/{task}/cancel:
+    post:
+      tags: [Admin Procurement]
+      summary: Cancel the supplier order and optionally refund its items
+      parameters:
+        - { name: task, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refund]
+              properties:
+                refund: { type: boolean }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/refunds:
+    get:
+      tags: [Admin Refunds]
+      summary: Refunds (filter by status or order_id)
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+    post:
+      tags: [Admin Refunds]
+      summary: Request a refund (refunds.request)
+      description: >
+        Approvers' refunds up to the threshold (500 AED or SAR) execute immediately; larger ones
+        or requests by non-approvers wait for a different approver (four-eyes).
+        422 REFUND_EXCEEDS_CAPTURED when captured minus refunded minus in-flight is too small.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id, amount, reason_code]
+              properties:
+                order_id: { type: string, format: uuid }
+                amount: { type: string, examples: ['20.00'] }
+                reason_code: { type: string, enum: [customer_request, procurement_failed, damaged, not_delivered, goodwill, cancellation, price_adjustment] }
+                reason: { type: string }
+                items:
+                  type: object
+                  description: Order item ID mapped to refunded quantity
+                  additionalProperties: { type: integer }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+  /admin/refunds/{refund}/approve:
+    post:
+      tags: [Admin Refunds]
+      summary: Approve and execute a requested refund (refunds.approve; 403 FOUR_EYES_REQUIRED for the requester)
+      parameters: [{ name: refund, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+  /admin/refunds/{refund}/reject:
+    post:
+      tags: [Admin Refunds]
+      summary: Reject a requested refund
+      parameters: [{ name: refund, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
 
 components:
   securitySchemes:

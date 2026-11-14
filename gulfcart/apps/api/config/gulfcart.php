@@ -39,6 +39,28 @@ return [
         ],
     ],
 
+    'orders' => [
+        'payment_window_minutes' => (int) env('ORDER_PAYMENT_WINDOW_MINUTES', 60),
+    ],
+
+    'payments' => [
+        // Decision D2 pending: until a provider is contracted, the sandbox gateway is used.
+        'provider' => env('PAYMENT_PROVIDER', 'sandbox'),
+        'gateways' => [],  // provider name => class implementing PaymentGateway
+        'sandbox' => ['secret' => env('PAYMENT_SANDBOX_SECRET', 'sandbox-dev-secret-change-me')],
+        'allow_sandbox_in_production' => (bool) env('ALLOW_SANDBOX_PAYMENTS_IN_PRODUCTION', false),
+        'webhook_tolerance_seconds' => 300,
+        // Staff refunds above this amount need a second approver (four-eyes).
+        'refund_approval_threshold' => ['AED' => '500', 'SAR' => '500'],
+    ],
+
+    'procurement' => [
+        // Do not buy when the supplier's current cost is this much above the expected cost.
+        'max_cost_increase_percent' => env('PROCUREMENT_MAX_COST_INCREASE_PERCENT', '5'),
+        'retry_backoff_minutes' => [1, 5, 15, 60, 240],
+        'stale_lock_minutes' => 10,
+    ],
+
     'allow_mock_supplier_in_production' => (bool) env('ALLOW_MOCK_SUPPLIER_IN_PRODUCTION', false),
 
     // Local development only (DevSuperAdminSeeder).

@@ -40,6 +40,6 @@ final class OutboxTest extends TestCase
         $this->assertSame('pending', $event->status);
         $this->assertSame(1, $event->attempts);
         $this->assertTrue($event->available_at->isFuture());
-        $this->assertSame('downstream unavailable', $event->last_error);
+        $this->assertSame('RuntimeException: downstream unavailable', $event->last_error);
     }
 }

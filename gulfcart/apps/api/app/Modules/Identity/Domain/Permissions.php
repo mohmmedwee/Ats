@@ -59,7 +59,7 @@ final class Permissions
             'support' => [self::ORDERS_VIEW_ANY, self::REFUNDS_REQUEST],
             'operations' => [self::ORDERS_VIEW_ANY, self::PROCUREMENT_VIEW, self::PROCUREMENT_ACT, self::REFUNDS_REQUEST],
             'catalog_manager' => [self::CATALOG_MANAGE, self::CATALOG_PUBLISH],
-            'finance' => [self::ORDERS_VIEW_ANY, self::PROCUREMENT_VIEW, self::PRICING_MANAGE, self::REFUNDS_APPROVE, self::AUDIT_VIEW],
+            'finance' => [self::ORDERS_VIEW_ANY, self::PROCUREMENT_VIEW, self::PRICING_MANAGE, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE, self::AUDIT_VIEW],
             'admin' => $admin,
             'super_admin' => $all,
         ];
