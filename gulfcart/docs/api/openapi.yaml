@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: GulfCart API
+  version: 1.0.0
+  description: >
+    REST API for the GulfCart storefront and admin dashboard.
+    Paths are added module by module; Milestone 1 covers health and authentication.
+servers:
+  - url: https://api.gulfcart.com/api/v1
+  - url: http://localhost/api/v1
+    description: Local Docker Compose
+security:
+  - sanctum: []
+tags:
+  - name: Health
+  - name: Authentication
+
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe (database, Redis, queue)
+      security: []
+      responses:
+        '200':
+          description: All dependencies reachable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+        '503':
+          description: A dependency is unavailable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a customer
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Registered and signed in
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: >
+            Signed in. For staff with MFA enabled, `data.mfa_required` is true and
+            the session is not authenticated until `/auth/mfa/challenge` succeeds.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: '#/components/schemas/User' }
+                          mfa_required: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Log out
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Current user with roles and permissions
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      description: Sanctum token, or the SPA session cookie for the storefront.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 255 }
+    Country:
+      name: X-Country
+      in: header
+      required: false
+      schema: { type: string, enum: [AE, SA] }
+  responses:
+    ValidationFailed:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthenticated:
+      description: Not authenticated
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    Meta:
+      type: object
+      required: [request_id]
+      properties:
+        request_id: { type: string }
+    SuccessEnvelope:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { const: true }
+        data: {}
+        meta: { $ref: '#/components/schemas/Meta' }
+    ErrorEnvelope:
+      type: object
+      required: [success, error, meta]
+      properties:
+        success: { const: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [VALIDATION_FAILED] }
+            message: { type: string }
+            details: { type: object }
+        meta: { $ref: '#/components/schemas/Meta' }
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string, pattern: '^-?\d+\.\d{2}$', examples: ['89.00'] }
+        currency: { type: string, enum: [AED, SAR] }
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        checks:
+          type: object
+          additionalProperties: { type: string, enum: [ok, down] }
+    RegisterRequest:
+      type: object
+      required: [name, password]
+      properties:
+        name: { type: string, maxLength: 150 }
+        email: { type: string, format: email }
+        phone: { type: string, description: E.164 }
+        password: { type: string, minLength: 10 }
+        locale: { type: string, enum: [ar, en] }
+      description: At least one of email or phone is required.
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login: { type: string, description: Email or E.164 phone }
+        password: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: [string, 'null'] }
+        phone: { type: [string, 'null'] }
+        type: { type: string, enum: [customer, staff] }
+        roles: { type: array, items: { type: string } }
+        permissions: { type: array, items: { type: string } }
+        mfa_enabled: { type: boolean }
