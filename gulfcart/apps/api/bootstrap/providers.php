@@ -5,6 +5,7 @@ use App\Modules\Audit\Providers\AuditServiceProvider;
 use App\Modules\Cart\Providers\CartServiceProvider;
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Checkout\Providers\CheckoutServiceProvider;
+use App\Modules\Content\Providers\ContentServiceProvider;
 use App\Modules\Countries\Providers\CountriesServiceProvider;
 use App\Modules\Identity\Providers\IdentityServiceProvider;
 use App\Modules\Invoices\Providers\InvoicesServiceProvider;
@@ -38,4 +39,5 @@ return [
     NotificationsServiceProvider::class,
     AnalyticsServiceProvider::class,
     InvoicesServiceProvider::class,
+    ContentServiceProvider::class,
 ];

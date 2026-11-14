@@ -3,6 +3,7 @@
 namespace App\Modules\Identity\Providers;
 
 use App\Modules\Identity\Application\EloquentUserDirectory;
+use App\Modules\Identity\Application\HttpSmsSender;
 use App\Modules\Identity\Application\LogSmsSender;
 use App\Modules\Identity\Contracts\SmsSender;
 use App\Modules\Identity\Contracts\UserDirectory;
@@ -26,7 +27,9 @@ final class IdentityServiceProvider extends ModuleServiceProvider
     {
         $this->app->singleton(UserDirectory::class, EloquentUserDirectory::class);
         // Replace with a provider adapter once an SMS provider is contracted.
-        $this->app->singletonIf(SmsSender::class, LogSmsSender::class);
+        $this->app->singletonIf(SmsSender::class, fn () => in_array(config('gulfcart.sms.provider'), ['twilio', 'unifonic'], true)
+            ? new HttpSmsSender((string) config('gulfcart.sms.provider'))
+            : new LogSmsSender);
     }
 
     public function boot(): void
@@ -61,10 +64,14 @@ final class IdentityServiceProvider extends ModuleServiceProvider
         RateLimiter::for('register', static fn (Request $r) => Limit::perMinute(5)->by('register:'.$r->ip()));
         RateLimiter::for('password', static fn (Request $r) => Limit::perMinute(3)->by('password:'.$r->ip()));
         RateLimiter::for('otp', static fn (Request $r) => [
-            Limit::perMinutes(10, 3)->by('otp:'.preg_replace('/\D/', '', (string) $r->input('phone'))),
+            // Keyed on the last 9 digits so "+971 50…", "050…" and "50…" share one budget.
+            Limit::perMinutes(10, 3)->by('otp:'.substr((string) preg_replace('/\D/', '', (string) $r->input('phone')), -9)),
             Limit::perHour(10)->by('otp-user:'.($r->user()?->getAuthIdentifier() ?? $r->ip())),
         ]);
-        RateLimiter::for('otp-verify', static fn (Request $r) => Limit::perMinute(10)->by('otpv:'.($r->user()?->getAuthIdentifier() ?? $r->ip())));
+        RateLimiter::for('otp-verify', static fn (Request $r) => [
+            Limit::perMinute(10)->by('otpv:'.($r->user()?->getAuthIdentifier() ?? $r->ip())),
+            Limit::perHour(20)->by('otpv-phone:'.substr((string) preg_replace('/\D/', '', (string) $r->input('phone')), -9)),
+        ]);
         RateLimiter::for('mfa', static fn (Request $r) => Limit::perMinute(5)->by('mfa:'.($r->user()?->getAuthIdentifier() ?? $r->ip())));
     }
 }

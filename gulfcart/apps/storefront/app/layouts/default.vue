@@ -7,7 +7,12 @@ const router = useRouter()
 const q = ref(String(route.query.q ?? ''))
 watch(() => route.query.q, v => (q.value = String(v ?? '')))
 
+const { site, load: loadSite } = useSite()
+const { locale } = useI18n()
+watch(locale, () => loadSite())
+
 onMounted(() => {
+  loadSite()
   if (!auth.loaded) auth.fetchMe()
   cart.load().catch(() => undefined)
 })
@@ -74,28 +79,31 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
       <slot />
     </main>
 
-    <footer class="mt-10 hidden bg-white md:block">
-      <div class="mx-auto grid max-w-7xl grid-cols-4 gap-8 px-4 py-10 text-sm text-ink-700">
-        <div class="space-y-2"><BrandLogo /><p class="text-ink-500">{{ $t('home.subtitle') }}</p></div>
+    <footer class="mt-10 bg-white">
+      <div class="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-10 text-sm text-ink-700 md:grid-cols-4">
+        <div class="col-span-2 space-y-2 md:col-span-1"><BrandLogo /><p class="text-ink-500">{{ $t('home.subtitle') }}</p></div>
         <div class="space-y-2">
           <p class="font-semibold text-ink-900">{{ $t('footer.shop') }}</p>
           <NuxtLink :to="localePath('/products')" class="block hover:text-brand-600">{{ $t('home.all') }}</NuxtLink>
           <NuxtLink :to="localePath('/products?sort=price_asc')" class="block hover:text-brand-600">{{ $t('home.best_value') }}</NuxtLink>
-        </div>
-        <div class="space-y-2">
-          <p class="font-semibold text-ink-900">{{ $t('footer.help') }}</p>
           <NuxtLink :to="localePath('/account/orders')" class="block hover:text-brand-600">{{ $t('nav.orders') }}</NuxtLink>
-          <span class="block">{{ $t('promo.returns') }}</span>
+          <NuxtLink :to="localePath('/account/wishlist')" class="block hover:text-brand-600">{{ $t('wishlist.title') }}</NuxtLink>
         </div>
-        <div class="space-y-2">
+        <div class="space-y-2" data-test="footer-pages">
+          <p class="font-semibold text-ink-900">{{ $t('footer.help') }}</p>
+          <NuxtLink v-for="p in site?.pages ?? []" :key="p.slug" :to="localePath(`/info/${p.slug}`)" class="block hover:text-brand-600">{{ p.title }}</NuxtLink>
+        </div>
+        <div class="col-span-2 space-y-2 md:col-span-1">
           <p class="font-semibold text-ink-900">{{ $t('footer.pay_safely') }}</p>
           <p class="flex items-center gap-2"><AppIcon name="shield" :size="18" /> {{ $t('footer.secure') }}</p>
+          <p v-if="site?.support.email" class="text-ink-500" dir="ltr">{{ site.support.email }}</p>
           <CountrySelect />
           <LanguageSwitcher />
         </div>
       </div>
       <p class="border-t py-4 text-center text-xs text-ink-500">© {{ new Date().getFullYear() }} GulfCart</p>
     </footer>
+    <WhatsAppButton />
 
     <!-- mobile app-style bottom navigation -->
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-white text-[11px] md:hidden">

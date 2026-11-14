@@ -52,6 +52,23 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data
   }
 
+  async function phoneStart(country: string, phone: string) {
+    await csrf()
+    await request('/auth/phone/start', { method: 'POST', body: { country, phone } })
+  }
+
+  async function phoneVerify(country: string, phone: string, code: string) {
+    const res = await request<Envelope<{ user: User, new_user: boolean, profile_incomplete: boolean }>>('/auth/phone/verify', { method: 'POST', body: { country, phone, code } })
+    user.value = res.data.user
+    mfaPending.value = false
+    return res.data
+  }
+
+  async function updateProfile(payload: { name?: string, email?: string | null }) {
+    const res = await request<Envelope<User>>('/auth/me', { method: 'PATCH', body: payload })
+    user.value = res.data
+  }
+
   async function mfaChallenge(code: string) {
     await request('/auth/mfa/challenge', { method: 'POST', body: { code } })
     mfaPending.value = false
@@ -63,5 +80,5 @@ export const useAuthStore = defineStore('auth', () => {
     mfaPending.value = false
   }
 
-  return { user, mfaPending, loaded, isStaff, can, fetchMe, login, register, mfaChallenge, logout }
+  return { user, mfaPending, loaded, isStaff, can, fetchMe, login, register, phoneStart, phoneVerify, updateProfile, mfaChallenge, logout }
 })

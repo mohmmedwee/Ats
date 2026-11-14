@@ -5,12 +5,15 @@ use App\Modules\Identity\Http\Controllers\Admin\UserController;
 use App\Modules\Identity\Http\Controllers\AuthController;
 use App\Modules\Identity\Http\Controllers\MfaController;
 use App\Modules\Identity\Http\Controllers\PasswordResetController;
+use App\Modules\Identity\Http\Controllers\PhoneAuthController;
 use App\Modules\Identity\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:register');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('phone/start', [PhoneAuthController::class, 'start'])->middleware('throttle:otp');
+    Route::post('phone/verify', [PhoneAuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::post('forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:password');
     Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:password');
     Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verifyEmail'])
@@ -19,6 +22,7 @@ Route::prefix('auth')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
+        Route::patch('me', [PhoneAuthController::class, 'updateProfile']);
         Route::post('otp/send', [VerificationController::class, 'sendOtp'])->middleware('throttle:otp');
         Route::post('verify-otp', [VerificationController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
         Route::post('email/resend', [VerificationController::class, 'resendEmail'])->middleware('throttle:password');

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\Content\Database\Seeders\PageSeeder;
 use App\Modules\Countries\Database\Seeders\CountrySeeder;
 use App\Modules\Identity\Database\Seeders\DevSuperAdminSeeder;
 use App\Modules\Identity\Database\Seeders\RolesAndPermissionsSeeder;
@@ -20,6 +21,7 @@ class DatabaseSeeder extends Seeder
             TaxSeeder::class,
             ShippingMethodSeeder::class,
             PricingSeeder::class,
+            PageSeeder::class,
             DevSuperAdminSeeder::class,
         ]);
     }

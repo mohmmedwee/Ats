@@ -20,6 +20,30 @@ return [
         'cj' => CjDropshippingConnector::class,
     ],
 
+    // SMS for sign-in codes: log (development) | twilio | unifonic.
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'log'),
+        'sender' => env('SMS_SENDER', 'GulfCart'),
+        'twilio_sid' => env('TWILIO_ACCOUNT_SID'),
+        'twilio_token' => env('TWILIO_AUTH_TOKEN'),
+        'unifonic_app_sid' => env('UNIFONIC_APP_SID'),
+    ],
+
+    // Customer support channels shown on the storefront (contact page, WhatsApp button).
+    'support' => [
+        'email' => env('SUPPORT_EMAIL', 'support@gulfcart.example'),
+        'whatsapp' => env('SUPPORT_WHATSAPP'), // E.164 without +, e.g. 971500000000
+        'hours' => env('SUPPORT_HOURS', 'Sun–Thu 9:00–18:00 (GST)'),
+    ],
+
+    // Marketing tags loaded by the storefront only after the visitor accepts cookies.
+    'tracking' => [
+        'meta_pixel_id' => env('META_PIXEL_ID'),
+        'tiktok_pixel_id' => env('TIKTOK_PIXEL_ID'),
+        'snap_pixel_id' => env('SNAP_PIXEL_ID'),
+        'ga4_id' => env('GA4_MEASUREMENT_ID'),
+    ],
+
     // Machine translation of imported product text to Arabic (drafts, reviewed before publishing).
     'translation' => [
         'provider' => env('TRANSLATION_PROVIDER', 'none'), // none | claude

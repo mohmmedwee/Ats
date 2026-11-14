@@ -547,6 +547,20 @@
       "fulfilled": "Fulfilled",
       "preparing": "Preparing",
       "partially_shipped": "Partly shipped"
+    },
+    "content": {
+      "title": "Pages",
+      "subtitle": "Policies and information pages shown in the store footer.",
+      "add": "Add page",
+      "link": "Link",
+      "published": "Published",
+      "hidden": "Hidden",
+      "in_footer": "In footer",
+      "updated": "Updated",
+      "body_en": "Text (English)",
+      "body_ar": "Text (Arabic)",
+      "format_hint": "Formatting: start a line with \"## \" for a heading, \"- \" for a bullet, \"1. \" for a numbered step. Leave an empty line between paragraphs.",
+      "legal_note": "These are starting texts that match how the store works. Have a lawyer review them and add your company's legal name and address before launch."
     }
   },
   "errors": {
@@ -597,7 +611,7 @@
       "UNAVAILABLE": "This item is no longer available."
     },
     "review": "Review changes",
-    "login_to_checkout": "Log in to check out",
+    "login_to_checkout": "Continue to checkout",
     "free_remaining": "Add {amount} more for free delivery",
     "free_reached": "You've unlocked free delivery",
     "summary_note": "Delivery and any customs are calculated at checkout."
@@ -735,5 +749,29 @@
     "help": "Help",
     "pay_safely": "Pay safely",
     "secure": "Secure checkout · card details never stored by GulfCart"
+  },
+  "content": {
+    "whatsapp": "Chat on WhatsApp",
+    "hours": "Working hours"
+  },
+  "wishlist": {
+    "title": "Wishlist"
+  },
+  "phone_auth": {
+    "title": "Sign in or create an account",
+    "subtitle": "Use your mobile number: no password needed.",
+    "tab_phone": "Mobile number",
+    "tab_email": "Email and password",
+    "mobile": "Mobile number",
+    "send_code": "Send code",
+    "no_password": "We'll text you a 6-digit code. New here? Your account is created automatically.",
+    "code_sent": "Enter the code we sent to",
+    "verify": "Verify and continue",
+    "change_number": "Change number",
+    "resend": "Resend code",
+    "resend_in": "Resend in {s}s",
+    "welcome": "Welcome to GulfCart! What should we call you?",
+    "email_optional": "Email (optional, for receipts)",
+    "continue": "Continue"
   }
 }

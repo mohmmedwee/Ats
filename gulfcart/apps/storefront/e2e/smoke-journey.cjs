@@ -48,9 +48,11 @@ function totp(secret) {
   await page.goto(BASE + '/cart');
   await page.waitForSelector('[data-test=cart-line]');
   log('cart subtotal', (await page.textContent('[data-test=cart-subtotal]')).trim());
-  await page.click('text=Log in to check out');
+  await page.click('text=Continue to checkout');
   await page.waitForURL('**/login**');
-  await page.click('text=Create account');
+  await page.waitForLoadState('networkidle');
+  await page.click('[data-test=mode-email]');
+  await page.click('main a:has-text("Create account")');
   await page.waitForURL('**/register**');
   const email = `shopper${Date.now()}@example.com`;
   const inputs = page.locator('main form input');
@@ -95,7 +97,7 @@ function totp(secret) {
   // 5. Admin: dev super admin enrols in MFA and sees the dashboard
   await page.click('text=Log out');
   await page.waitForTimeout(500);
-  await page.goto(BASE + '/login');
+  await page.goto(BASE + '/login?mode=email');
   await page.waitForLoadState('networkidle');
   await page.locator('main form input').nth(0).fill(ADMIN_EMAIL);
   await page.locator('main form input').nth(1).fill(ADMIN_PASSWORD);
