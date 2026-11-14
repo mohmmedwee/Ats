@@ -36,4 +36,6 @@ return [
     'coupon_min_subtotal' => 'أضف منتجات بقيمة :min_subtotal على الأقل لاستخدام هذا الكود.',
     'coupon_used_up' => 'نفدت مرات استخدام هذا الكود.',
     'coupon_already_used' => 'لقد استخدمت هذا الكود من قبل.',
+    'review_not_allowed' => 'يمكن تقييم المنتج فقط من العملاء الذين استلموه.',
+    'review_already_exists' => 'لقد قيّمت هذا المنتج من قبل.',
 ];

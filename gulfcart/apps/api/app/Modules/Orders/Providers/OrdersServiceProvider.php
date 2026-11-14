@@ -3,8 +3,10 @@
 namespace App\Modules\Orders\Providers;
 
 use App\Modules\Orders\Application\EloquentOrderBook;
+use App\Modules\Orders\Application\EloquentPurchaseHistory;
 use App\Modules\Orders\Console\ExpireUnpaidOrdersCommand;
 use App\Modules\Orders\Contracts\OrderBook;
+use App\Modules\Orders\Contracts\PurchaseHistory;
 use App\Modules\Orders\Listeners\OrdersOutboxListener;
 use App\Shared\Modules\ModuleServiceProvider;
 use App\Shared\Outbox\OutboxMessagePublished;
@@ -20,6 +22,7 @@ final class OrdersServiceProvider extends ModuleServiceProvider
     public function register(): void
     {
         $this->app->singleton(OrderBook::class, EloquentOrderBook::class);
+        $this->app->singleton(PurchaseHistory::class, EloquentPurchaseHistory::class);
         // OrderRefunder (Payments), CancellationPolicy (Procurement) and FulfillmentView
         // (Shipping) are bound by the modules that implement them.
     }

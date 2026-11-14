@@ -1,12 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'staff', layout: 'admin' })
-interface Category { id: string, slug: string, name: { en?: string, ar?: string }, parent_id: string | null, sort_order: number, is_active: boolean }
+interface Category { id: string, slug: string, name: { en?: string, ar?: string }, size_guide: { en?: string | null, ar?: string | null } | null, parent_id: string | null, sort_order: number, is_active: boolean }
 const { request, send, run, error, notice, tr } = useAdmin()
 const { t, locale } = useI18n()
 const categories = ref<Category[]>([])
 const editing = ref<Category | null>(null)
 const open = ref(false)
-const form = reactive({ name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true })
+const form = reactive({ name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '' })
 
 const tree = computed(() => {
   const out: { c: Category, depth: number }[] = []
@@ -25,15 +25,15 @@ async function load() {
 function edit(c: Category | null) {
   editing.value = c
   Object.assign(form, c
-    ? { name_en: c.name.en ?? '', name_ar: c.name.ar ?? '', slug: c.slug, parent_id: c.parent_id ?? '', sort_order: c.sort_order, is_active: c.is_active }
-    : { name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true })
+    ? { name_en: c.name.en ?? '', name_ar: c.name.ar ?? '', slug: c.slug, parent_id: c.parent_id ?? '', sort_order: c.sort_order, is_active: c.is_active, guide_en: c.size_guide?.en ?? '', guide_ar: c.size_guide?.ar ?? '' }
+    : { name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '' })
   open.value = true
 }
 function autoSlug() {
   if (!editing.value) form.slug = form.name_en.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 async function save() {
-  const body = { name: { en: form.name_en, ar: form.name_ar }, slug: form.slug, parent_id: form.parent_id || null, sort_order: Number(form.sort_order), is_active: form.is_active }
+  const body = { name: { en: form.name_en, ar: form.name_ar }, size_guide: { en: form.guide_en || null, ar: form.guide_ar || null }, slug: form.slug, parent_id: form.parent_id || null, sort_order: Number(form.sort_order), is_active: form.is_active }
   const ok = await run(() => editing.value ? send('PATCH', `/admin/categories/${editing.value.id}`, body) : send('POST', '/admin/categories', body), t('admin.common.saved'))
   if (ok !== undefined) {
     open.value = false
@@ -83,6 +83,9 @@ onMounted(load)
         </label>
         <label class="block"><span class="label">{{ $t('admin.categories.order') }}</span><input v-model.number="form.sort_order" class="input" dir="ltr"></label>
         <label class="mt-6 flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox"> {{ $t('admin.common.active') }}</label>
+        <label><span class="label">{{ $t('admin.categories.size_guide') }} (EN)</span><textarea v-model="form.guide_en" class="input font-mono text-xs" rows="5" dir="ltr" placeholder="## Size chart&#10;- S: chest 86–90 cm&#10;- M: chest 90–94 cm" /></label>
+        <label><span class="label">{{ $t('admin.categories.size_guide') }} (AR)</span><textarea v-model="form.guide_ar" class="input font-mono text-xs" rows="5" dir="rtl" /></label>
+        <p class="text-xs text-ink-500 sm:col-span-2">{{ $t('admin.categories.size_guide_hint') }}</p>
         <div class="flex justify-end gap-2 sm:col-span-2"><button type="button" class="btn-outline" @click="open = false">{{ $t('common.cancel') }}</button><button class="btn-primary">{{ $t('common.save') }}</button></div>
       </form>
     </AdminModal>

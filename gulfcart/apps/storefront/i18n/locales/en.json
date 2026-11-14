@@ -315,7 +315,9 @@
       "add": "Add category",
       "edit": "Edit category",
       "parent": "Parent",
-      "order": "Order"
+      "order": "Order",
+      "size_guide": "Size guide",
+      "size_guide_hint": "Shown on every product in this category and its subcategories. Same formatting as pages: \"## \" heading, \"- \" bullet."
     },
     "suppliers_page": {
       "subtitle": "Where products come from. A supplier sells only after its agreement is recorded and it is activated.",
@@ -587,6 +589,10 @@
       "usage_limit": "Total uses",
       "per_customer_label": "Uses per customer (0 = unlimited)",
       "hint": "Discounts apply to products (VAT included), not to customs. Amounts are in the shopper's currency (AED or SAR): limit fixed-amount codes to one country. Codes from unpaid orders are given back automatically."
+    },
+    "reviews": {
+      "title": "Reviews",
+      "subtitle": "Approve customer reviews before they appear on the product page."
     }
   },
   "errors": {
@@ -768,7 +774,8 @@
     "returns": "{days}-day returns",
     "returns_note": "From the day your package is delivered",
     "description": "Details",
-    "related": "You may also like"
+    "related": "You may also like",
+    "size_guide": "Size guide"
   },
   "footer": {
     "shop": "Shop",
@@ -781,7 +788,10 @@
     "hours": "Working hours"
   },
   "wishlist": {
-    "title": "Wishlist"
+    "title": "Wishlist",
+    "add": "Save to wishlist",
+    "remove": "Remove from wishlist",
+    "empty": "Tap the heart on any product to save it here."
   },
   "phone_auth": {
     "title": "Sign in or create an account",
@@ -805,5 +815,17 @@
     "apply": "Apply",
     "applied": "Code applied:",
     "discount": "Discount"
+  },
+  "reviews": {
+    "title": "Customer reviews",
+    "count": "{n} reviews",
+    "write": "Write a review",
+    "title_ph": "Headline (optional)",
+    "body_ph": "What did you like or dislike?",
+    "submit": "Submit review",
+    "thanks": "Thank you! Your review will appear after a quick check.",
+    "pending": "Your review is waiting for approval.",
+    "verified": "Verified purchase",
+    "none": "No reviews yet."
   }
 }

@@ -7,6 +7,7 @@ use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Checkout\Providers\CheckoutServiceProvider;
 use App\Modules\Content\Providers\ContentServiceProvider;
 use App\Modules\Countries\Providers\CountriesServiceProvider;
+use App\Modules\Engagement\Providers\EngagementServiceProvider;
 use App\Modules\Identity\Providers\IdentityServiceProvider;
 use App\Modules\Invoices\Providers\InvoicesServiceProvider;
 use App\Modules\Notifications\Providers\NotificationsServiceProvider;
@@ -42,4 +43,5 @@ return [
     InvoicesServiceProvider::class,
     ContentServiceProvider::class,
     PromotionsServiceProvider::class,
+    EngagementServiceProvider::class,
 ];

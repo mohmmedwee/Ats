@@ -24,7 +24,7 @@ class Category extends Model
 
     protected function casts(): array
     {
-        return ['name' => 'array', 'is_active' => 'boolean', 'sort_order' => 'integer'];
+        return ['name' => 'array', 'size_guide' => 'array', 'is_active' => 'boolean', 'sort_order' => 'integer'];
     }
 
     /** @return BelongsTo<Category, $this> */

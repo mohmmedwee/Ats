@@ -450,6 +450,7 @@ paths:
         - $ref: '#/components/parameters/Country'
         - { name: category, in: query, schema: { type: string } }
         - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: ids, in: query, description: 'Comma-separated product IDs (max 100), e.g. for the wishlist', schema: { type: string } }
         - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc] } }
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
@@ -892,6 +893,57 @@ paths:
       summary: Update a discount code
       parameters: [{ name: coupon, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /products/{productId}/reviews:
+    get:
+      tags: [Engagement]
+      summary: Approved reviews with average and distribution; `mine` tells a signed-in customer whether they can review
+      security: [{}, { sanctum: [] }]
+      parameters: [{ name: productId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Engagement]
+      summary: Review a product the customer received (once per product; published after moderation)
+      parameters: [{ name: productId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [rating], properties: { rating: { type: integer, minimum: 1, maximum: 5 }, title: { type: [string, 'null'], maxLength: 120 }, body: { type: [string, 'null'], maxLength: 2000 } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { description: REVIEW_NOT_ALLOWED }, '409': { description: REVIEW_ALREADY_EXISTS } }
+  /wishlist:
+    get:
+      tags: [Engagement]
+      summary: Saved product IDs (render with GET /products?ids=)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Engagement]
+      summary: Save a product (idempotent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [product_id], properties: { product_id: { type: string, format: uuid } } }
+      responses: { '201': { $ref: '#/components/responses/Created' } }
+  /wishlist/{productId}:
+    delete:
+      tags: [Engagement]
+      summary: Remove a saved product
+      parameters: [{ name: productId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '204': { description: Removed } }
+  /admin/reviews:
+    get:
+      tags: [Admin Engagement]
+      summary: Reviews by status (pending by default) for moderation (catalog.manage)
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [pending, approved, rejected] } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/reviews/{review}/{action}:
+    post:
+      tags: [Admin Engagement]
+      summary: Approve or reject a review
+      parameters:
+        - { name: review, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [approve, reject] } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
   /countries/{code}/address-format:
     get:
       tags: [Countries]

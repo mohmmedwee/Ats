@@ -23,6 +23,7 @@ const selected = ref<string | null>(null)
 const qty = ref(1)
 const message = ref('')
 const imageIndex = ref(0)
+const sizeGuideOpen = ref(false)
 const currentImage = computed(() => product.value?.images[imageIndex.value])
 const variant = computed<Variant | undefined>(() => product.value?.variants.find(v => v.id === selected.value))
 watch(product, (p) => {
@@ -70,7 +71,10 @@ async function addToCart() {
       <div class="space-y-5">
         <div>
           <p v-if="product.brand" class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ product.brand }}</p>
-          <h1 class="mt-1 text-xl font-semibold leading-snug md:text-2xl" data-test="product-title">{{ product.title }}</h1>
+          <div class="flex items-start justify-between gap-3">
+            <h1 class="mt-1 text-xl font-semibold leading-snug md:text-2xl" data-test="product-title">{{ product.title }}</h1>
+            <WishlistButton :product-id="product.id" />
+          </div>
         </div>
         <div class="rounded-2xl bg-brand-50 p-4">
           <p class="text-3xl font-bold text-brand-600" data-test="product-price">{{ formatMoney(variant?.price ?? product.price, locale) }}</p>
@@ -78,7 +82,10 @@ async function addToCart() {
         </div>
 
         <div v-if="product.variants.length > 1 || optionName === 'size'">
-          <p class="mb-2 text-sm font-semibold">{{ $t(`product.option.${optionName}`, optionName) }}: <span class="font-normal text-ink-700">{{ variant ? label(variant) : '' }}</span></p>
+          <div class="mb-2 flex items-center justify-between">
+            <p class="text-sm font-semibold">{{ $t(`product.option.${optionName}`, optionName) }}: <span class="font-normal text-ink-700">{{ variant ? label(variant) : '' }}</span></p>
+            <button v-if="product.size_guide" type="button" class="link text-xs" data-test="size-guide" @click="sizeGuideOpen = true">{{ $t('product.size_guide') }}</button>
+          </div>
           <div class="flex flex-wrap gap-2" data-test="variant-options">
             <button v-for="v in product.variants" :key="v.id" type="button" class="chip" :class="{ 'chip-active': v.id === selected, 'cursor-not-allowed text-ink-300 line-through': !v.purchasable }" :disabled="!v.purchasable" @click="selected = v.id">
               {{ label(v) }}
@@ -129,6 +136,12 @@ async function addToCart() {
         </div>
       </div>
     </div>
+
+    <ProductReviews :product-id="product.id" />
+
+    <AdminModal :open="sizeGuideOpen" :title="$t('product.size_guide')" @close="sizeGuideOpen = false">
+      <RichText v-if="product.size_guide" :text="product.size_guide" />
+    </AdminModal>
 
     <section v-if="related?.length">
       <h2 class="section-title mb-3">{{ $t('product.related') }}</h2>

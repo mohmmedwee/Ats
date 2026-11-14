@@ -30,6 +30,7 @@ export interface ProductDetail extends ProductCard {
   availability: Availability
   variants: Variant[]
   prices_include_tax: true
+  size_guide?: string | null
 }
 
 export interface Category { id: string, slug: string, name: string, children: Category[] }

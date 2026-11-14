@@ -14,6 +14,7 @@ use App\Shared\I18n\Translations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Customer-facing catalog. Only products that are published and sellable in the
@@ -106,6 +107,10 @@ final class StorefrontCatalogController
             $ids = $this->categoryWithDescendants($categorySlug);
             $query->whereIn('products.category_id', $ids);
         }
+        if (is_string($ids = $request->query('ids')) && $ids !== '') {
+            $list = array_slice(array_filter(explode(',', $ids), fn ($id) => Str::isUuid($id)), 0, 100);
+            $query->whereIn('products.id', $list === [] ? ['00000000-0000-0000-0000-000000000000'] : $list);
+        }
         if ($q !== null && trim($q) !== '') {
             $term = '%'.str_replace(['%', '_'], ['\%', '\_'], trim($q)).'%';
             $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
@@ -124,6 +129,20 @@ final class StorefrontCatalogController
         $page = $query->cursorPaginate($request->integer('limit', 24));
 
         return ApiResponse::cursor($page, $page->getCollection()->map(fn (Product $p) => $this->present($p, $country, false))->all());
+    }
+
+    /** The product's category size guide, or the nearest parent's. */
+    private function sizeGuide(?Category $category): ?string
+    {
+        for ($guard = 0; $category !== null && $guard < 10; $guard++) {
+            $text = Translations::pick($category->size_guide);
+            if ($text !== null && trim($text) !== '') {
+                return $text;
+            }
+            $category = $category->parent_id ? Category::query()->find($category->parent_id) : null;
+        }
+
+        return null;
     }
 
     /** @return Builder<Product> */
@@ -165,6 +184,7 @@ final class StorefrontCatalogController
                 'availability' => $this->aggregate(array_column($variants, 'availability')),
                 'variants' => $variants,
                 'prices_include_tax' => true,
+                'size_guide' => $this->sizeGuide($p->category),
             ];
         }
 

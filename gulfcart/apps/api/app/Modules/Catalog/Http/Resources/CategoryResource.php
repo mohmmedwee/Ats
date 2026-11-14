@@ -22,6 +22,7 @@ final class CategoryResource extends JsonResource
             'parent_id' => $this->parent_id,
             'sort_order' => $this->sort_order,
             'is_active' => $this->when($admin, $this->is_active),
+            'size_guide' => $this->when($admin, $this->size_guide),
             'children' => $this->whenLoaded('children', fn () => CategoryResource::collection($this->children)->resolve($request)),
         ];
     }

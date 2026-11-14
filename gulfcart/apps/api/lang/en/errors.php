@@ -36,4 +36,6 @@ return [
     'coupon_min_subtotal' => 'Spend at least :min_subtotal to use this code.',
     'coupon_used_up' => 'This code has been fully used.',
     'coupon_already_used' => 'You have already used this code.',
+    'review_not_allowed' => 'Only customers who received this product can review it.',
+    'review_already_exists' => 'You have already reviewed this product.',
 ];
