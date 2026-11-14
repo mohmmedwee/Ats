@@ -128,6 +128,36 @@ paths:
       responses:
         '204': { description: 'Logged out' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/phone/start:
+    post:
+      tags: [Authentication]
+      summary: Send a 6-digit sign-in code by SMS to an AE/SA mobile (customers only; same response for unknown or staff numbers)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [country, phone], properties: { country: { type: string, enum: [AE, SA] }, phone: { type: string, description: 'Local or international format' } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' }, '429': { description: Too many codes requested } }
+  /auth/phone/verify:
+    post:
+      tags: [Authentication]
+      summary: Verify the SMS code; signs in and creates the customer account on first use (new_user, profile_incomplete)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [country, phone, code]
+              properties:
+                country: { type: string, enum: [AE, SA] }
+                phone: { type: string }
+                code: { type: string, pattern: '^\d{6}$' }
+                name: { type: string, maxLength: 150 }
+                device_name: { type: string, description: Token clients only }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { description: OTP_INVALID or validation error } }
   /auth/me:
     get:
       tags: [Authentication]
@@ -144,6 +174,15 @@ paths:
                       data: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
 
+    patch:
+      tags: [Authentication]
+      summary: Update own name, email (re-verification sent) or preferred locale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { name: { type: string }, email: { type: [string, 'null'], format: email }, preferred_locale: { type: string, enum: [en, ar] } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /auth/forgot-password:
     post:
       tags: [Authentication]
@@ -770,6 +809,54 @@ paths:
       parameters: [{ name: import, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
 
+  /site:
+    get:
+      tags: [Content]
+      summary: Storefront settings (support channels, footer pages, marketing tag IDs)
+      security: []
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /pages:
+    get:
+      tags: [Content]
+      summary: Published content pages (localized titles)
+      security: []
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /pages/{slug}:
+    get:
+      tags: [Content]
+      summary: One published page (localized title and body; contact details on the contact page)
+      security: []
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /admin/pages:
+    get:
+      tags: [Admin Content]
+      summary: All pages with both languages (catalog.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Content]
+      summary: Create a page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, title, body]
+              properties:
+                slug: { type: string }
+                title: { $ref: '#/components/schemas/Translatable' }
+                body: { $ref: '#/components/schemas/Translatable' }
+                is_published: { type: boolean }
+                in_footer: { type: boolean }
+                sort_order: { type: integer }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/pages/{page}:
+    patch:
+      tags: [Admin Content]
+      summary: Update a page (any subset of fields)
+      parameters: [{ name: page, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /countries/{code}/address-format:
     get:
       tags: [Countries]
