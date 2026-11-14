@@ -43,6 +43,7 @@ final class StorefrontCatalogController
             'category' => ['nullable', 'string', 'max:180'],
             'sort' => ['nullable', 'in:newest,price_asc,price_desc'],
             'limit' => ['nullable', 'integer', 'between:1,100'],
+            'price_max' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         return $this->listing($request, $request->query('category'), $request->query('q'));
@@ -108,6 +109,10 @@ final class StorefrontCatalogController
         if ($q !== null && trim($q) !== '') {
             $term = '%'.str_replace(['%', '_'], ['\%', '\_'], trim($q)).'%';
             $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
+        }
+
+        if (is_numeric($max = $request->query('price_max'))) {
+            $query->where('pca.from_price', '<=', $max);
         }
 
         match ($request->query('sort', 'newest')) {

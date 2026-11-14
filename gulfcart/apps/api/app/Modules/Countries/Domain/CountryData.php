@@ -36,6 +36,7 @@ final class CountryData
             'default_locale' => $this->defaultLocale,
             'supported_locales' => $this->supportedLocales,
             'timezone' => $this->timezone,
+            'return_window_days' => (int) ($this->settings['returns']['window_days'] ?? config('gulfcart.returns.default_window_days', 14)),
         ];
     }
 }

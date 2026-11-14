@@ -9,7 +9,9 @@
     "logout": "Log out",
     "products": "Shop",
     "cart": "Cart",
-    "orders": "My orders"
+    "orders": "My orders",
+    "categories": "Categories",
+    "me": "Me"
   },
   "country": {
     "label": "Ship to",
@@ -18,7 +20,13 @@
   },
   "home": {
     "title": "Shop global brands, delivered to the Gulf",
-    "subtitle": "Prices in AED and SAR with shipping, VAT and duties shown before you pay."
+    "subtitle": "Prices in AED and SAR with shipping, VAT and duties shown before you pay.",
+    "all": "All",
+    "new": "New arrivals",
+    "under": "Under {amount}",
+    "for_you": "Picked for you",
+    "see_all": "See all",
+    "best_value": "Best value"
   },
   "auth": {
     "name": "Full name",
@@ -153,7 +161,10 @@
       "UNAVAILABLE": "This item is no longer available."
     },
     "review": "Review changes",
-    "login_to_checkout": "Log in to check out"
+    "login_to_checkout": "Log in to check out",
+    "free_remaining": "Add {amount} more for free delivery",
+    "free_reached": "You've unlocked free delivery",
+    "summary_note": "Delivery and any customs are calculated at checkout."
   },
   "checkout": {
     "title": "Checkout",
@@ -249,5 +260,44 @@
     "recovery_title": "Save your recovery codes",
     "recovery_hint": "Each code works once if you lose your device. Store them somewhere safe.",
     "start": "Generate key"
+  },
+  "promo": {
+    "free_delivery": "Free delivery over {amount}",
+    "all_in_price": "Prices include VAT. Any customs duty is shown before you pay",
+    "returns": "Easy returns on delivered items"
+  },
+  "hero": {
+    "kicker": "New season",
+    "title": "Global finds, delivered to the Gulf",
+    "subtitle": "Fashion, beauty and home from trusted suppliers, priced in AED and SAR.",
+    "cta": "Start shopping",
+    "under_kicker": "Budget picks",
+    "shop_now": "Shop now",
+    "trust_kicker": "No surprises",
+    "trust_title": "The price you see is the price you pay"
+  },
+  "filters": {
+    "category": "Category",
+    "price": "Price",
+    "results_for": "Results for “{q}”"
+  },
+  "product": {
+    "price_note": "Includes VAT · customs shown at checkout if any",
+    "option": {
+      "size": "Size",
+      "option": "Option"
+    },
+    "ships_from": "Ships directly from our supplier, tracked to your door",
+    "all_in": "All-in pricing",
+    "returns": "{days}-day returns",
+    "returns_note": "From the day your package is delivered",
+    "description": "Details",
+    "related": "You may also like"
+  },
+  "footer": {
+    "shop": "Shop",
+    "help": "Help",
+    "pay_safely": "Pay safely",
+    "secure": "Secure checkout · card details never stored by GulfCart"
   }
 }

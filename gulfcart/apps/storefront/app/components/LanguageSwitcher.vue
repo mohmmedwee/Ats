@@ -6,13 +6,7 @@ const others = computed(() => locales.value.filter(l => l.code !== locale.value)
 
 <template>
   <span class="flex gap-2">
-    <NuxtLink
-      v-for="l in others"
-      :key="l.code"
-      :to="switchLocalePath(l.code)"
-      class="text-sm underline"
-      data-test="locale-switch"
-    >
+    <NuxtLink v-for="l in others" :key="l.code" :to="switchLocalePath(l.code)" class="text-xs font-semibold text-ink-700 hover:text-brand-600" data-test="locale-switch">
       {{ l.name }}
     </NuxtLink>
   </span>

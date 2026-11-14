@@ -11,6 +11,7 @@ use App\Modules\Catalog\Contracts\CatalogReader;
 use App\Modules\Catalog\Contracts\CatalogStock;
 use App\Modules\Countries\Domain\CountryData;
 use App\Modules\Pricing\Contracts\PriceBook;
+use App\Modules\Shipping\Contracts\ShippingQuoter;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\I18n\Translations;
 use App\Shared\Money\Decimal;
@@ -32,6 +33,7 @@ final class CartService implements CartReader
         private readonly CatalogReader $catalog,
         private readonly PriceBook $prices,
         private readonly CatalogStock $stock,
+        private readonly ShippingQuoter $shipping,
     ) {}
 
     public function resolve(?string $userId, ?string $guestToken, CountryData $country, bool $create): ?Cart
@@ -148,9 +150,27 @@ final class CartService implements CartReader
             'items' => $lines,
             'item_count' => array_sum(array_column($lines, 'quantity')),
             'subtotal' => ['amount' => Decimal::round($subtotal, 2), 'currency' => $cart->currency],
+            'free_shipping' => $this->freeShipping($subtotal, $country, $cart->currency),
             'prices_include_tax' => true,
             'issues' => $issues,
             'valid' => $issues === [] && $lines !== [],
+        ];
+    }
+
+    /** @return array{threshold: array{amount: string, currency: string}, remaining: array{amount: string, currency: string}, reached: bool}|null */
+    private function freeShipping(string $subtotal, CountryData $country, string $currency): ?array
+    {
+        $threshold = $this->shipping->freeShippingThreshold($country->code);
+        if ($threshold === null) {
+            return null;
+        }
+        $remaining = Decimal::sub($threshold, $subtotal, 2);
+        $reached = Decimal::cmp($remaining, '0') <= 0;
+
+        return [
+            'threshold' => ['amount' => $threshold, 'currency' => $currency],
+            'remaining' => ['amount' => $reached ? '0.00' : $remaining, 'currency' => $currency],
+            'reached' => $reached,
         ];
     }
 

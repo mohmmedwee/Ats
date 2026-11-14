@@ -56,6 +56,7 @@ export interface Cart {
   items: CartLine[]
   item_count: number
   subtotal?: Money
+  free_shipping?: { threshold: Money, remaining: Money, reached: boolean } | null
   issues: CartIssue[]
   valid: boolean
   guest_token?: string

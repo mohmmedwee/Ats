@@ -78,6 +78,16 @@ final class StorefrontCatalogTest extends TestCase
         $this->getJson('/api/v1/categories')->assertOk()->assertJsonPath('data.0.slug', 'women')->assertJsonPath('data.0.children.0.slug', 'dresses');
     }
 
+    public function test_listing_filters_by_maximum_price(): void
+    {
+        $cheap = $this->sellableProduct(['AE'], ['cost' => '5.00']);
+        $this->sellableProduct(['AE'], ['cost' => '300.00']);
+        $cheapPrice = (float) $this->getJson("/api/v1/products/{$cheap['product']->slug}")->json('data.price.amount');
+
+        $this->getJson('/api/v1/products?price_max='.ceil($cheapPrice))->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $cheap['product']->id);
+    }
+
     public function test_listing_uses_cursor_pagination(): void
     {
         foreach (range(1, 3) as $_) {

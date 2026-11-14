@@ -10,5 +10,8 @@ interface ShippingQuoter
     /** @return list<ShippingOption> */
     public function options(string $countryCode, string $subtotalGross, int $totalWeightGrams): array;
 
+    /** Lowest free-delivery threshold among active methods (VAT inclusive), or null. */
+    public function freeShippingThreshold(string $countryCode): ?string;
+
     public function option(string $countryCode, string $code, string $subtotalGross, int $totalWeightGrams): ?ShippingOption;
 }

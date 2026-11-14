@@ -25,6 +25,15 @@ final class EloquentShippingQuoter implements ShippingQuoter
             ->filter()->values()->all();
     }
 
+    public function freeShippingThreshold(string $countryCode): ?string
+    {
+        $country = $this->countries->find($countryCode);
+        $min = $country === null ? null : ShippingMethod::query()->where('country_id', $country->id)->where('is_active', true)
+            ->whereNotNull('free_shipping_threshold')->min('free_shipping_threshold');
+
+        return $min === null ? null : Decimal::round((string) $min, 2);
+    }
+
     public function option(string $countryCode, string $code, string $subtotalGross, int $totalWeightGrams): ?ShippingOption
     {
         foreach ($this->options($countryCode, $subtotalGross, $totalWeightGrams) as $option) {

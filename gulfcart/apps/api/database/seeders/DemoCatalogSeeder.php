@@ -24,52 +24,82 @@ final class DemoCatalogSeeder extends Seeder
             throw new RuntimeException('Demo data must not be seeded in production.');
         }
 
-        $women = Category::query()->firstOrCreate(['slug' => 'women'], ['name' => ['en' => 'Women', 'ar' => 'نساء']]);
-        $dresses = Category::query()->firstOrCreate(['slug' => 'dresses'], ['name' => ['en' => 'Dresses', 'ar' => 'فساتين'], 'parent_id' => $women->id]);
-        $bags = Category::query()->firstOrCreate(['slug' => 'bags'], ['name' => ['en' => 'Bags', 'ar' => 'حقائب'], 'parent_id' => $women->id]);
-        $home = Category::query()->firstOrCreate(['slug' => 'home'], ['name' => ['en' => 'Home', 'ar' => 'المنزل']]);
+        $tree = [
+            'women' => ['Women', 'نساء', null], 'dresses' => ['Dresses', 'فساتين', 'women'], 'tops' => ['Tops', 'بلوزات', 'women'],
+            'bags' => ['Bags', 'حقائب', 'women'], 'shoes' => ['Shoes', 'أحذية', null], 'men' => ['Men', 'رجال', null],
+            'beauty' => ['Beauty', 'جمال', null], 'home' => ['Home', 'المنزل', null], 'kids' => ['Kids', 'أطفال', null],
+            'accessories' => ['Accessories', 'إكسسوارات', null],
+        ];
+        $cats = [];
+        foreach ($tree as $slug => [$en, $ar, $parent]) {
+            $cats[$slug] = Category::query()->firstOrCreate(['slug' => $slug], [
+                'name' => ['en' => $en, 'ar' => $ar], 'parent_id' => $parent ? $cats[$parent]->id : null, 'sort_order' => count($cats),
+            ]);
+        }
 
-        $supplierA = $this->supplier('demo-fashion', 'Demo Fashion Wholesale', ['AE', 'SA'], '12.00');
-        $supplierB = $this->supplier('demo-home', 'Demo Home Goods', ['AE', 'SA'], '6.00');
+        $fashion = $this->supplier('demo-fashion', 'Demo Fashion Wholesale', ['AE', 'SA'], '6.00');
+        $lifestyle = $this->supplier('demo-lifestyle', 'Demo Lifestyle Goods', ['AE', 'SA'], '4.00');
 
+        // [category, supplier, en, ar, cost USD, options, gradient top, gradient bottom, hs]
         $items = [
-            [$dresses, $supplierA, ['en' => 'Linen Summer Dress', 'ar' => 'فستان صيفي من الكتان'], 'Breezy linen dress for warm days.', '24.00', ['S', 'M', 'L'], [230, 180, 160], '620442'],
-            [$dresses, $supplierA, ['en' => 'Evening Maxi Dress', 'ar' => 'فستان سهرة طويل'], 'Flowing maxi dress with a satin finish.', '38.50', ['M', 'L'], [40, 40, 80], '620443'],
-            [$bags, $supplierA, ['en' => 'Leather Tote Bag', 'ar' => 'حقيبة جلد'], 'Everyday tote in genuine leather.', '41.00', ['One size'], [120, 80, 40], '420221'],
-            [$home, $supplierB, ['en' => 'Ceramic Coffee Set', 'ar' => 'طقم قهوة سيراميك'], 'Six cups and a serving pot.', '18.75', ['Set of 6'], [60, 120, 160], '691200'],
-            [$home, $supplierB, ['en' => 'Scented Candle Trio', 'ar' => 'ثلاث شموع معطرة'], 'Oud, amber and rose.', '9.90', ['Trio'], [200, 150, 90], '340600'],
+            ['dresses', $fashion, 'Linen Summer Dress', 'فستان صيفي من الكتان', '14.00', ['S', 'M', 'L'], [244, 194, 180], [214, 120, 110], '620442'],
+            ['dresses', $fashion, 'Satin Maxi Dress', 'فستان ساتان طويل', '19.50', ['S', 'M', 'L', 'XL'], [70, 60, 120], [30, 25, 60], '620443'],
+            ['dresses', $fashion, 'Floral Midi Dress', 'فستان ميدي مزهر', '12.90', ['XS', 'S', 'M'], [250, 220, 230], [230, 140, 170], '620444'],
+            ['dresses', $fashion, 'Modest Abaya, Embroidered', 'عباية مطرزة', '24.00', ['52', '54', '56', '58'], [60, 60, 66], [15, 15, 20], '621142'],
+            ['tops', $fashion, 'Ribbed Knit Top', 'بلوزة محبوكة', '6.50', ['S', 'M', 'L'], [240, 235, 220], [200, 190, 160], '611020'],
+            ['tops', $fashion, 'Oversized Cotton Shirt', 'قميص قطن واسع', '9.90', ['S', 'M', 'L'], [200, 220, 240], [110, 150, 200], '620630'],
+            ['tops', $fashion, 'Pleated Chiffon Blouse', 'بلوزة شيفون', '8.40', ['S', 'M', 'L'], [250, 240, 200], [230, 200, 120], '620640'],
+            ['bags', $fashion, 'Leather Tote Bag', 'حقيبة جلد', '21.00', ['One size'], [180, 120, 80], [110, 65, 35], '420221'],
+            ['bags', $fashion, 'Mini Crossbody Bag', 'حقيبة كروس صغيرة', '7.90', ['Black', 'Beige'], [230, 215, 195], [180, 150, 120], '420222'],
+            ['shoes', $fashion, 'Everyday Sneakers', 'حذاء رياضي يومي', '15.00', ['38', '39', '40', '41', '42'], [245, 245, 245], [190, 195, 200], '640411'],
+            ['shoes', $fashion, 'Block Heel Sandals', 'صندل بكعب عريض', '11.50', ['37', '38', '39', '40'], [235, 200, 170], [190, 140, 100], '640299'],
+            ['men', $fashion, 'Classic Linen Shirt', 'قميص كتان كلاسيكي', '10.90', ['M', 'L', 'XL'], [215, 225, 215], [140, 165, 140], '620520'],
+            ['men', $fashion, 'Slim Chino Trousers', 'بنطال تشينو', '13.40', ['30', '32', '34', '36'], [210, 190, 150], [150, 125, 80], '620342'],
+            ['beauty', $lifestyle, 'Oud Eau de Parfum 50 ml', 'عطر عود 50 مل', '18.00', ['50 ml'], [120, 70, 40], [50, 25, 15], '330300'],
+            ['beauty', $lifestyle, 'Vitamin C Serum', 'سيروم فيتامين سي', '6.20', ['30 ml'], [255, 220, 150], [245, 160, 60], '330499'],
+            ['beauty', $lifestyle, 'Matte Lipstick Set', 'مجموعة أحمر شفاه', '5.40', ['Set of 3'], [230, 120, 140], [170, 40, 70], '330410'],
+            ['home', $lifestyle, 'Ceramic Coffee Set', 'طقم قهوة سيراميك', '11.75', ['Set of 6'], [90, 140, 180], [40, 80, 120], '691200'],
+            ['home', $lifestyle, 'Scented Candle Trio', 'ثلاث شموع معطرة', '4.90', ['Trio'], [235, 210, 170], [200, 150, 90], '340600'],
+            ['home', $lifestyle, 'Linen Cushion Cover', 'غطاء وسادة كتان', '3.80', ['45 × 45 cm'], [220, 210, 200], [160, 145, 130], '630492'],
+            ['kids', $lifestyle, 'Kids Cotton Pyjamas', 'بيجامة أطفال قطن', '6.90', ['2Y', '4Y', '6Y', '8Y'], [200, 230, 250], [120, 180, 230], '610822'],
+            ['kids', $lifestyle, 'Wooden Puzzle Set', 'ألغاز خشبية', '5.20', ['Set'], [250, 230, 160], [230, 180, 60], '950300'],
+            ['accessories', $lifestyle, 'Gold-Tone Hoop Earrings', 'أقراط ذهبية اللون', '3.40', ['One size'], [250, 225, 150], [210, 170, 60], '711719'],
+            ['accessories', $lifestyle, 'Silk Scarf', 'وشاح حرير', '7.60', ['90 × 90 cm'], [240, 180, 190], [190, 100, 130], '621410'],
+            ['accessories', $lifestyle, 'Phone Case, Clear', 'غطاء جوال شفاف', '2.10', ['iPhone 15', 'iPhone 16'], [220, 230, 240], [160, 175, 195], '392690'],
         ];
 
-        foreach ($items as $n => [$category, $supplier, $title, $description, $cost, $sizes, $rgb, $hs]) {
+        foreach ($items as $n => [$cat, $supplier, $en, $ar, $cost, $options, $top, $bottom, $hs]) {
             $slug = 'demo-'.($n + 1);
             if (Product::query()->where('slug', $slug)->exists()) {
                 continue;
             }
             $product = Product::query()->create([
-                'category_id' => $category->id, 'title' => $title, 'slug' => $slug,
-                'description' => ['en' => $description, 'ar' => $title['ar']], 'status' => 'published', 'brand' => 'GulfCart Demo',
-                'attributes' => [], 'weight_grams' => 600, 'hs_code' => $hs, 'published_at' => now(),
+                'category_id' => $cats[$cat]->id, 'title' => ['en' => $en, 'ar' => $ar], 'slug' => $slug,
+                'description' => ['en' => "{$en}. Demo product for the GulfCart storefront.", 'ar' => "{$ar}. منتج تجريبي لمتجر غلف كارت."],
+                'status' => 'published', 'brand' => 'GulfCart Demo', 'attributes' => [], 'weight_grams' => 450,
+                'hs_code' => $hs, 'published_at' => now()->subMinutes($n),
             ]);
             $path = "products/{$product->id}/main.png";
-            Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->put($path, $this->png(...$rgb));
+            Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->put($path, $this->png($top, $bottom));
             $product->images()->create(['storage_path' => $path, 'rights_status' => 'approved', 'rights_basis' => 'own_photo']);
 
             $sp = $supplier->products()->create([
                 'product_id' => $product->id, 'external_product_id' => strtoupper($slug), 'cost_price' => $cost,
-                'cost_currency' => 'USD', 'stock_status' => 'in_stock',
+                'cost_currency' => 'USD', 'stock_status' => $n % 7 === 3 ? 'low_stock' : 'in_stock',
             ]);
-            foreach ($sizes as $i => $size) {
-                $variant = $product->variants()->create(['sku' => strtoupper($slug).'-'.($i + 1), 'attributes' => ['size' => $size]]);
+            foreach ($options as $i => $option) {
+                $key = preg_match('/^(XS|S|M|L|XL|\d{2})$/', $option) ? 'size' : 'option';
+                $variant = $product->variants()->create(['sku' => strtoupper($slug).'-'.($i + 1), 'attributes' => [$key => $option]]);
                 $sp->mappings()->create(['variant_id' => $variant->id, 'external_variant_id' => strtoupper($slug).'-V'.($i + 1)]);
             }
             foreach ($countries->active() as $country) {
-                $product->availability()->create(['country_id' => $country->id, 'is_available' => true, 'estimated_delivery_min_days' => 7, 'estimated_delivery_max_days' => 12]);
+                $product->availability()->create(['country_id' => $country->id, 'is_available' => true, 'estimated_delivery_min_days' => 6, 'estimated_delivery_max_days' => 11]);
             }
             $repricer->reprice($product->id, notify: false);
             $listing->refresh($product->id);
         }
 
-        $this->command?->info('Demo catalog ready: 5 products, 2 mock suppliers.');
+        $this->command?->info('Demo catalog ready: 24 products, 10 categories, 2 mock suppliers.');
     }
 
     /** @param list<string> $countries */
@@ -91,16 +121,46 @@ final class DemoCatalogSeeder extends Seeder
         return $supplier;
     }
 
-    /** A small solid-colour PNG (no GD required). */
-    private function png(int $r, int $g, int $b): string
+    /**
+     * 300×400 PNG: vertical gradient with a soft rounded shape (no GD required).
+     *
+     * @param  array{0: int, 1: int, 2: int}  $top
+     * @param  array{0: int, 1: int, 2: int}  $bottom
+     */
+    private function png(array $top, array $bottom): string
     {
-        $w = 64;
+        [$w, $h] = [300, 400];
         $raw = '';
-        for ($y = 0; $y < $w; $y++) {
-            $raw .= "\0".str_repeat(chr($r).chr($g).chr($b), $w);
+        for ($y = 0; $y < $h; $y++) {
+            $t = $y / ($h - 1);
+            $raw .= "\0";
+            for ($x = 0; $x < $w; $x++) {
+                $c = [];
+                for ($k = 0; $k < 3; $k++) {
+                    $c[$k] = $top[$k] + ($bottom[$k] - $top[$k]) * $t;
+                }
+                // soft ellipse "product" silhouette and a floor shadow
+                $dx = ($x - 150) / 95;
+                $dy = ($y - 190) / 140;
+                $d = $dx * $dx + $dy * $dy;
+                if ($d < 1) {
+                    $f = 0.22 * (1 - $d);
+                    for ($k = 0; $k < 3; $k++) {
+                        $c[$k] = $c[$k] + (255 - $c[$k]) * $f;
+                    }
+                }
+                $sx = ($x - 150) / 110;
+                $sy = ($y - 352) / 14;
+                if ($sx * $sx + $sy * $sy < 1) {
+                    for ($k = 0; $k < 3; $k++) {
+                        $c[$k] *= 0.88;
+                    }
+                }
+                $raw .= chr((int) $c[0]).chr((int) $c[1]).chr((int) $c[2]);
+            }
         }
         $chunk = fn (string $type, string $data) => pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
 
-        return "\x89PNG\r\n\x1a\n".$chunk('IHDR', pack('NNCCCCC', $w, $w, 8, 2, 0, 0, 0)).$chunk('IDAT', (string) gzcompress($raw)).$chunk('IEND', '');
+        return "\x89PNG\r\n\x1a\n".$chunk('IHDR', pack('NNCCCCC', $w, $h, 8, 2, 0, 0, 0)).$chunk('IDAT', (string) gzcompress($raw, 6)).$chunk('IEND', '');
     }
 }

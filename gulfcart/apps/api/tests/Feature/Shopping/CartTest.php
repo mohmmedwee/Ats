@@ -30,6 +30,17 @@ final class CartTest extends TestCase
             ->assertJsonPath('data.subtotal.amount', number_format($unit * 3, 2, '.', ''));
     }
 
+    public function test_cart_shows_progress_towards_free_delivery(): void
+    {
+        ['variant' => $v] = $this->sellableProduct(['AE']);
+        $res = $this->postJson('/api/v1/cart/items', ['variant_id' => $v->id, 'quantity' => 1])->assertCreated();
+        $unit = (float) $res->json('data.subtotal.amount');
+
+        $res->assertJsonPath('data.free_shipping.threshold.amount', '200.00')
+            ->assertJsonPath('data.free_shipping.reached', $unit >= 200)
+            ->assertJsonPath('data.free_shipping.remaining.amount', number_format(max(0, 200 - $unit), 2, '.', ''));
+    }
+
     public function test_quantity_limit_and_unavailable_variants_are_rejected(): void
     {
         ['variant' => $v] = $this->sellableProduct(['AE']);
