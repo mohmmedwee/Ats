@@ -88,7 +88,7 @@ Laravel `ShouldBeUnique` alone is not enough. Guarantees come from, in order:
 ```php
 <?php
 
-namespace App\Modules\Procurement\Contracts;
+namespace App\Modules\Suppliers\Contracts; // see ADR-006 amendment
 
 use App\Modules\Procurement\Contracts\Data\{
     AvailabilityResult, ConnectorCapabilities, ExternalProduct,
@@ -96,7 +96,7 @@ use App\Modules\Procurement\Contracts\Data\{
     SupplierQuote, TrackingInfo, CancellationResult, QuoteRequest
 };
 
-interface SupplierConnectorInterface
+interface SupplierConnector
 {
     public function capabilities(): ConnectorCapabilities;
 

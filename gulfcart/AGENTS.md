@@ -43,7 +43,7 @@ Module boundary rules:
 
 1. Never assume a supplier API exists. Never scrape or automate purchases on any
    platform without written authorization. All supplier access goes through
-   `SupplierConnectorInterface`. Until a connector is authorized, use `MockSupplierConnector`
+   `App\Modules\Suppliers\Contracts\SupplierConnector` (ADR-006). Until a connector is authorized, use `MockSupplierConnector`
    or the manual procurement fallback.
 2. No store or supplier names in order, pricing or procurement logic.
 3. Use idempotency keys for every payment, refund and supplier purchase, enforced by a

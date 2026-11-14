@@ -12,6 +12,9 @@ servers:
 security:
   - sanctum: []
 tags:
+  - name: Catalog
+  - name: Admin Catalog
+  - name: Admin Suppliers
   - name: Health
   - name: Countries
   - name: Authentication
@@ -339,6 +342,359 @@ paths:
           description: VALIDATION_FAILED (unknown role, staff role for a customer, removing own super_admin)
           content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
 
+  # ---------- Catalog (storefront) ----------
+  /categories:
+    get:
+      tags: [Catalog]
+      summary: Active category tree (localized names)
+      security: []
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /categories/{slug}/products:
+    get:
+      tags: [Catalog]
+      summary: Sellable products in a category and its subcategories
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses: { '200': { $ref: '#/components/responses/ProductList' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /products:
+    get:
+      tags: [Catalog]
+      summary: Products sellable in the request country (published, available, authorized source, price)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Country'
+        - { name: category, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc] } }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses: { '200': { $ref: '#/components/responses/ProductList' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /products/search:
+    get:
+      tags: [Catalog]
+      summary: Search titles (English and Arabic) and brand
+      security: []
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - $ref: '#/components/parameters/Cursor'
+      responses: { '200': { $ref: '#/components/responses/ProductList' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /products/{slug}:
+    get:
+      tags: [Catalog]
+      summary: Product details with variants, prices and availability. Never includes supplier or cost data.
+      security: []
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Product
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties: { data: { $ref: '#/components/schemas/ProductDetail' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /products/{id}/variants:
+    get:
+      tags: [Catalog]
+      summary: Variants with price and availability for the request country
+      security: []
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /products/{id}/availability:
+    get:
+      tags: [Catalog]
+      summary: Aggregate and per-variant availability with delivery estimate
+      security: []
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  # ---------- Catalog (admin; permission catalog.manage, staff MFA) ----------
+  /admin/categories:
+    get:
+      tags: [Admin Catalog]
+      summary: All categories (translations included)
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '403': { $ref: '#/components/responses/AdminForbidden' } }
+    post:
+      tags: [Admin Catalog]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, name]
+              properties:
+                slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+                name: { $ref: '#/components/schemas/Translatable' }
+                parent_id: { type: [string, 'null'], format: uuid }
+                sort_order: { type: integer }
+                is_active: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/categories/{category}:
+    parameters: [{ name: category, in: path, required: true, schema: { type: string, format: uuid } }]
+    patch:
+      tags: [Admin Catalog]
+      summary: Update a category (cycles rejected)
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+    delete:
+      tags: [Admin Catalog]
+      summary: Soft-delete an empty category (409 if it has products or children)
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '409': { $ref: '#/components/responses/Conflict' } }
+  /admin/products:
+    get:
+      tags: [Admin Catalog]
+      summary: Products with variants, images, rights and listing diagnostics
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [draft, pending_review, published, unpublished, archived] } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Catalog]
+      summary: Create a draft product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { $ref: '#/components/schemas/Translatable' }
+                description: { $ref: '#/components/schemas/Translatable' }
+                category_id: { type: [string, 'null'], format: uuid }
+                brand: { type: string }
+                weight_grams: { type: integer }
+                hs_code: { type: string, pattern: '^\\d{4,12}$' }
+                country_of_origin: { type: string, minLength: 2, maxLength: 2 }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/products/{product}:
+    parameters: [{ name: product, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      tags: [Admin Catalog]
+      summary: Product details for staff
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+    patch:
+      tags: [Admin Catalog]
+      summary: Update product content
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/products/{product}/availability:
+    put:
+      tags: [Admin Catalog]
+      summary: Set per-country availability and delivery estimates
+      parameters: [{ name: product, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [countries]
+              properties:
+                countries:
+                  type: array
+                  items:
+                    type: object
+                    required: [country, is_available]
+                    properties:
+                      country: { type: string, enum: [AE, SA] }
+                      is_available: { type: boolean }
+                      min_days: { type: integer }
+                      max_days: { type: integer }
+                      restriction_reason: { type: string }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/products/{product}/{action}:
+    post:
+      tags: [Admin Catalog]
+      summary: >
+        Lifecycle transition. submit (draft→pending_review), publish (pending_review→published,
+        needs catalog.publish; 422 PRODUCT_NOT_PUBLISHABLE lists problems), unpublish, return-to-draft, archive.
+      parameters:
+        - { name: product, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [submit, publish, unpublish, return-to-draft, archive] } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '403': { $ref: '#/components/responses/AdminForbidden' }, '409': { $ref: '#/components/responses/Conflict' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/products/{product}/variants:
+    post:
+      tags: [Admin Catalog]
+      summary: Add a variant
+      parameters: [{ name: product, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, attributes]
+              properties:
+                sku: { type: string }
+                attributes: { type: object, additionalProperties: { type: string } }
+                weight_grams: { type: integer }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/variants/{variant}:
+    patch:
+      tags: [Admin Catalog]
+      summary: Update a variant
+      parameters: [{ name: variant, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/products/{product}/images:
+    post:
+      tags: [Admin Catalog]
+      summary: Add an image by upload or HTTPS URL (downloaded to our storage). Rights start as pending.
+      parameters: [{ name: product, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [rights_basis]
+              properties:
+                file: { type: string, format: binary }
+                source_url: { type: string, format: uri }
+                variant_id: { type: string, format: uuid }
+                rights_basis: { type: string, enum: [supplier_agreement, own_photo, licensed] }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/images/{image}:
+    parameters: [{ name: image, in: path, required: true, schema: { type: string, format: uuid } }]
+    patch:
+      tags: [Admin Catalog]
+      summary: Approve or reject image usage rights (catalog.publish)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [rights_status], properties: { rights_status: { type: string, enum: [approved, rejected] } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    delete:
+      tags: [Admin Catalog]
+      summary: Remove an image
+      responses: { '204': { $ref: '#/components/responses/NoContent' } }
+
+  # ---------- Suppliers (admin) ----------
+  /admin/suppliers:
+    get:
+      tags: [Admin Suppliers]
+      summary: Suppliers with authorizations (suppliers.manage). Credentials are never returned.
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Suppliers]
+      summary: Create a supplier (pending, inactive)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code, connector_type, base_currency]
+              properties:
+                name: { type: string }
+                code: { type: string, pattern: '^[a-z0-9_-]+$' }
+                connector_type: { type: string, description: 'mock, manual, or a registered authorized connector' }
+                base_currency: { type: string, pattern: '^[A-Z]{3}$' }
+                api_base_url: { type: string, format: uri }
+                credentials_ref: { type: string, description: 'Reference to the secret store, never the secret' }
+                direct_shipping_enabled: { type: boolean }
+                metadata: { type: object, description: 'shipping_cost_per_unit, delivery_min_days, delivery_max_days, mock{...}' }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/suppliers/{supplier}:
+    parameters: [{ name: supplier, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      tags: [Admin Suppliers]
+      summary: Supplier details
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+    patch:
+      tags: [Admin Suppliers]
+      summary: Update a supplier
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/suppliers/{supplier}/authorizations:
+    post:
+      tags: [Admin Suppliers]
+      summary: Record a written commercial authorization; a valid one that allows resale approves the supplier
+      parameters: [{ name: supplier, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agreement_reference, allows_resale, allows_api_purchasing, allows_direct_shipping, allows_image_use, countries, valid_from]
+              properties:
+                agreement_reference: { type: string }
+                allows_resale: { type: boolean }
+                allows_api_purchasing: { type: boolean }
+                allows_direct_shipping: { type: boolean }
+                allows_image_use: { type: boolean }
+                countries: { type: array, items: { type: string, enum: [AE, SA] } }
+                valid_from: { type: string, format: date }
+                valid_until: { type: [string, 'null'], format: date }
+                document_path: { type: string }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/suppliers/{supplier}/status:
+    post:
+      tags: [Admin Suppliers]
+      summary: activate (requires valid authorization; 422 SUPPLIER_NOT_AUTHORIZED), deactivate, suspend, revoke
+      parameters: [{ name: supplier, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [action], properties: { action: { type: string, enum: [activate, deactivate, suspend, revoke] } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/suppliers/{supplier}/products:
+    parameters: [{ name: supplier, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      tags: [Admin Suppliers]
+      summary: Supplier products with variant mappings (catalog.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Suppliers]
+      summary: Link a catalog product to a supplier product
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/supplier-products/{supplierProduct}:
+    patch:
+      tags: [Admin Suppliers]
+      summary: Update cost, stock, priority or status of a supplier product
+      parameters: [{ name: supplierProduct, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/supplier-products/{supplierProduct}/mappings:
+    put:
+      tags: [Admin Suppliers]
+      summary: Replace variant mappings (variant_id → external_variant_id, optional per-variant cost/stock)
+      parameters: [{ name: supplierProduct, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/supplier-products/{supplierProduct}/sync:
+    post:
+      tags: [Admin Suppliers]
+      summary: Pull cost and stock from the connector (502 SUPPLIER_CONNECTOR_ERROR on failure)
+      parameters: [{ name: supplierProduct, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/imports/products:
+    post:
+      tags: [Admin Suppliers]
+      summary: Upload a supplier CSV feed (docs/SUPPLIER_IMPORT.md); processed asynchronously
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [supplier_id, file]
+              properties:
+                supplier_id: { type: string, format: uuid }
+                file: { type: string, format: binary }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/imports/{import}:
+    get:
+      tags: [Admin Suppliers]
+      summary: Import status with per-row errors
+      parameters: [{ name: import, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+
 components:
   securitySchemes:
     sanctum:
@@ -351,12 +707,38 @@ components:
       in: header
       required: true
       schema: { type: string, minLength: 16, maxLength: 255 }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+      description: meta.pagination.next_cursor from the previous page
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 24 }
     Country:
       name: X-Country
       in: header
       required: false
       schema: { type: string, enum: [AE, SA] }
   responses:
+    Ok:
+      description: Success envelope
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    Created:
+      description: Created (success envelope)
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    Accepted:
+      description: Accepted for asynchronous processing
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
+    NoContent:
+      description: No content
+    NotFound:
+      description: NOT_FOUND
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Conflict:
+      description: CONFLICT or ILLEGAL_STATE_TRANSITION
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
     ValidationFailed:
       description: Validation failed
       content:
@@ -382,6 +764,14 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    ProductList:
+      description: Cursor-paginated product cards; meta.pagination has next_cursor, prev_cursor, limit
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessEnvelope'
+              - properties: { data: { type: array, items: { $ref: '#/components/schemas/ProductCard' } } }
     Message:
       description: Message
       content:
@@ -491,3 +881,39 @@ components:
         default_locale: { type: string, examples: [ar-AE] }
         supported_locales: { type: array, items: { type: string } }
         timezone: { type: string, examples: [Asia/Dubai] }
+    Translatable:
+      type: object
+      properties:
+        en: { type: [string, 'null'] }
+        ar: { type: [string, 'null'] }
+    ProductCard:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        brand: { type: [string, 'null'] }
+        category: { type: [object, 'null'], properties: { slug: { type: string }, name: { type: string } } }
+        price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }], description: Lowest VAT-inclusive variant price }
+        image: { type: [string, 'null'] }
+        delivery_estimate: { type: [object, 'null'], properties: { min_days: { type: integer }, max_days: { type: integer } } }
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductCard'
+        - type: object
+          properties:
+            description: { type: [string, 'null'] }
+            images: { type: array, items: { type: object, properties: { url: { type: string }, alt: { type: [string, 'null'] }, variant_id: { type: [string, 'null'] } } } }
+            availability: { type: string, enum: [in_stock, low_stock, out_of_stock] }
+            prices_include_tax: { const: true }
+            variants:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  sku: { type: string }
+                  attributes: { type: object, additionalProperties: { type: string } }
+                  price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }] }
+                  availability: { type: string, enum: [in_stock, low_stock, out_of_stock] }
+                  purchasable: { type: boolean }

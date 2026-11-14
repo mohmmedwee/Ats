@@ -48,6 +48,14 @@ abstract class TestCase extends BaseTestCase
         return (new Google2FA)->getCurrentOtp((string) $user->refresh()->mfa_secret);
     }
 
+    /** Authorization header for an MFA-verified staff token with the given roles. @return array<string, string> */
+    protected function asStaff(array $roles = ['admin']): array
+    {
+        $token = $this->staff($roles)->createToken('test', ['*'])->plainTextToken;
+
+        return ['Authorization' => 'Bearer '.$token];
+    }
+
     /** Logs a staff user in via the API and completes the MFA challenge; returns a full token. */
     protected function verifiedStaffToken(User $user): string
     {

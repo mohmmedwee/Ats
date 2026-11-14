@@ -2,6 +2,8 @@
 
 namespace App\Shared\Http;
 
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,6 +25,37 @@ final class ApiResponse
             'data' => $data ?? new \stdClass,
             'meta' => self::meta($meta),
         ], $status);
+    }
+
+    /**
+     * Cursor-paginated listing: meta.pagination = { next_cursor, prev_cursor, limit }.
+     *
+     * @param  CursorPaginator<int, mixed>  $paginator
+     * @param  array<int, mixed>  $items
+     */
+    public static function cursor(CursorPaginator $paginator, array $items): JsonResponse
+    {
+        return self::success($items, 200, ['pagination' => [
+            'next_cursor' => $paginator->nextCursor()?->encode(),
+            'prev_cursor' => $paginator->previousCursor()?->encode(),
+            'limit' => $paginator->perPage(),
+        ]]);
+    }
+
+    /**
+     * Page-based listing for admin tables.
+     *
+     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param  array<int, mixed>  $items
+     */
+    public static function paged(LengthAwarePaginator $paginator, array $items): JsonResponse
+    {
+        return self::success($items, 200, ['pagination' => [
+            'page' => $paginator->currentPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'last_page' => $paginator->lastPage(),
+        ]]);
     }
 
     /**

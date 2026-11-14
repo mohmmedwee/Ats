@@ -17,4 +17,6 @@ Route::middleware('country')->group(function (): void {
     Route::get('countries/current', [CountryController::class, 'current']);
 
     require app_path('Modules/Identity/Http/routes.php');
+    require app_path('Modules/Catalog/Http/routes.php');
+    require app_path('Modules/Suppliers/Http/routes.php');
 });
