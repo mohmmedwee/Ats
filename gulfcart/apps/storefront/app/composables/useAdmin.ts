@@ -31,11 +31,11 @@ export function useAdmin() {
 
   async function send<T = unknown>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', url: string, body?: unknown, idempotent?: string): Promise<T> {
     await csrf()
-    return request<T>(url, {
+    return (await request(url, {
       method,
       body: body as Record<string, unknown> | undefined,
       headers: idempotent ? { 'Idempotency-Key': idempotencyKey(idempotent) } : undefined,
-    })
+    })) as T
   }
 
   /** Translatable JSON field ({en, ar}) shown in the current locale with a fallback. */

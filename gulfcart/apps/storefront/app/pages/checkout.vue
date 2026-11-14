@@ -43,6 +43,15 @@ async function refreshQuote() {
   }
 }
 
+const tracking = useTracking()
+let checkoutTracked = false
+watch(quote, (q) => {
+  if (q && !checkoutTracked) {
+    checkoutTracked = true
+    tracking.track('begin_checkout', { value: Number(q.total), currency: q.currency })
+  }
+})
+
 async function fetchQuote(code: string | null) {
   return (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: code || undefined } })).data
 }

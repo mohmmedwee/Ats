@@ -4,11 +4,14 @@ use App\Modules\Catalog\Http\Controllers\Admin\CategoryController;
 use App\Modules\Catalog\Http\Controllers\Admin\ImageController;
 use App\Modules\Catalog\Http\Controllers\Admin\ProductController;
 use App\Modules\Catalog\Http\Controllers\Admin\VariantController;
+use App\Modules\Catalog\Http\Controllers\FeedController;
 use App\Modules\Catalog\Http\Controllers\StorefrontCatalogController;
 use App\Modules\Identity\Domain\Permissions;
 use Illuminate\Support\Facades\Route;
 
 // Storefront
+Route::get('seo/urls', [FeedController::class, 'urls']);
+Route::get('feeds/products.xml', [FeedController::class, 'products']);
 Route::get('categories', [StorefrontCatalogController::class, 'categories']);
 Route::get('categories/{slug}/products', [StorefrontCatalogController::class, 'byCategory']);
 Route::get('products', [StorefrontCatalogController::class, 'index']);

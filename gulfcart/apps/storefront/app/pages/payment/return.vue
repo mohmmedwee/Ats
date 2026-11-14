@@ -31,6 +31,21 @@ async function complete(outcome: 'success' | 'failure') {
   }
 }
 
+const tracking = useTracking()
+watch(payment, (p) => {
+  // Purchase is reported once per payment (survives reloads of this page).
+  if (!p || p.status !== 'captured' || !import.meta.client) return
+  const key = `gc_tracked_${p.id}`
+  try {
+    if (localStorage.getItem(key)) return
+    localStorage.setItem(key, '1')
+  }
+  catch {
+    // storage unavailable: report anyway
+  }
+  tracking.track('purchase', { value: Number(p.amount.amount), currency: p.amount.currency, orderId: p.order_number ?? p.order_id })
+})
+
 onMounted(load)
 </script>
 

@@ -17,7 +17,11 @@ export default defineNuxtConfig({
   typescript: { strict: true },
 
   runtimeConfig: {
+    // Server-side API base for sitemap generation (NUXT_API_INTERNAL), e.g. http://api:8000/api/v1 in Docker.
+    apiInternal: 'http://127.0.0.1:8000/api/v1',
     public: {
+      // Canonical storefront URL used in sitemaps and structured data (NUXT_PUBLIC_SITE_URL).
+      siteUrl: 'http://localhost:3000',
       // Same-origin through Nginx in Docker; overridden by NUXT_PUBLIC_API_BASE.
       apiBase: '/api/v1',
       // Origin that serves /sanctum/csrf-cookie (empty = same origin).

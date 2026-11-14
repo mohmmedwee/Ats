@@ -24,6 +24,44 @@ const qty = ref(1)
 const message = ref('')
 const imageIndex = ref(0)
 const sizeGuideOpen = ref(false)
+const tracking = useTracking()
+const config = useRuntimeConfig()
+onMounted(() => {
+  if (product.value) tracking.track('view_item', { id: product.value.id, name: product.value.title, value: Number(product.value.price?.amount ?? 0), currency: product.value.price?.currency })
+})
+// Search engines and social previews: title, description, image and structured product data.
+useSeoMeta({
+  title: () => (product.value ? `${product.value.title} · GulfCart` : 'GulfCart'),
+  description: () => product.value?.description?.slice(0, 160) ?? undefined,
+  ogTitle: () => product.value?.title,
+  ogDescription: () => product.value?.description?.slice(0, 160) ?? undefined,
+  ogImage: () => product.value?.image ?? undefined,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+})
+useHead(() => ({
+  script: product.value?.price
+    ? [{
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          'name': product.value.title,
+          'image': product.value.images.map(i => i.url),
+          'description': product.value.description ?? undefined,
+          'brand': product.value.brand ? { '@type': 'Brand', 'name': product.value.brand } : undefined,
+          'sku': product.value.variants[0]?.sku,
+          'offers': {
+            '@type': 'Offer',
+            'price': product.value.price.amount,
+            'priceCurrency': product.value.price.currency,
+            'availability': product.value.availability === 'out_of_stock' ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+            'url': `${config.public.siteUrl}/products/${product.value.slug}`,
+          },
+        }),
+      }]
+    : [],
+}))
 const currentImage = computed(() => product.value?.images[imageIndex.value])
 const variant = computed<Variant | undefined>(() => product.value?.variants.find(v => v.id === selected.value))
 watch(product, (p) => {
@@ -40,6 +78,7 @@ async function addToCart() {
   try {
     await cart.add(variant.value.id, qty.value)
     message.value = t('catalog.added')
+    tracking.track('add_to_cart', { id: product.value?.id, name: product.value?.title, value: Number(variant.value.price?.amount ?? 0) * qty.value, currency: variant.value.price?.currency, quantity: qty.value })
   }
   catch (e) {
     message.value = apiErrorMessage(e, t('errors.generic'))

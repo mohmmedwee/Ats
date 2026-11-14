@@ -104,6 +104,7 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
       <p class="border-t py-4 text-center text-xs text-ink-500">© {{ new Date().getFullYear() }} GulfCart</p>
     </footer>
     <WhatsAppButton />
+    <ConsentBanner />
 
     <!-- mobile app-style bottom navigation -->
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-white text-[11px] md:hidden">

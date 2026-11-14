@@ -827,5 +827,12 @@
     "pending": "Your review is waiting for approval.",
     "verified": "Verified purchase",
     "none": "No reviews yet."
+  },
+  "consent": {
+    "title": "Cookies",
+    "text": "We use cookies to keep the store working and, with your permission, to measure our ads and show you relevant offers.",
+    "more": "Privacy policy",
+    "accept": "Accept all",
+    "essential": "Essential only"
   }
 }
