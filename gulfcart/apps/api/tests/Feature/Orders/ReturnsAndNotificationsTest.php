@@ -111,13 +111,49 @@ final class ReturnsAndNotificationsTest extends TestCase
         Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => $m->hasTo('operations@gulfcart.local') && $m->subjectLine === 'Procurement exception: SUPPLIER_REJECTED');
     }
 
-    public function test_phone_only_customers_are_logged_until_an_sms_provider_exists(): void
+    public function test_phone_only_customers_get_an_sms_and_whatsapp_replaces_it_when_configured(): void
+    {
+        Mail::fake();
+        $texts = [];
+        $this->app->instance(\App\Modules\Identity\Contracts\SmsSender::class, new class($texts) implements \App\Modules\Identity\Contracts\SmsSender
+        {
+            public function __construct(private array &$texts) {}
+
+            public function send(string $e164Phone, string $message): void
+            {
+                $this->texts[] = $message;
+            }
+        });
+        ['variant' => $v] = $this->sellableProduct(['AE']);
+        $auth = $this->customerAuth($this->customer(['email' => null, 'phone' => '+971501112233']));
+        $order = $this->placeOrder([[$v, 1]], $auth);
+        $this->payOrder($order, $auth);
+
+        $this->assertDatabaseHas('notification_logs', ['template' => 'order_confirmed', 'channel' => 'sms', 'status' => 'sent']);
+        $this->assertStringContainsString($order->order_number, $texts[0] ?? '');
+
+        // With WhatsApp configured, the mapped template is sent instead of an SMS.
+        config(['gulfcart.whatsapp.provider' => 'meta', 'gulfcart.whatsapp.phone_number_id' => '123', 'gulfcart.whatsapp.token' => 't']);
+        \Illuminate\Support\Facades\Http::fake(['graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['messages' => [['id' => 'wamid.1']]])]);
+        app(\App\Modules\Notifications\Application\Notifier::class)->toCustomer($order->user_id, 'order_delivered', ['order' => $order->order_number], 'test:delivered', 'order', $order->id, "/account/orders/{$order->id}");
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages')
+            && $r['template']['name'] === 'gc_order_delivered' && $r['template']['components'][0]['parameters'][1]['text'] === $order->order_number);
+        $this->assertDatabaseHas('notification_logs', ['template' => 'order_delivered', 'channel' => 'whatsapp', 'status' => 'sent']);
+        $this->assertCount(1, $texts);
+    }
+
+    public function test_abandoned_carts_get_one_reminder(): void
     {
         Mail::fake();
         ['variant' => $v] = $this->sellableProduct(['AE']);
-        $auth = $this->customerAuth($this->customer(['email' => null, 'phone' => '+971501112233']));
-        $this->payOrder($this->placeOrder([[$v, 1]], $auth), $auth);
+        $user = $this->customer();
+        $auth = $this->customerAuth($user);
+        $this->postJson('/api/v1/cart/items', ['variant_id' => $v->id, 'quantity' => 2], $auth + ['X-Country' => 'AE'])->assertCreated();
+        \Illuminate\Support\Facades\DB::table('carts')->update(['updated_at' => now()->subHours(5)]);
+        \Illuminate\Support\Facades\DB::table('cart_items')->update(['updated_at' => now()->subHours(5)]);
 
-        $this->assertDatabaseHas('notification_logs', ['template' => 'order_confirmed', 'channel' => 'sms', 'status' => 'skipped_no_provider']);
+        $this->artisan('notifications:cart-reminders')->expectsOutput('1 cart reminder(s)')->assertSuccessful();
+        $this->artisan('notifications:cart-reminders')->expectsOutput('0 cart reminder(s)')->assertSuccessful();
+        Mail::assertSent(\App\Modules\Notifications\Application\TemplateMail::class, fn ($m) => $m->hasTo($user->email) && str_contains($m->subjectLine, 'cart'));
     }
 }

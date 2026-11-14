@@ -29,6 +29,25 @@ return [
         'unifonic_app_sid' => env('UNIFONIC_APP_SID'),
     ],
 
+    // WhatsApp Business (Meta Cloud API). Each mapped template must exist and be approved in
+    // WhatsApp Manager with the same name, in English (en) and Arabic (ar), with body variables
+    // {{1}}, {{2}}… in the order listed under params, and an optional URL button ending in {{1}}
+    // that receives the order/cart path (docs/NOTIFICATIONS.md).
+    'whatsapp' => [
+        'provider' => env('WHATSAPP_PROVIDER', 'none'), // none | meta
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'token' => env('WHATSAPP_TOKEN'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'templates' => [
+            'order_confirmed' => ['name' => 'gc_order_confirmed', 'params' => ['name', 'order', 'total']],
+            'order_shipped' => ['name' => 'gc_order_shipped', 'params' => ['name', 'order', 'carrier', 'tracking']],
+            'order_delivered' => ['name' => 'gc_order_delivered', 'params' => ['name', 'order']],
+            'order_cancelled' => ['name' => 'gc_order_cancelled', 'params' => ['name', 'order']],
+            'refund_issued' => ['name' => 'gc_refund_issued', 'params' => ['name', 'amount', 'order']],
+            'cart_reminder' => ['name' => 'gc_cart_reminder', 'params' => ['name', 'count']],
+        ],
+    ],
+
     // Customer support channels shown on the storefront (contact page, WhatsApp button).
     'support' => [
         'email' => env('SUPPORT_EMAIL', 'support@gulfcart.example'),
@@ -127,6 +146,7 @@ return [
 
     'notifications' => [
         'operations_email' => env('OPERATIONS_ALERT_EMAIL', 'operations@gulfcart.local'),
+        'cart_reminders' => (bool) env('CART_REMINDERS_ENABLED', true),
     ],
 
     'procurement' => [
