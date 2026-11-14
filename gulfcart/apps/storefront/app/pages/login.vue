@@ -39,6 +39,7 @@ async function submit() {
     </label>
     <p v-if="error" role="alert" class="text-red-600">{{ error }}</p>
     <button :disabled="busy" class="w-full rounded bg-gray-900 py-2 text-white">{{ $t('auth.submit_login') }}</button>
+    <NuxtLink :to="localePath('/forgot-password')" class="block text-sm underline">{{ $t('auth.forgot') }}</NuxtLink>
     <p class="text-sm">{{ $t('auth.no_account') }} <NuxtLink :to="localePath('/register')" class="underline">{{ $t('nav.register') }}</NuxtLink></p>
   </form>
 </template>

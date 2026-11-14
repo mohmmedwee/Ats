@@ -25,4 +25,7 @@ return [
     'password_reset_link_sent' => 'If an account exists for this email, a reset link has been sent.',
     'staff_role_for_customer' => 'Staff roles cannot be assigned to customer accounts.',
     'cannot_remove_own_super_admin' => 'You cannot remove your own super admin role.',
+    'otp_invalid' => 'The verification code is invalid or expired.',
+    'otp_message' => 'Your GulfCart code is :code. It expires in :minutes minutes.',
+    'invalid_signature' => 'This link is invalid or has expired.',
 ];

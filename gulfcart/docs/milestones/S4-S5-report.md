@@ -78,3 +78,42 @@ codes) → dashboard shows paid revenue.
 | First `docker compose up`, staging deploy, k6 runs, restore drill | Engineering |
 | Pest + Larastan level 8 (blocked here by GitHub downloads) | Engineering |
 | Move GulfCart to its own repository | Owner |
+
+## Follow-up round (after Sprint 5)
+
+Backend 196 tests (1,879 assertions) passing; storefront lint/typecheck clean, 15 tests, build OK;
+browser journey re-verified (phone OTP, invoice link and print view, forgot password).
+
+| Item | Result |
+|---|---|
+| Phone verification | `/auth/otp/send`, `/auth/verify-otp`: hashed 6-digit codes, 10-minute expiry, 5 attempts, single use, rate limits; `SmsSender` contract with a log driver (refused in production) until an SMS provider exists |
+| Email verification | Verification email on registration; signed link (relative signature, 24 h) through the storefront; resend endpoint |
+| Storefront account | Forgot/reset password pages, email verification page and banner, phone verification form |
+| Tax invoices | Invoice on payment, credit note on each refund; gapless numbering per country/type/year; immutable (trigger); bilingual printable HTML; ZATCA Phase 1 QR payload for KSA |
+| Live FX | `HttpRateProvider` (`FX_PROVIDER=http`) with a 10% outlier guard; refreshes in the same second no longer collide |
+| Outbox | `outbox:work` long-running dispatcher (+ `outbox` service in Compose) |
+| DB roles | `infrastructure/postgres/roles.sql` and `post-migrate.sql` (owner / app / reporting; append-only audit and invoices) |
+| Admin UI | Returns, suppliers (activate/deactivate) and CSV import screens |
+
+### Bugs found in this round
+
+1. **OTP brute force:** the failed-attempt counter was incremented inside a transaction that then threw,
+   so the rollback erased it. Verification now returns a result and throws after commit (regression test).
+2. **Missing SMS binding:** an earlier formatter run had rewritten the provider, so a scripted edit did not
+   apply; tests passed because they bind their own sender. Found by the browser run; a container test now covers it.
+3. **Invoice print view unstyled:** the API security middleware replaced the page's CSP. It now keeps a
+   controller-specific policy.
+4. **Same-second FX refreshes** violated the unique key → insert-or-ignore.
+
+### Still open (cannot be done without decisions or access)
+
+| Item | Blocked by |
+|---|---|
+| Real supplier connector(s) | Signed supplier agreement and API access |
+| Real payment gateway adapter | Payment provider choice (D2) |
+| Real SMS/WhatsApp adapter | Provider choice |
+| ZATCA Phase 2 e-invoicing | Legal entity + ZATCA onboarding |
+| Courier adapter | Decision D3 (only if GulfCart books its own last-mile) |
+| `docker compose up` verification | This environment blocks package mirrors (Alpine 403, Debian not routed); run once locally |
+| Pest + Larastan | GitHub-hosted package downloads blocked here |
+| Customer consent for supplier price increases | Product decision (today: GulfCart absorbs ≤ 5%, otherwise exception queue) |

@@ -47,6 +47,9 @@ final class AuthController
             return $user;
         });
 
+        if ($user->email !== null) {
+            $user->sendEmailVerificationNotification();
+        }
         $token = ($this->issue)($request, $user, $data['device_name'] ?? null);
         $this->audit->record('auth.registered', 'user', $user->id, null, null, $user->id);
 

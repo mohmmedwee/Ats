@@ -4,8 +4,10 @@ namespace App\Modules\Identity\Infrastructure\Models;
 
 use App\Modules\Identity\Domain\UserType;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -29,10 +31,10 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $mfa_confirmed_at
  * @property Carbon|null $last_login_at
  */
-class User extends Authenticatable implements CanResetPasswordContract
+class User extends Authenticatable implements CanResetPasswordContract, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use CanResetPassword, HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable;
+    use CanResetPassword, HasApiTokens, HasFactory, HasRoles, HasUuids, MustVerifyEmailTrait, Notifiable;
 
     protected string $guard_name = 'web';
 

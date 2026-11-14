@@ -23,6 +23,8 @@ final class UserResource extends JsonResource
             'roles' => $this->getRoleNames()->values()->all(),
             'permissions' => $this->getAllPermissions()->pluck('name')->sort()->values()->all(),
             'mfa_enabled' => $this->hasMfaEnabled(),
+            'email_verified' => $this->email_verified_at !== null,
+            'phone_verified' => $this->phone_verified_at !== null,
         ];
     }
 }

@@ -34,7 +34,25 @@
     "mfa_title": "Two-factor authentication",
     "mfa_code": "Authentication code",
     "mfa_submit": "Verify",
-    "mfa_setup_required": "Staff accounts must enable two-factor authentication before using the admin area."
+    "mfa_setup_required": "Staff accounts must enable two-factor authentication before using the admin area.",
+    "forgot": "Forgot your password?",
+    "forgot_title": "Reset your password",
+    "forgot_sent": "If an account exists for this email, we sent a reset link.",
+    "send_link": "Send reset link",
+    "new_password": "New password",
+    "reset_submit": "Set new password",
+    "reset_done": "Your password was changed. You can log in now.",
+    "verify_title": "Email verification",
+    "verify_ok": "Your email is verified. Thank you!",
+    "verify_failed": "This link is invalid or has expired.",
+    "verify_banner": "Please verify your email address.",
+    "resend": "Resend email",
+    "resent": "Verification email sent.",
+    "phone_title": "Verify your mobile number",
+    "send_code": "Send code",
+    "code_sent": "We sent a 6-digit code by SMS.",
+    "verify_code": "Verify",
+    "phone_verified": "Mobile number verified."
   },
   "account": {
     "title": "My account",
@@ -71,7 +89,21 @@
     "reason": "Reason",
     "status": "Status",
     "amount": "Amount",
-    "order": "Order"
+    "order": "Order",
+    "returns": "Returns",
+    "suppliers": "Suppliers",
+    "imports": "Import products",
+    "upload": "Upload CSV",
+    "supplier": "Supplier",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "authorized": "Authorized",
+    "rows": "Rows",
+    "created": "Created",
+    "updated": "Updated",
+    "errors": "Errors",
+    "receive": "Mark received",
+    "refund": "Refund"
   },
   "errors": {
     "generic": "Something went wrong. Please try again."
@@ -205,7 +237,10 @@
       "size_fit": "Size or fit",
       "changed_mind": "Changed my mind",
       "other": "Other"
-    }
+    },
+    "invoices": "Invoices",
+    "invoice": "Invoice",
+    "credit_note": "Credit note"
   },
   "mfa": {
     "setup_title": "Set up two-factor authentication",

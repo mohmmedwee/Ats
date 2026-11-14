@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Exceptions\UnauthorizedException as PermissionDenied;
@@ -34,6 +35,7 @@ final class ApiExceptionRenderer
             $e instanceof ModelNotFoundException,
             $e instanceof NotFoundHttpException => ApiResponse::error('NOT_FOUND', self::t('not_found'), 404),
             $e instanceof MethodNotAllowedHttpException => ApiResponse::error('METHOD_NOT_ALLOWED', self::t('method_not_allowed'), 405),
+            $e instanceof InvalidSignatureException => ApiResponse::error('INVALID_SIGNATURE', self::t('invalid_signature'), 403),
             $e instanceof TokenMismatchException => ApiResponse::error('CSRF_TOKEN_MISMATCH', self::t('csrf_token_mismatch'), 419),
             $e instanceof ThrottleRequestsException => ApiResponse::error(
                 'RATE_LIMITED', self::t('rate_limited'), 429, [], self::stringHeaders($e->getHeaders()),

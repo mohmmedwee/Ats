@@ -7,6 +7,7 @@ use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Checkout\Providers\CheckoutServiceProvider;
 use App\Modules\Countries\Providers\CountriesServiceProvider;
 use App\Modules\Identity\Providers\IdentityServiceProvider;
+use App\Modules\Invoices\Providers\InvoicesServiceProvider;
 use App\Modules\Notifications\Providers\NotificationsServiceProvider;
 use App\Modules\Orders\Providers\OrdersServiceProvider;
 use App\Modules\Payments\Providers\PaymentsServiceProvider;
@@ -36,4 +37,5 @@ return [
     ReturnsServiceProvider::class,
     NotificationsServiceProvider::class,
     AnalyticsServiceProvider::class,
+    InvoicesServiceProvider::class,
 ];

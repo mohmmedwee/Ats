@@ -7,6 +7,7 @@
 | API | php-fpm (Docker `api`) | Stateless; scale horizontally |
 | Workers | `php artisan queue:work redis --queue=procurement,payments,outbox,notifications,default --tries=1` | `tries=1`: procurement and payments own their retries |
 | Scheduler | `php artisan schedule:work` | Exactly **one** instance |
+| Outbox | `php artisan outbox:work --sleep=1` | Publishes domain events within ~1 s; the scheduler's `outbox:dispatch` is the safety net |
 | Storefront | Nuxt SSR | Scale horizontally |
 
 ## Scheduled jobs
@@ -51,6 +52,14 @@
 | Orders paid but no supplier orders | `outbox_events` pending/failed for `order.paid`; run `php artisan outbox:dispatch`; check worker logs |
 | Many `reconciling` tasks | Supplier API degraded; `procurement:reconcile` resolves them when it recovers |
 | `/health/ready` 503 | Which check is down (postgres/redis/queue); Redis loss delays work but loses no financial state |
+
+## Tax documents
+
+- A simplified tax invoice is issued automatically when an order is paid (`INV-{country}-{year}-{n}`),
+  and a credit note for every succeeded refund (`CN-…`). Numbering is gapless per country, type and year.
+- Documents are immutable (DB trigger). Corrections are always new credit notes.
+- Set `settings.seller.legal_name`, `vat_number` and `address` per country (admin → countries) before launch.
+- KSA: invoices carry the ZATCA Phase 1 QR payload. Phase 2 (e-invoicing integration) requires ZATCA onboarding.
 
 ## Backups
 

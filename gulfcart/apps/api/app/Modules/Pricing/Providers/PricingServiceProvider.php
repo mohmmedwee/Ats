@@ -8,6 +8,7 @@ use App\Modules\Pricing\Application\ConfiguredRateProvider;
 use App\Modules\Pricing\Application\EloquentExchangeRates;
 use App\Modules\Pricing\Application\EloquentPriceBook;
 use App\Modules\Pricing\Application\HasPrice;
+use App\Modules\Pricing\Application\HttpRateProvider;
 use App\Modules\Pricing\Application\RuleResolver;
 use App\Modules\Pricing\Console\RefreshExchangeRatesCommand;
 use App\Modules\Pricing\Console\RepriceAllCommand;
@@ -33,7 +34,9 @@ final class PricingServiceProvider extends ModuleServiceProvider
         $this->app->singleton(CatalogPricing::class, fn ($app) => $app->make(EloquentPriceBook::class));
         $this->app->singleton(EloquentExchangeRates::class);
         $this->app->alias(EloquentExchangeRates::class, ExchangeRates::class);
-        $this->app->singletonIf(ExchangeRateProvider::class, ConfiguredRateProvider::class);
+        $this->app->singletonIf(ExchangeRateProvider::class, fn () => config('gulfcart.fx.provider') === 'http'
+            ? new HttpRateProvider
+            : new ConfiguredRateProvider);
         $this->app->scoped(RuleResolver::class);
         $this->app->tag([HasPrice::class], SellabilityRule::TAG);
     }

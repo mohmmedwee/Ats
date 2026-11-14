@@ -16,7 +16,10 @@ final class SecurityHeaders
         $h->set('X-Content-Type-Options', 'nosniff');
         $h->set('X-Frame-Options', 'DENY');
         $h->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $h->set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        // Keep a stricter-or-specific policy set by the controller (e.g. printable invoice HTML).
+        if (! $h->has('Content-Security-Policy')) {
+            $h->set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        }
         $h->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $h->set('Cache-Control', $h->get('Cache-Control') && str_contains((string) $h->get('Cache-Control'), 'public') ? (string) $h->get('Cache-Control') : 'no-store, private');
         if (app()->environment('production')) {

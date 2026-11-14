@@ -42,6 +42,13 @@ services:
     depends_on:
       api: { condition: service_healthy }
 
+  outbox:
+    <<: *api
+    command: ["php", "artisan", "outbox:work", "--sleep=1", "--max-time=3600"]
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+
   storefront:
     build: { context: ./apps/storefront, target: dev }
     volumes:

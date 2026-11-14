@@ -12,6 +12,7 @@ servers:
 security:
   - sanctum: []
 tags:
+  - name: Invoices
   - name: Admin Reports
   - name: Returns
   - name: Admin Returns
@@ -1328,6 +1329,99 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Ok' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  # ---------- Verification ----------
+  /auth/otp/send:
+    post:
+      tags: [Authentication]
+      summary: Send a 6-digit SMS code to verify a UAE or KSA mobile number (3 per 10 minutes)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, examples: ['+971501234567'] }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/verify-otp:
+    post:
+      tags: [Authentication]
+      summary: Verify the code (10-minute expiry, 5 attempts, single use); sets phone_verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '422':
+          description: OTP_INVALID or VALIDATION_FAILED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /auth/email/verify/{id}/{hash}:
+    get:
+      tags: [Authentication]
+      summary: Signed link from the verification email (relative signature, 24 hours)
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: hash, in: path, required: true, schema: { type: string } }
+        - { name: expires, in: query, required: true, schema: { type: integer } }
+        - { name: signature, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '403':
+          description: INVALID_SIGNATURE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /auth/email/resend:
+    post:
+      tags: [Authentication]
+      summary: Resend the verification email
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+  # ---------- Invoices ----------
+  /orders/{id}/invoices:
+    get:
+      tags: [Invoices]
+      summary: Tax invoice and credit notes of an order (owner or orders.view_any)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /invoices/{id}:
+    get:
+      tags: [Invoices]
+      summary: Invoice or credit note (gapless number per country and year; ZATCA QR payload for SA)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /invoices/{id}/html:
+    get:
+      tags: [Invoices]
+      summary: Printable bilingual HTML document
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: HTML document
+          content:
+            text/html:
+              schema: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 components:
   securitySchemes:

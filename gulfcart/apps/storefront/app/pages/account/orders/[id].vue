@@ -7,6 +7,8 @@ const { request, csrf, idempotencyKey } = useApi()
 const { locale, t } = useI18n()
 
 const order = ref<OrderDetail | null>(null)
+const invoices = ref<{ id: string, number: string, type: 'invoice' | 'credit_note' }[]>([])
+const config = useRuntimeConfig()
 const error = ref('')
 const notice = ref('')
 const returnMode = ref(false)
@@ -16,6 +18,7 @@ const reasons = ['damaged', 'wrong_item', 'not_as_described', 'size_fit', 'chang
 
 async function load() {
   order.value = (await request<Envelope<OrderDetail>>(`/orders/${route.params.id}`)).data
+  invoices.value = (await request<Envelope<typeof invoices.value>>(`/orders/${route.params.id}/invoices`)).data
 }
 
 async function run(fn: () => Promise<void>) {
@@ -97,6 +100,13 @@ onMounted(load)
       <ol v-for="tr in p.tracking" :key="`ev-${tr.tracking_number}`" class="mt-2 border-s ps-3 text-xs text-gray-600">
         <li v-for="e in tr.events" :key="e.code + e.occurred_at">{{ new Date(e.occurred_at).toLocaleString(locale) }} — {{ e.description }}</li>
       </ol>
+    </div>
+
+    <div v-if="invoices.length" class="text-sm">
+      <h2 class="font-medium">{{ $t('orders.invoices') }}</h2>
+      <a v-for="inv in invoices" :key="inv.id" :href="`${config.public.apiBase}/invoices/${inv.id}/html`" target="_blank" rel="noopener" class="me-4 underline" dir="ltr" data-test="invoice-link">
+        {{ $t(`orders.${inv.type}`) }} {{ inv.number }}
+      </a>
     </div>
 
     <dl class="ms-auto max-w-sm space-y-1 text-sm">

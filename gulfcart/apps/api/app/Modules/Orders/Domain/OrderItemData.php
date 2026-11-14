@@ -21,5 +21,8 @@ final class OrderItemData
         public readonly string $fulfillmentStatus,
         public readonly int $refundedQuantity,
         public readonly array $snapshot,
+        public readonly string $unitNet = '0',
+        public readonly string $unitTax = '0',
+        public readonly string $vatRate = '0',
     ) {}
 }

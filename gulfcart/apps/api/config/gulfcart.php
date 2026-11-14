@@ -28,6 +28,14 @@ return [
 
     'fx' => [
         'max_age_hours' => (int) env('FX_MAX_AGE_HOURS', 24),
+        // 'config' (static rates below) or 'http' (live feed).
+        'provider' => env('FX_PROVIDER', 'config'),
+        'http' => [
+            'url' => env('FX_HTTP_URL', 'https://open.er-api.com/v6/latest/{base}'),
+            'bases' => ['USD', 'EUR', 'GBP', 'CNY'],
+            'targets' => ['AED', 'SAR'],
+            'max_change_percent' => env('FX_MAX_CHANGE_PERCENT', '10'),
+        ],
         // Used by ConfiguredRateProvider. USD pegs are official; other pairs are placeholders
         // until a live provider is bound (docs/PRICING_ENGINE.md §6).
         'rates' => [
@@ -52,6 +60,11 @@ return [
         'webhook_tolerance_seconds' => 300,
         // Staff refunds above this amount need a second approver (four-eyes).
         'refund_approval_threshold' => ['AED' => '500', 'SAR' => '500'],
+    ],
+
+    'invoices' => [
+        // Placeholder until the legal entity is decided; set per country in countries.settings.seller.
+        'seller_legal_name' => env('INVOICE_SELLER_NAME', 'GulfCart (legal entity pending)'),
     ],
 
     'returns' => [

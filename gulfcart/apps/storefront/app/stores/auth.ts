@@ -9,6 +9,8 @@ export interface User {
   roles: string[]
   permissions: string[]
   mfa_enabled: boolean
+  email_verified?: boolean
+  phone_verified?: boolean
 }
 
 interface Envelope<T> { success: true, data: T, meta: { request_id: string } }

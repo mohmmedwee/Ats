@@ -149,9 +149,23 @@ Commit only `.env.example`. Database passwords and supplier keys never go into G
 | `QUOTE_VALIDITY_MINUTES` / `ORDER_PAYMENT_WINDOW_MINUTES` | `30` / `60` | Checkout lock and payment window |
 | `PROCUREMENT_MAX_COST_INCREASE_PERCENT` | `5` | Cost tolerance before an exception |
 | `OPERATIONS_ALERT_EMAIL` | — | Procurement exception alerts |
+| `FX_PROVIDER` / `FX_HTTP_URL` / `FX_MAX_CHANGE_PERCENT` | `config` / open.er-api.com / `10` | Live FX feed; moves above 10% are rejected |
+| `INVOICE_SELLER_NAME` | placeholder | Seller on tax documents until per-country `settings.seller` is set |
 | `ALLOW_MOCK_SUPPLIER_IN_PRODUCTION` / `ALLOW_SANDBOX_PAYMENTS_IN_PRODUCTION` | `false` | Keep false |
 
 Operations, scheduled jobs and incident playbooks: [`OPERATIONS.md`](OPERATIONS.md).
+
+## 3.2 Database roles
+
+Production uses three roles (`infrastructure/postgres/roles.sql`): `gulfcart_owner` runs migrations
+only, `gulfcart_app` is used by API/workers/scheduler (no DDL), `gulfcart_reporting` is read-only.
+Run `infrastructure/postgres/post-migrate.sql` after every `migrate --force` to keep `audit_logs` and
+`invoices` append-only and financial rows undeletable for the app role.
+
+## 3.3 Processes
+
+`docker-compose.yml` runs `api`, `worker`, `scheduler` and `outbox` (`php artisan outbox:work`, ~1 s
+event latency). See [`OPERATIONS.md`](OPERATIONS.md).
 
 ## 4. Environments
 

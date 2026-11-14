@@ -175,7 +175,7 @@ final class RefundService implements OrderRefunder
         $payment->update(['refunded_amount' => Decimal::add($payment->refunded_amount, $refund->amount, 2)]);
         $refund->update(['status' => 'succeeded']);
         $this->orders->recordRefund($refund->order_id, $refund->amount, $refund->item_quantities);
-        Outbox::record('refund', $refund->id, 'refund.succeeded', ['refund_id' => $refund->id, 'order_id' => $refund->order_id, 'amount' => $refund->amount, 'currency' => $refund->currency, 'reason_code' => $refund->reason_code]);
+        Outbox::record('refund', $refund->id, 'refund.succeeded', ['refund_id' => $refund->id, 'order_id' => $refund->order_id, 'amount' => $refund->amount, 'currency' => $refund->currency, 'reason_code' => $refund->reason_code, 'item_quantities' => $refund->item_quantities]);
     }
 
     private function threshold(?string $currency): string

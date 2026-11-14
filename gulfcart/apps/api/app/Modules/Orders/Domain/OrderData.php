@@ -21,6 +21,10 @@ final class OrderData
         public readonly string $locale,
         public readonly array $shippingAddress,
         public readonly array $items,
+        public readonly string $shippingTotal = '0',
+        public readonly string $customsTotal = '0',
+        public readonly string $taxTotal = '0',
+        public readonly ?string $paidAt = null,
     ) {}
 
     public function item(string $id): ?OrderItemData

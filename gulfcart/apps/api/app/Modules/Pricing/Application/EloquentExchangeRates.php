@@ -6,6 +6,7 @@ use App\Modules\Pricing\Contracts\ExchangeRateProvider;
 use App\Modules\Pricing\Contracts\ExchangeRates;
 use App\Modules\Pricing\Infrastructure\Models\ExchangeRate;
 use App\Shared\Money\Decimal;
+use Illuminate\Support\Str;
 
 final class EloquentExchangeRates implements ExchangeRates
 {
@@ -40,11 +41,12 @@ final class EloquentExchangeRates implements ExchangeRates
             if (Decimal::cmp($row['rate'], '0') <= 0) {
                 continue;
             }
-            ExchangeRate::query()->create([
+            // Two refreshes in the same second (manual + scheduled) must not collide.
+            $count += ExchangeRate::query()->insertOrIgnore([
+                'id' => (string) Str::uuid7(), 'created_at' => $now,
                 'base_currency' => strtoupper($row['base']), 'target_currency' => strtoupper($row['target']),
                 'rate' => $row['rate'], 'source' => $provider->name(), 'effective_at' => $now,
             ]);
-            $count++;
         }
 
         return $count;
