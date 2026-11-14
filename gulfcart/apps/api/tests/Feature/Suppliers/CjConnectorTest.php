@@ -15,6 +15,7 @@ use App\Modules\Suppliers\Domain\Connector\TransientConnectorException;
 use App\Modules\Suppliers\Domain\Connector\UnknownOutcomeException;
 use App\Modules\Suppliers\Infrastructure\Models\Supplier;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierProduct;
+use App\Shared\Translation\Translator;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -286,5 +287,39 @@ final class CjConnectorTest extends TestCase
         $this->assertFalse($supplier->is_active);
         $this->assertSame('pending', $supplier->commercial_authorization_status);
         $this->assertContains('authentication/getAccessToken', $this->calls);
+    }
+
+    public function test_admin_can_search_cj_and_queue_an_import_with_arabic_translation(): void
+    {
+        Storage::fake('local');
+        Queue::fake([FetchProductImage::class]);
+        $this->app->instance(Translator::class, new class implements Translator
+        {
+            public function enabled(): bool
+            {
+                return true;
+            }
+
+            public function toArabic(array $fields): array
+            {
+                return ['title' => 'فستان كتان صيفي', 'description' => 'فستان خفيف من الكتان'];
+            }
+        });
+        $this->cjSupplier();
+        $this->catalog('P88', ['V1']);
+        $this->routes['product/listV2'] = ['pageNumber' => 1, 'totalRecords' => 1, 'totalPages' => 1, 'content' => [['productList' => [
+            ['id' => 'P88', 'nameEn' => 'Linen Summer Dress', 'bigImage' => 'https://cf.cjdropshipping.com/a.jpg', 'sellPrice' => '18.20', 'warehouseInventoryNum' => 900],
+        ]]]];
+        $staff = $this->asStaff(['catalog_manager']);
+
+        $this->getJson('/api/v1/admin/cj/products?q=dress', $staff)->assertOk()
+            ->assertJsonPath('data.0.pid', 'P88')->assertJsonPath('data.0.imported', false)->assertJsonPath('meta.pagination.total', 1);
+
+        $id = $this->postJson('/api/v1/admin/cj/imports', ['pids' => ['P88']], $staff)->assertStatus(202)->json('data.id');
+
+        $this->getJson("/api/v1/admin/imports/{$id}", $staff)->assertOk()->assertJsonPath('data.status', 'completed')->assertJsonPath('data.created_count', 1);
+        $this->assertSame('فستان كتان صيفي', Product::query()->sole()->title['ar']);
+        $this->getJson('/api/v1/admin/cj/products?q=dress', $staff)->assertJsonPath('data.0.imported', true);
+        $this->getJson('/api/v1/admin/imports', $staff)->assertOk()->assertJsonPath('data.0.source', 'cj');
     }
 }

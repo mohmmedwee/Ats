@@ -32,6 +32,13 @@ final class ImportController
         return ApiResponse::success($this->present($import->refresh()), 202);
     }
 
+    public function index(Request $request): JsonResponse
+    {
+        $page = ProductImport::query()->latest()->paginate(min(50, $request->integer('per_page', 20)));
+
+        return ApiResponse::paged($page, $page->getCollection()->map(fn ($i) => $this->present($i))->all());
+    }
+
     public function show(ProductImport $import): JsonResponse
     {
         return ApiResponse::success($this->present($import));
@@ -41,6 +48,6 @@ final class ImportController
     private function present(ProductImport $i): array
     {
         return $i->only(['id', 'supplier_id', 'status', 'total_rows', 'created_count', 'updated_count', 'error_count', 'errors'])
-            + ['completed_at' => $i->completed_at?->toIso8601String()];
+            + ['source' => str_starts_with($i->file_path, 'imports/cj-') ? 'cj' : 'csv', 'created_at' => $i->created_at?->toIso8601String(), 'completed_at' => $i->completed_at?->toIso8601String()];
     }
 }

@@ -20,6 +20,13 @@ return [
         'cj' => CjDropshippingConnector::class,
     ],
 
+    // Machine translation of imported product text to Arabic (drafts, reviewed before publishing).
+    'translation' => [
+        'provider' => env('TRANSLATION_PROVIDER', 'none'), // none | claude
+        'anthropic_api_key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('TRANSLATION_MODEL', 'claude-opus-5-5'),
+    ],
+
     // CJdropshipping (docs/suppliers/CJ_DROPSHIPPING.md).
     'cj' => [
         'api_key' => env('CJ_API_KEY', ''),

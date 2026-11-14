@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Identity\Domain\Permissions;
+use App\Modules\Suppliers\Http\Controllers\CjController;
 use App\Modules\Suppliers\Http\Controllers\ImportController;
 use App\Modules\Suppliers\Http\Controllers\SupplierController;
 use App\Modules\Suppliers\Http\Controllers\SupplierProductController;
@@ -22,7 +23,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'mfa.verified'])->group(func
         Route::patch('supplier-products/{supplierProduct}', [SupplierProductController::class, 'update']);
         Route::put('supplier-products/{supplierProduct}/mappings', [SupplierProductController::class, 'mappings']);
         Route::post('supplier-products/{supplierProduct}/sync', [SupplierProductController::class, 'sync']);
+        Route::get('imports', [ImportController::class, 'index']);
         Route::post('imports/products', [ImportController::class, 'store']);
+        Route::get('cj/products', [CjController::class, 'search']);
+        Route::post('cj/imports', [CjController::class, 'import'])->middleware('throttle:10,1');
         Route::get('imports/{import}', [ImportController::class, 'show']);
     });
 });

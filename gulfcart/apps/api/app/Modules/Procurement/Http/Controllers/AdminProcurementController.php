@@ -8,6 +8,7 @@ use App\Shared\Http\ApiResponse;
 use App\Shared\Money\Decimal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /** Procurement dashboard and exception actions (procurement.view / procurement.act). */
 final class AdminProcurementController
@@ -19,6 +20,9 @@ final class AdminProcurementController
         $q = ProcurementTask::query()->with('supplierOrder')->orderByRaw("CASE status WHEN 'exception' THEN 0 WHEN 'manual' THEN 1 WHEN 'reconciling' THEN 2 WHEN 'waiting_retry' THEN 3 ELSE 9 END")->latest();
         if (is_string($s = $request->query('status'))) {
             $q->whereIn('status', explode(',', $s));
+        }
+        if (is_string($o = $request->query('order_id')) && Str::isUuid($o)) {
+            $q->whereHas('supplierOrder', fn ($so) => $so->where('order_id', $o));
         }
         $page = $q->paginate(min(100, $request->integer('per_page', 25)));
 

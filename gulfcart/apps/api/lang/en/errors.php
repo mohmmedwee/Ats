@@ -14,6 +14,7 @@ return [
     'bad_request' => 'The request could not be processed.',
     'conflict' => 'The request conflicts with the current state. Try again shortly.',
     'service_unavailable' => 'The service is temporarily unavailable.',
+    'supplier_unavailable' => 'The supplier could not be reached. Try again shortly.',
     'internal_error' => 'An unexpected error occurred.',
     'idempotency_key_required' => 'The Idempotency-Key header is required for this request.',
     'idempotency_key_reused' => 'This Idempotency-Key was already used with a different request.',

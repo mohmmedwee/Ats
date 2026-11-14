@@ -4,7 +4,7 @@ Cross-border, multi-source e-commerce **reseller** platform for the UAE and Saud
 GulfCart is the seller of record to the customer: it buys from commercially authorized
 suppliers and ships directly to the customer.
 
-> **Status:** MVP software complete (Sprints 0–5 + follow-up round) plus a CJdropshipping connector. 208 backend tests, storefront in Arabic and English,
+> **Status:** MVP software complete (Sprints 0–5 + follow-up round) plus a CJdropshipping connector and a full admin panel. 212 backend tests, storefront in Arabic and English,
 > full purchase journey verified in a browser. Commercial launch still needs the business decisions in
 > [`docs/milestones/S4-S5-report.md`](docs/milestones/S4-S5-report.md#what-remains-before-commercial-launch)
 > (suppliers, payment provider, jurisdiction, customs).
@@ -22,6 +22,11 @@ open http://localhost   # storefront; API at http://localhost/api/v1
 ```
 
 Dev super admin (local only, from `apps/api/.env`): `admin@gulfcart.local` / `ChangeMe-123`.
+
+Admin panel (`/admin`, Arabic and English): dashboard with sales and profit, orders with cost and margin,
+procurement exceptions, refunds (four-eyes), returns, products (edit, translate, publish), CJ catalog search and
+import, CSV imports, categories, suppliers and agreements, pricing rules and FX, shipping, VAT and customs,
+country settings, team invites and roles, audit log.
 Staff must enrol in TOTP MFA before using `/admin`. Mail is captured by Mailpit at http://localhost:8025.
 
 Without Docker: run PostgreSQL and Redis locally, then `php artisan serve` in `apps/api`

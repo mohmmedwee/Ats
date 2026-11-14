@@ -6,6 +6,9 @@ use App\Shared\Health\HealthCommand;
 use App\Shared\Health\QueueProbeCommand;
 use App\Shared\Outbox\DispatchOutboxCommand;
 use App\Shared\Outbox\OutboxWorkCommand;
+use App\Shared\Translation\ClaudeTranslator;
+use App\Shared\Translation\NullTranslator;
+use App\Shared\Translation\Translator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -16,7 +19,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(Translator::class, fn () => config('gulfcart.translation.provider') === 'claude'
+            ? new ClaudeTranslator
+            : new NullTranslator);
     }
 
     public function boot(): void

@@ -30,5 +30,7 @@ Route::prefix('auth')->group(function (): void {
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'mfa.verified'])->group(function (): void {
     Route::get('users', [UserController::class, 'index'])->middleware('permission:'.Permissions::USERS_MANAGE);
+    Route::post('users', [UserController::class, 'store'])->middleware(['permission:'.Permissions::USERS_MANAGE, 'permission:'.Permissions::ROLES_MANAGE]);
+    Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->middleware('permission:'.Permissions::USERS_MANAGE);
     Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:'.Permissions::ROLES_MANAGE);
 });

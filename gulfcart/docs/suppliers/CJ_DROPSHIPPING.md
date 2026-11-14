@@ -51,7 +51,9 @@ supplier agreement exists.
    - Add an authorization record: CJ terms as the agreement reference, countries AE and SA, resale,
      API purchasing, direct shipping, and image use if CJ's terms allow it.
    - Then activate the supplier.
-6. **Import products** by CJ product ID (`pid`, from the product page or URL):
+6. **Import products** from **Admin → CJ products**: search the CJ catalog, tick products (or paste CJ links),
+   choose a category and countries, and press *Import products*. The same is available on the command line
+   by CJ product ID (`pid`):
    ```bash
    php artisan suppliers:cj-import 1234567890ABCDEF 2345678901BCDEFG --category=dresses
    ```
@@ -60,6 +62,12 @@ supplier agreement exists.
    - Before publishing in `/admin/products`: add Arabic titles, check the category, approve the images.
 7. **Keep cost and stock fresh:** `suppliers:sync` (scheduled) pulls CJ prices and stock. Tracking is
    pulled by `procurement:track` every 30 minutes, as for every supplier.
+
+## Arabic titles
+
+With `TRANSLATION_PROVIDER=claude` and `ANTHROPIC_API_KEY` set, imported titles and descriptions are
+machine-translated to Arabic (Claude API, structured output) and land in the draft for review. Without it the
+Arabic fields stay empty and must be filled in on the product page before publishing.
 
 ## Verify on the first live order (cannot be tested without an account)
 

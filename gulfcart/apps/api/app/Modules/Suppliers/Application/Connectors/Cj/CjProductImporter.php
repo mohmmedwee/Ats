@@ -10,6 +10,7 @@ use App\Modules\Suppliers\Infrastructure\Models\ProductImport;
 use App\Modules\Suppliers\Infrastructure\Models\Supplier;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierProduct;
 use App\Shared\Money\Decimal;
+use App\Shared\Translation\Translator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -21,14 +22,14 @@ use Throwable;
  */
 final class CjProductImporter
 {
-    public function __construct(private readonly ProductImportProcessor $processor) {}
+    public function __construct(private readonly ProductImportProcessor $processor, private readonly Translator $translator) {}
 
     /**
      * @param  list<string>  $pids
      * @param  list<string>  $countries
      * @return array{import: ProductImport, skipped: array<string, string>}
      */
-    public function import(Supplier $supplier, array $pids, array $countries, ?string $categorySlug = null, ?string $uploadedBy = null): array
+    public function import(Supplier $supplier, array $pids, array $countries, ?string $categorySlug = null, ?string $uploadedBy = null, ?ProductImport $import = null): array
     {
         $connector = new CjDropshippingConnector($supplier);
         $client = $connector->client();
@@ -57,10 +58,24 @@ final class CjProductImporter
         $path = 'imports/cj-'.now()->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.csv';
         Storage::disk('local')->put($path, $this->csv($rows));
 
-        $import = ProductImport::query()->create([
-            'supplier_id' => $supplier->id, 'uploaded_by' => $uploadedBy, 'file_path' => $path, 'status' => 'queued',
-        ]);
+        if ($import === null) {
+            $import = ProductImport::query()->create([
+                'supplier_id' => $supplier->id, 'uploaded_by' => $uploadedBy, 'file_path' => $path, 'status' => 'queued',
+            ]);
+        } else {
+            $import->update(['file_path' => $path]);
+        }
         $this->processor->process($import);
+        if ($skipped !== []) {
+            $import->refresh();
+            $import->update([
+                'errors' => array_merge(
+                    array_map(fn ($pid, $reason) => ['row' => 0, 'errors' => ["CJ product {$pid}: {$reason}"]], array_keys($skipped), $skipped),
+                    (array) $import->errors,
+                ),
+                'error_count' => $import->error_count + count($skipped),
+            ]);
+        }
 
         foreach ($shipping as $pid => $cost) {
             $sp = SupplierProduct::query()->where('supplier_id', $supplier->id)->where('external_product_id', $pid)->first();
@@ -86,6 +101,9 @@ final class CjProductImporter
         $description = Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags((string) ($product['description'] ?? ''))) ?? ''), 4000, '');
         $keyNames = array_values(array_filter(array_map(fn ($k) => strtolower(trim($k)), explode('-', (string) ($product['productKeyEn'] ?? '')))));
         $mainImage = self::httpsUrl($product['bigImage'] ?? null);
+        $arabic = $this->translator->enabled()
+            ? $this->translator->toArabic(['title' => $title, 'description' => Str::limit($description, 1500, '')])
+            : [];
 
         $rows = [];
         foreach ((array) ($product['variants'] ?? []) as $v) {
@@ -105,9 +123,9 @@ final class CjProductImporter
                 'external_variant_id' => $vid,
                 'sku' => Str::limit($sku, 100, ''),
                 'title_en' => $title,
-                'title_ar' => '',
+                'title_ar' => Str::limit(trim($arabic['title'] ?? ''), 250, ''),
                 'description_en' => $description,
-                'description_ar' => '',
+                'description_ar' => Str::limit(trim($arabic['description'] ?? ''), 4000, ''),
                 'category_slug' => $categorySlug ?? '',
                 'brand' => '',
                 'attributes' => $this->attributes($keyNames, (string) ($v['variantKey'] ?? '')),

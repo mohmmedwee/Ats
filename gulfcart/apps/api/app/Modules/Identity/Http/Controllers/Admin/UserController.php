@@ -12,6 +12,9 @@ use App\Shared\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class UserController
@@ -26,6 +29,9 @@ final class UserController
         if (in_array($request->query('type'), ['customer', 'staff'], true)) {
             $query->where('type', $request->query('type'));
         }
+        if (is_string($q = $request->query('q')) && $q !== '') {
+            $query->where(fn ($w) => $w->where('email', 'ILIKE', '%'.$q.'%')->orWhere('name', 'ILIKE', '%'.$q.'%')->orWhere('phone', 'ILIKE', '%'.$q.'%'));
+        }
 
         $page = $query->paginate($perPage);
 
@@ -39,6 +45,53 @@ final class UserController
                 'last_page' => $page->lastPage(),
             ]],
         );
+    }
+
+    /**
+     * Invite a staff member: the account gets a random password and the person sets their own
+     * through the password-reset email. Staff must enrol in MFA at first sign-in.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => ['string', Rule::in(Permissions::staffRoles())],
+        ]);
+        if (in_array('super_admin', $data['roles'], true) && ! $request->user()?->hasRole('super_admin')) {
+            throw ValidationException::withMessages(['roles' => [__('errors.forbidden')]]);
+        }
+
+        $user = DB::transaction(function () use ($data) {
+            $user = User::query()->create([
+                'name' => $data['name'], 'email' => mb_strtolower($data['email']), 'password' => Str::password(32),
+                'type' => UserType::Staff, 'status' => 'active', 'preferred_locale' => app()->getLocale(),
+            ]);
+            $user->syncRoles($data['roles']);
+
+            return $user;
+        });
+        Password::broker()->sendResetLink(['email' => $user->email]);
+        $this->audit->record('user.staff_invited', 'user', $user->id, null, ['email' => $user->email, 'roles' => $data['roles']]);
+
+        return ApiResponse::success((new UserResource($user->refresh()))->resolve($request), 201);
+    }
+
+    public function updateStatus(Request $request, User $user): JsonResponse
+    {
+        $data = $request->validate(['status' => ['required', 'in:active,suspended']]);
+        if ($user->is($request->user())) {
+            throw ValidationException::withMessages(['status' => [__('errors.forbidden')]]);
+        }
+        $old = $user->status;
+        $user->update(['status' => $data['status']]);
+        if ($data['status'] === 'suspended') {
+            $user->tokens()->delete();
+        }
+        $this->audit->record('user.status_updated', 'user', $user->id, ['status' => $old], $data);
+
+        return ApiResponse::success((new UserResource($user->refresh()))->resolve($request));
     }
 
     public function updateRoles(UpdateUserRolesRequest $request, User $user): JsonResponse

@@ -2,6 +2,9 @@
 
 namespace App\Modules\Orders\Http\Controllers;
 
+use App\Modules\Countries\Contracts\CountryDirectory;
+use App\Modules\Identity\Contracts\UserDirectory;
+use App\Modules\Orders\Contracts\FulfillmentView;
 use App\Modules\Orders\Domain\OrderStatus;
 use App\Modules\Orders\Infrastructure\Models\Order;
 use App\Shared\Http\ApiResponse;
@@ -12,6 +15,16 @@ use Illuminate\Http\Request;
 /** Staff view including costs and estimated contribution (orders.view_any). */
 final class AdminOrderController
 {
+    /** @var array<string, string> country id => code */
+    private array $codes = [];
+
+    public function __construct(private readonly FulfillmentView $fulfillment, private readonly UserDirectory $users, CountryDirectory $countries)
+    {
+        foreach ($countries->active() as $c) {
+            $this->codes[$c->id] = $c->code;
+        }
+    }
+
     public function index(Request $request): JsonResponse
     {
         $q = Order::query()->with('items')->latest();
@@ -21,6 +34,9 @@ final class AdminOrderController
         if (is_string($n = $request->query('q')) && $n !== '') {
             $q->where('order_number', 'ILIKE', '%'.$n.'%');
         }
+        if (is_string($c = $request->query('country')) && ($id = array_search(strtoupper($c), $this->codes, true)) !== false) {
+            $q->where('country_id', $id);
+        }
         $page = $q->paginate(min(100, $request->integer('per_page', 25)));
 
         return ApiResponse::paged($page, $page->getCollection()->map(fn ($o) => $this->present($o, false))->all());
@@ -28,7 +44,10 @@ final class AdminOrderController
 
     public function show(Order $order): JsonResponse
     {
-        return ApiResponse::success($this->present($order->load('items'), true));
+        return ApiResponse::success($this->present($order->load('items'), true) + [
+            'customer' => $order->user_id ? $this->users->contact($order->user_id) : null,
+            'shipments' => $this->fulfillment->trackingFor($order->id),
+        ]);
     }
 
     /** @return array<string, mixed> */
@@ -42,7 +61,8 @@ final class AdminOrderController
         $net = Decimal::sub((string) $o->grand_total, (string) $o->tax_total, 2);
 
         $base = [
-            'id' => $o->id, 'order_number' => $o->order_number, 'user_id' => $o->user_id, 'status' => $o->status,
+            'id' => $o->id, 'order_number' => $o->order_number, 'user_id' => $o->user_id, 'status' => $o->status, 'country_code' => $this->codes[$o->country_id] ?? null,
+            'items_count' => (int) $o->items->sum('quantity'),
             'refund_state' => $o->refund_state, 'currency' => $o->currency,
             'grand_total' => (string) $o->grand_total, 'paid_total' => (string) $o->paid_total, 'refunded_total' => (string) $o->refunded_total,
             'estimated_landed_cost' => Decimal::round($cost, 2),

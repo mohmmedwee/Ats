@@ -11,3 +11,9 @@ export function formatMoney(money: Money | null | undefined, locale = 'en'): str
 export function money(amount: string, currency: string): Money {
   return { amount, currency }
 }
+
+/** Short localized date-time for admin tables. */
+export function formatDateTime(iso: string | null | undefined, locale = 'en'): string {
+  if (!iso) return '—'
+  return new Intl.DateTimeFormat(locale.startsWith('ar') ? 'ar-AE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
+}

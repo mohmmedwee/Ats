@@ -1,52 +1,57 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'staff' })
-interface ReturnRow { id: string, rma_number: string, order_id: string, status: string, reason_code: string, customer_note: string | null, items: { quantity: number }[], refund: { amount: string, currency: string } | null }
-const { request, csrf, idempotencyKey } = useApi()
+definePageMeta({ middleware: 'staff', layout: 'admin' })
+interface ReturnRow { id: string, rma_number: string, order_id: string, status: string, reason_code: string, customer_note: string | null, items: { quantity: number }[], refund: { amount: string, currency: string } | null, created_at?: string }
+type Action = 'approve' | 'reject' | 'receive' | 'refund'
+const { request, send, run, error, notice } = useAdmin()
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const auth = useAuthStore()
 const rows = ref<ReturnRow[]>([])
-const error = ref('')
-
+const status = ref('')
 async function load() {
-  rows.value = (await request<{ data: ReturnRow[] }>('/admin/returns')).data
+  await run(async () => {
+    rows.value = (await request<{ data: ReturnRow[] }>('/admin/returns', { query: { status: status.value || undefined, per_page: 100 } })).data
+  })
 }
-
-async function act(r: ReturnRow, action: 'approve' | 'reject' | 'receive' | 'refund') {
-  error.value = ''
-  try {
-    await csrf()
-    await request(`/admin/returns/${r.id}/${action}`, { method: 'POST', body: {}, headers: { 'Idempotency-Key': idempotencyKey(`ret-${action}`) } })
-    await load()
-  }
-  catch (e) {
-    error.value = apiErrorMessage(e, t('errors.generic'))
-  }
+async function act(r: ReturnRow, action: Action) {
+  if (action === 'reject' && !confirm(t('admin.common.confirm'))) return
+  await run(() => send('POST', `/admin/returns/${r.id}/${action}`, {}, `ret-${action}`), t('admin.common.done'))
+  await load()
 }
-
-const next: Record<string, ('approve' | 'reject' | 'receive' | 'refund')[]> = { requested: ['approve', 'reject'], approved: ['receive'], received: ['refund', 'reject'] }
+const next: Record<string, Action[]> = { requested: ['approve', 'reject'], approved: ['receive'], received: ['refund', 'reject'] }
 onMounted(load)
 </script>
 
 <template>
   <section>
-    <AdminNav />
-    <h1 class="mb-4 text-2xl font-semibold">{{ $t('admin.returns') }}</h1>
-    <p v-if="error" role="alert" class="text-red-600">{{ error }}</p>
-    <table class="w-full text-sm">
-      <tbody>
-        <tr v-for="r in rows" :key="r.id" class="border-b">
-          <td class="p-2" dir="ltr">{{ r.rma_number }}</td>
-          <td><StatusBadge :status="r.status" /></td>
-          <td>{{ $t(`orders.reasons.${r.reason_code}`) }} · {{ r.items.reduce((n, i) => n + i.quantity, 0) }}</td>
-          <td>{{ r.refund ? formatMoney(r.refund, locale) : '' }}</td>
-          <td v-if="auth.can('refunds.request')" class="space-x-2">
-            <button v-for="a in next[r.status] ?? []" :key="a" class="underline" @click="act(r, a)">
-              {{ a === 'approve' ? $t('admin.actions.approve_refund') : a === 'reject' ? $t('admin.actions.reject_refund') : $t(`admin.${a}`) }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-if="!rows.length" class="mt-4 text-gray-500">{{ $t('common.none') }}</p>
+    <AdminHeader :title="$t('admin.returns')" :subtitle="$t('admin.returns_page.subtitle')">
+      <select v-model="status" class="input w-auto" @change="load">
+        <option value="">{{ $t('admin.common.all') }}</option>
+        <option v-for="s in ['requested', 'approved', 'received', 'refunded', 'rejected']" :key="s" :value="s">{{ $t(`admin.returns_page.status.${s}`) }}</option>
+      </select>
+    </AdminHeader>
+    <AdminAlerts :error="error" :notice="notice" />
+    <div class="card overflow-x-auto">
+      <table class="admin-table">
+        <thead><tr><th>RMA</th><th>{{ $t('admin.status') }}</th><th>{{ $t('admin.reason') }}</th><th>{{ $t('admin.orders_page.items') }}</th><th class="text-end">{{ $t('admin.refund') }}</th><th /></tr></thead>
+        <tbody>
+          <tr v-for="r in rows" :key="r.id">
+            <td><NuxtLink :to="localePath(`/admin/orders/${r.order_id}`)" class="link" dir="ltr">{{ r.rma_number }}</NuxtLink></td>
+            <td><StatusBadge :status="r.status" /></td>
+            <td>{{ $t(`orders.reasons.${r.reason_code}`) }}<span v-if="r.customer_note" class="block text-xs text-ink-500">“{{ r.customer_note }}”</span></td>
+            <td>{{ r.items.reduce((n, i) => n + i.quantity, 0) }}</td>
+            <td class="text-end">{{ r.refund ? formatMoney(r.refund, locale) : '' }}</td>
+            <td class="whitespace-nowrap text-end">
+              <template v-if="auth.can('refunds.request')">
+                <button v-for="a in next[r.status] ?? []" :key="a" class="btn-sm ms-2" :class="a === 'reject' ? 'btn-outline' : 'btn-primary'" @click="act(r, a)">
+                  {{ a === 'approve' ? $t('admin.actions.approve_refund') : a === 'reject' ? $t('admin.actions.reject_refund') : $t(`admin.${a}`) }}
+                </button>
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="!rows.length" class="p-6 text-center text-ink-500">{{ $t('common.none') }}</p>
+    </div>
   </section>
 </template>

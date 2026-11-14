@@ -305,6 +305,7 @@ paths:
       summary: List users (permission users.manage; staff MFA required)
       parameters:
         - { name: type, in: query, schema: { type: string, enum: [customer, staff] } }
+        - { name: q, in: query, description: 'Name, email or phone contains', schema: { type: string } }
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
@@ -319,6 +320,35 @@ paths:
                       data: { type: array, items: { $ref: '#/components/schemas/User' } }
         '401': { $ref: '#/components/responses/AdminUnauthenticated' }
         '403': { $ref: '#/components/responses/AdminForbidden' }
+    post:
+      tags: [Admin]
+      summary: Invite a staff member (users.manage and roles.manage); a password-reset email lets them set a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, roles]
+              properties:
+                name: { type: string, maxLength: 150 }
+                email: { type: string, format: email }
+                roles:
+                  type: array
+                  minItems: 1
+                  items: { type: string, enum: [support, operations, catalog_manager, finance, admin, super_admin] }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '403': { $ref: '#/components/responses/AdminForbidden' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/users/{user}/status:
+    patch:
+      tags: [Admin]
+      summary: Suspend or re-activate an account (users.manage; not your own); suspending revokes API tokens
+      parameters: [{ name: user, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [status], properties: { status: { type: string, enum: [active, suspended] } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /admin/users/{user}/roles:
     put:
       tags: [Admin]
@@ -686,6 +716,38 @@ paths:
       summary: Pull cost and stock from the connector (502 SUPPLIER_CONNECTOR_ERROR on failure)
       parameters: [{ name: supplierProduct, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/imports:
+    get:
+      tags: [Admin Suppliers]
+      summary: Recent product imports (CSV and CJ), newest first
+      parameters: [{ name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/cj/products:
+    get:
+      tags: [Admin Suppliers]
+      summary: Search the CJdropshipping catalog (catalog.manage); marks products already imported
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: min_price, in: query, schema: { type: number } }
+        - { name: max_price, in: query, schema: { type: number } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' }, '502': { description: CJ unreachable (SUPPLIER_UNAVAILABLE) } }
+  /admin/cj/imports:
+    post:
+      tags: [Admin Suppliers]
+      summary: Queue an import of CJ products as catalog drafts (with Arabic machine translation when enabled)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pids]
+              properties:
+                pids: { type: array, minItems: 1, maxItems: 50, items: { type: string } }
+                countries: { type: array, items: { type: string, enum: [AE, SA] } }
+                category_slug: { type: [string, 'null'] }
+      responses: { '202': { $ref: '#/components/responses/Accepted' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /admin/imports/products:
     post:
       tags: [Admin Suppliers]

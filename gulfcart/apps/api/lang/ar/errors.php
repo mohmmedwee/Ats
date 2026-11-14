@@ -14,6 +14,7 @@ return [
     'bad_request' => 'تعذّرت معالجة الطلب.',
     'conflict' => 'الطلب يتعارض مع الحالة الحالية. حاول بعد قليل.',
     'service_unavailable' => 'الخدمة غير متاحة مؤقتاً.',
+    'supplier_unavailable' => 'تعذّر الوصول إلى المورد. حاول بعد قليل.',
     'internal_error' => 'حدث خطأ غير متوقع.',
     'idempotency_key_required' => 'الترويسة Idempotency-Key مطلوبة لهذا الطلب.',
     'idempotency_key_reused' => 'استُخدم مفتاح Idempotency-Key هذا سابقاً مع طلب مختلف.',

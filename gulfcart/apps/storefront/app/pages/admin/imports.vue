@@ -1,59 +1,80 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'staff' })
-interface ImportResult { id: string, status: string, total_rows: number, created_count: number, updated_count: number, error_count: number, errors: { row: number, errors: string[] }[] }
-const { request, csrf } = useApi()
-const { t } = useI18n()
+definePageMeta({ middleware: 'staff', layout: 'admin' })
+interface ImportResult { id: string, supplier_id: string, source: string, status: string, total_rows: number, created_count: number, updated_count: number, error_count: number, errors: { row: number, errors: string[] }[], created_at: string | null }
+const { request, run, error, notice } = useAdmin()
+const { csrf } = useApi()
+const { locale, t } = useI18n()
 const suppliers = ref<{ id: string, name: string }[]>([])
 const supplierId = ref('')
 const file = ref<File | null>(null)
-const result = ref<ImportResult | null>(null)
-const error = ref('')
+const history = ref<ImportResult[]>([])
+const expanded = ref<string | null>(null)
+const names = computed(() => Object.fromEntries(suppliers.value.map(s => [s.id, s.name])))
 
-onMounted(async () => {
-  suppliers.value = (await request<{ data: { id: string, name: string }[] }>('/admin/suppliers')).data
+async function loadHistory() {
+  history.value = (await request<{ data: ImportResult[] }>('/admin/imports')).data
+}
+onMounted(() => run(async () => {
+  suppliers.value = (await request<{ data: { id: string, name: string }[] }>('/admin/suppliers').catch(() => ({ data: [] }))).data
   supplierId.value = suppliers.value[0]?.id ?? ''
-})
-
+  await loadHistory()
+}))
 async function upload() {
   if (!file.value || !supplierId.value) return
-  error.value = ''
   const body = new FormData()
   body.append('supplier_id', supplierId.value)
   body.append('file', file.value)
-  try {
+  await run(async () => {
     await csrf()
     const created = (await request<{ data: ImportResult }>('/admin/imports/products', { method: 'POST', body })).data
     for (let i = 0; i < 30; i++) {
-      result.value = (await request<{ data: ImportResult }>(`/admin/imports/${created.id}`)).data
-      if (['completed', 'failed'].includes(result.value.status)) break
-      await new Promise(r => setTimeout(r, 1000))
+      const r = (await request<{ data: ImportResult }>(`/admin/imports/${created.id}`)).data
+      if (['completed', 'failed'].includes(r.status)) break
+      await new Promise(res => setTimeout(res, 1000))
     }
-  }
-  catch (e) {
-    error.value = apiErrorMessage(e, t('errors.generic'))
-  }
+    expanded.value = created.id
+    await loadHistory()
+  }, t('admin.imports_page.uploaded'))
 }
 </script>
 
 <template>
   <section>
-    <AdminNav />
-    <h1 class="mb-4 text-2xl font-semibold">{{ $t('admin.imports') }}</h1>
-    <form class="flex flex-wrap items-end gap-3" @submit.prevent="upload">
-      <label class="text-sm">{{ $t('admin.supplier') }}
-        <select v-model="supplierId" class="ms-2 rounded border px-2 py-1"><option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option></select>
+    <AdminHeader :title="$t('admin.imports')" :subtitle="$t('admin.imports_page.subtitle')" />
+    <AdminAlerts :error="error" :notice="notice" />
+    <form class="card mb-6 flex flex-wrap items-end gap-3 p-4" @submit.prevent="upload">
+      <label><span class="label">{{ $t('admin.supplier') }}</span>
+        <select v-model="supplierId" class="input"><option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option></select>
       </label>
-      <input type="file" accept=".csv,text/csv" required @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null">
-      <button class="rounded bg-gray-900 px-4 py-1 text-white">{{ $t('admin.upload') }}</button>
+      <label class="flex-1"><span class="label">{{ $t('admin.imports_page.file') }}</span><input type="file" accept=".csv,text/csv" required class="input" @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"></label>
+      <button class="btn-dark">{{ $t('admin.upload') }}</button>
+      <p class="w-full text-xs text-ink-500" dir="ltr">external_product_id, external_variant_id, sku, title_en, title_ar, description_en, description_ar, category_slug, brand, attributes, cost_price, cost_currency, stock_status, image_url, weight_grams, hs_code, countries</p>
     </form>
-    <p class="mt-2 text-xs text-gray-500" dir="ltr">external_product_id, external_variant_id, sku, title_en, title_ar, …, countries — docs/SUPPLIER_IMPORT.md</p>
-    <p v-if="error" role="alert" class="mt-2 text-red-600">{{ error }}</p>
-    <div v-if="result" class="mt-4 text-sm">
-      <StatusBadge :status="result.status" />
-      {{ $t('admin.rows') }}: {{ result.total_rows }} · {{ $t('admin.created') }}: {{ result.created_count }} · {{ $t('admin.updated') }}: {{ result.updated_count }} · {{ $t('admin.errors') }}: {{ result.error_count }}
-      <ul class="mt-2 list-disc ps-6 text-red-700">
-        <li v-for="e in result.errors" :key="e.row" dir="ltr">#{{ e.row }}: {{ e.errors.join('; ') }}</li>
-      </ul>
+
+    <div class="card overflow-x-auto">
+      <h2 class="px-4 pt-4 font-bold">{{ $t('admin.imports_page.history') }}</h2>
+      <table class="admin-table mt-2">
+        <thead><tr><th>{{ $t('admin.common.date') }}</th><th>{{ $t('admin.supplier') }}</th><th>{{ $t('admin.imports_page.source') }}</th><th>{{ $t('admin.status') }}</th><th>{{ $t('admin.created') }}</th><th>{{ $t('admin.updated') }}</th><th>{{ $t('admin.errors') }}</th></tr></thead>
+        <tbody>
+          <template v-for="r in history" :key="r.id">
+            <tr class="cursor-pointer" @click="expanded = expanded === r.id ? null : r.id">
+              <td class="whitespace-nowrap text-ink-500">{{ formatDateTime(r.created_at, locale) }}</td>
+              <td>{{ names[r.supplier_id] ?? '—' }}</td>
+              <td>{{ r.source === 'cj' ? 'CJ' : 'CSV' }}</td>
+              <td><StatusBadge :status="r.status" /></td>
+              <td>{{ r.created_count }}</td>
+              <td>{{ r.updated_count }}</td>
+              <td :class="r.error_count ? 'font-semibold text-red-600' : ''">{{ r.error_count }}</td>
+            </tr>
+            <tr v-if="expanded === r.id && r.errors.length">
+              <td colspan="7" class="bg-red-50/50">
+                <ul class="list-disc space-y-1 ps-6 text-xs text-red-700"><li v-for="(e, i) in r.errors" :key="i" dir="ltr">{{ e.row ? `#${e.row}: ` : '' }}{{ e.errors.join('; ') }}</li></ul>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p v-if="!history.length" class="p-6 text-center text-ink-500">{{ $t('common.none') }}</p>
     </div>
   </section>
 </template>
