@@ -15,8 +15,14 @@ Route::get('health/ready', [HealthController::class, 'ready'])->withoutMiddlewar
 Route::middleware('country')->group(function (): void {
     Route::get('countries', [CountryController::class, 'index']);
     Route::get('countries/current', [CountryController::class, 'current']);
+    Route::get('countries/{code}/address-format', [CountryController::class, 'addressFormat'])->where('code', '[A-Za-z]{2}');
 
     require app_path('Modules/Identity/Http/routes.php');
     require app_path('Modules/Catalog/Http/routes.php');
     require app_path('Modules/Suppliers/Http/routes.php');
+    require app_path('Modules/Tax/Http/routes.php');
+    require app_path('Modules/Shipping/Http/routes.php');
+    require app_path('Modules/Pricing/Http/routes.php');
+    require app_path('Modules/Cart/Http/routes.php');
+    require app_path('Modules/Checkout/Http/routes.php');
 });

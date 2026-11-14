@@ -8,6 +8,7 @@ use App\Modules\Catalog\Infrastructure\Models\Product;
 use App\Modules\Catalog\Infrastructure\Models\ProductImage;
 use App\Modules\Catalog\Infrastructure\Models\ProductVariant;
 use App\Modules\Countries\Infrastructure\Models\Country;
+use App\Modules\Pricing\Application\Repricer;
 use App\Modules\Suppliers\Infrastructure\Models\Supplier;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierProduct;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierVariantMapping;
@@ -81,6 +82,7 @@ trait CatalogFixtures
         ]);
         SupplierVariantMapping::query()->create(['supplier_product_id' => $sp->id, 'variant_id' => $variant->id, 'external_variant_id' => 'EV-'.Str::random(6)]);
 
+        app(Repricer::class)->reprice($product->id, notify: false);
         app(ListingRefresher::class)->refresh($product->id);
 
         return ['product' => $product->refresh(), 'variant' => $variant, 'supplier' => $supplier, 'supplierProduct' => $sp];

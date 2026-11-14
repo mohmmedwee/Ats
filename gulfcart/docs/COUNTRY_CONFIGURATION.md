@@ -78,3 +78,16 @@ licensing requirements in the markets it sells into.
 
 Engineering impact: seller legal name, VAT numbers, invoice format (for example, e-invoicing
 requirements in KSA) and IOR are configuration values per country, filled once decided.
+
+## 6. Checkout rules implemented (Sprint 2)
+
+| Item | Rule |
+|---|---|
+| Prices | VAT inclusive. The quote's `tax` is the VAT contained in the total |
+| Customer shipping | One fee per order from `shipping_methods` (flat or weight bands), free above a threshold; VAT included |
+| Customs | DDP: duty per supplier shipment on customs value (supplier cost + supplier shipping, converted). Zero at or below the de minimis threshold. HS-prefix rules override the default rate |
+| Customs and VAT | The customs line is treated as a pass-through and not added to the VAT figure (confirm with tax advisor) |
+| Seeded values | VAT 5% (AE), 15% (SA). Duty 5% CIF and de minimis 1,000 AED / 1,000 SAR are **placeholders** to confirm with the customs broker |
+| Shipping defaults | Standard: 15/25/40 by weight, free ≥ 200; Express: 35 AED / 39 SAR. Adjust once courier agreements exist |
+| Addresses | AE: emirate code + mobile +9715…; SA: region code + mobile +9665…, optional 5-digit postal code and National Address short code. Phone numbers are normalized to E.164 |
+| Guests | May build a cart (`X-Cart-Token`); must sign in to check out. The guest cart merges on sign-in |

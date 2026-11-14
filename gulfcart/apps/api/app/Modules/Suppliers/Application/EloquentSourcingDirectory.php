@@ -7,6 +7,7 @@ use App\Modules\Suppliers\Contracts\SourcingDirectory;
 use App\Modules\Suppliers\Domain\SourceData;
 use App\Modules\Suppliers\Infrastructure\Models\Supplier;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierAuthorization;
+use App\Modules\Suppliers\Infrastructure\Models\SupplierProduct;
 use App\Modules\Suppliers\Infrastructure\Models\SupplierVariantMapping;
 
 final class EloquentSourcingDirectory implements CatalogStock, SourcingDirectory
@@ -14,6 +15,11 @@ final class EloquentSourcingDirectory implements CatalogStock, SourcingDirectory
     public function sourcesFor(string $variantId, string $countryCode): array
     {
         return $this->eligible([$variantId], strtoupper($countryCode))[$variantId] ?? [];
+    }
+
+    public function productIdsWithSources(): array
+    {
+        return SupplierProduct::query()->distinct()->pluck('product_id')->all();
     }
 
     public function source(string $supplierProductId, string $variantId): ?SourceData

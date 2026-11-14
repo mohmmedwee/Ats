@@ -12,6 +12,10 @@ servers:
 security:
   - sanctum: []
 tags:
+  - name: Cart
+  - name: Checkout
+  - name: Admin Pricing
+  - name: Admin Country Rules
   - name: Catalog
   - name: Admin Catalog
   - name: Admin Suppliers
@@ -97,8 +101,8 @@ paths:
                         type: object
                         properties:
                           user: { $ref: '#/components/schemas/User' }
-                          mfa_required: { type: boolean, description: Staff must call /auth/mfa/challenge }
-                          mfa_setup_required: { type: boolean, description: Staff must enrol via /auth/mfa/setup and /auth/mfa/confirm }
+                          mfa_required: { type: boolean, description: 'Staff must call /auth/mfa/challenge' }
+                          mfa_setup_required: { type: boolean, description: 'Staff must enrol via /auth/mfa/setup and /auth/mfa/confirm' }
                           token: { type: string, description: 'Only for non-SPA clients. Staff tokens carry the mfa:pending ability until the challenge succeeds.' }
         '401':
           description: INVALID_CREDENTIALS
@@ -113,7 +117,7 @@ paths:
       tags: [Authentication]
       summary: Log out
       responses:
-        '204': { description: Logged out }
+        '204': { description: 'Logged out' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
   /auth/me:
     get:
@@ -214,7 +218,7 @@ paths:
                         type: object
                         properties:
                           recovery_codes: { type: array, items: { type: string } }
-                          token: { type: string, description: Replacement full-access token (token clients only) }
+                          token: { type: string, description: 'Replacement full-access token (token clients only)' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: MFA_CODE_INVALID or VALIDATION_FAILED
@@ -242,7 +246,7 @@ paths:
                         type: object
                         properties:
                           verified: { const: true }
-                          token: { type: string, description: Replacement full-access token; the pending token is revoked }
+                          token: { type: string, description: 'Replacement full-access token; the pending token is revoked' }
         '403':
           description: FORBIDDEN or MFA_SETUP_REQUIRED
           content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
@@ -695,6 +699,230 @@ paths:
       parameters: [{ name: import, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
 
+  /countries/{code}/address-format:
+    get:
+      tags: [Countries]
+      summary: Regions (localized), postal-code and National Address rules for address forms
+      security: []
+      parameters: [{ name: code, in: path, required: true, schema: { type: string, enum: [AE, SA] } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+
+  # ---------- Cart (guests via X-Cart-Token, or authenticated) ----------
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Current cart for the request country with live prices, stock and issues
+      security: [{}, { sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/CartToken' }, { $ref: '#/components/parameters/Country' }]
+      responses: { '200': { $ref: '#/components/responses/CartResponse' } }
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Add a variant (quantity 1–20, max 50 lines). Guests receive data.guest_token to send as X-Cart-Token.
+      security: [{}, { sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/CartToken' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [variant_id, quantity], properties: { variant_id: { type: string, format: uuid }, quantity: { type: integer, minimum: 1, maximum: 20 } } }
+      responses:
+        '201': { $ref: '#/components/responses/CartResponse' }
+        '422': { description: 'VALIDATION_FAILED, PRODUCT_NOT_AVAILABLE_IN_COUNTRY, PRODUCT_OUT_OF_STOCK, CART_LIMIT_REACHED', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /cart/items/{item}:
+    parameters: [{ name: item, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CartToken' }]
+    patch:
+      tags: [Cart]
+      summary: Change quantity
+      security: [{}, { sanctum: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [quantity], properties: { quantity: { type: integer, minimum: 1, maximum: 20 } } } } }
+      responses: { '200': { $ref: '#/components/responses/CartResponse' }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Cart]
+      summary: Remove a line
+      security: [{}, { sanctum: [] }]
+      responses: { '200': { $ref: '#/components/responses/CartResponse' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /cart/validate:
+    post:
+      tags: [Cart]
+      summary: Revalidate prices and stock; reports PRICE_CHANGED / OUT_OF_STOCK / UNAVAILABLE and acknowledges new prices
+      security: [{}, { sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/CartToken' }]
+      responses: { '200': { $ref: '#/components/responses/CartResponse' }, '422': { description: 'CART_EMPTY', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } } }
+
+  # ---------- Addresses & checkout (customer) ----------
+  /addresses:
+    get:
+      tags: [Checkout]
+      summary: Customer address book
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '401': { $ref: '#/components/responses/Unauthenticated' } }
+    post:
+      tags: [Checkout]
+      summary: Add an address validated by country rules (AE emirates/+9715, SA regions/+9665, postal code, National Address)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [country, full_name, phone, address_line_1, city, state]
+              properties:
+                country: { type: string, enum: [AE, SA] }
+                full_name: { type: string }
+                phone: { type: string }
+                address_line_1: { type: string }
+                address_line_2: { type: string }
+                district: { type: string }
+                city: { type: string }
+                state: { type: string, description: 'Region/emirate code from /countries/{code}/address-format' }
+                postal_code: { type: string }
+                national_address_code: { type: string, description: 'SA only (example RRRD2929)' }
+                is_default: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /addresses/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+    patch:
+      tags: [Checkout]
+      summary: Update an own address
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+    delete:
+      tags: [Checkout]
+      summary: Delete an own address
+      responses: { '204': { $ref: '#/components/responses/NoContent' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /checkout/shipping-options:
+    post:
+      tags: [Checkout]
+      summary: Shipping methods and fees for the current cart and address
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [address_id], properties: { address_id: { type: string, format: uuid } } } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /checkout/quote:
+    post:
+      tags: [Checkout]
+      summary: Full price quote (not persisted)
+      requestBody: { $ref: '#/components/requestBodies/CheckoutRequest' }
+      responses:
+        '200':
+          description: Quote
+          content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/SuccessEnvelope' }, { properties: { data: { $ref: '#/components/schemas/Quote' } } }] } } }
+        '422': { description: 'CART_EMPTY, ADDRESS_COUNTRY_MISMATCH, PRODUCT_NOT_AVAILABLE_IN_COUNTRY, PRODUCT_OUT_OF_STOCK, VALIDATION_FAILED', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /checkout:
+    post:
+      tags: [Checkout]
+      summary: Create a checkout session with a locked quote (live supplier stock check; expires after 30 minutes)
+      requestBody: { $ref: '#/components/requestBodies/CheckoutRequest' }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /checkout/{id}:
+    get:
+      tags: [Checkout]
+      summary: Checkout session (status open | expired | completed | cancelled)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  # ---------- Pricing (admin; pricing.manage) ----------
+  /admin/pricing-rules:
+    get:
+      tags: [Admin Pricing]
+      summary: Pricing rules
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Pricing]
+      summary: Create a rule (global | country | supplier | category | product); triggers repricing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope, rule_type, value]
+              properties:
+                scope: { type: string, enum: [global, country, supplier, category, product] }
+                country: { type: string, enum: [AE, SA] }
+                supplier_id: { type: string, format: uuid }
+                category_id: { type: string, format: uuid }
+                product_id: { type: string, format: uuid }
+                rule_type: { type: string, enum: [margin_percent, markup_percent, fixed_markup] }
+                value: { type: number }
+                min_margin_percent: { type: number }
+                max_selling_price: { type: number }
+                priority: { type: integer }
+                starts_at: { type: string, format: date-time }
+                ends_at: { type: string, format: date-time }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/pricing-rules/{pricingRule}:
+    patch:
+      tags: [Admin Pricing]
+      summary: Update a rule; triggers repricing
+      parameters: [{ name: pricingRule, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/pricing/simulate:
+    post:
+      tags: [Admin Pricing]
+      summary: Run the pricing engine on arbitrary inputs (422 PRICING_REJECTED with reason)
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/exchange-rates:
+    get:
+      tags: [Admin Pricing]
+      summary: Latest rate per pair with staleness flag
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Pricing]
+      summary: Enter a manual rate (audited); triggers repricing
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [base, target, rate], properties: { base: { type: string }, target: { type: string }, rate: { type: number } } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' } }
+
+  # ---------- Country rules (admin; countries.manage) ----------
+  /admin/tax-rules:
+    get:
+      tags: [Admin Country Rules]
+      summary: VAT and import VAT rules (effective-dated, optional category override)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Country Rules]
+      summary: Add a tax rule
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/tax-rules/{taxRule}:
+    patch:
+      tags: [Admin Country Rules]
+      summary: Update a tax rule
+      parameters: [{ name: taxRule, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/customs-rules:
+    get:
+      tags: [Admin Country Rules]
+      summary: Customs duty rules (default and HS-prefix specific, de minimis)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Country Rules]
+      summary: Add a customs rule
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/customs-rules/{customsRule}:
+    patch:
+      tags: [Admin Country Rules]
+      summary: Update a customs rule
+      parameters: [{ name: customsRule, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/shipping-methods:
+    get:
+      tags: [Admin Country Rules]
+      summary: Customer shipping methods per country (flat or weight bands, free threshold)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Country Rules]
+      summary: Add a shipping method
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/shipping-methods/{shippingMethod}:
+    patch:
+      tags: [Admin Country Rules]
+      summary: Update a shipping method
+      parameters: [{ name: shippingMethod, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+
 components:
   securitySchemes:
     sanctum:
@@ -707,6 +935,12 @@ components:
       in: header
       required: true
       schema: { type: string, minLength: 16, maxLength: 255 }
+    CartToken:
+      name: X-Cart-Token
+      in: header
+      required: false
+      schema: { type: string }
+      description: Guest cart token; merged into the customer's cart on the first authenticated request carrying it
     Cursor:
       name: cursor
       in: query
@@ -721,6 +955,17 @@ components:
       in: header
       required: false
       schema: { type: string, enum: [AE, SA] }
+  requestBodies:
+    CheckoutRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [address_id, shipping_method]
+            properties:
+              address_id: { type: string, format: uuid }
+              shipping_method: { type: string, examples: [standard, express] }
   responses:
     Ok:
       description: Success envelope
@@ -764,6 +1009,9 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    CartResponse:
+      description: Cart with items, subtotal, issues and valid flag (guest carts include guest_token)
+      content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } }
     ProductList:
       description: Cursor-paginated product cards; meta.pagination has next_cursor, prev_cursor, limit
       content:
@@ -824,7 +1072,7 @@ components:
       type: object
       required: [success, data, meta]
       properties:
-        success: { type: boolean, description: false when status is down }
+        success: { type: boolean, description: 'false when status is down' }
         data:
           type: object
           properties:
@@ -841,18 +1089,18 @@ components:
         name: { type: string, maxLength: 150 }
         email: { type: [string, 'null'], format: email }
         phone: { type: [string, 'null'], description: 'E.164, e.g. +971501234567' }
-        password: { type: string, minLength: 10, description: Must contain letters and numbers }
+        password: { type: string, minLength: 10, description: 'Must contain letters and numbers' }
         password_confirmation: { type: string }
         locale: { type: string, enum: [ar, en] }
-        device_name: { type: string, description: Token name for non-SPA clients }
+        device_name: { type: string, description: 'Token name for non-SPA clients' }
       description: At least one of email or phone is required.
     LoginRequest:
       type: object
       required: [login, password]
       properties:
-        login: { type: string, description: Email or E.164 phone }
+        login: { type: string, description: 'Email or E.164 phone' }
         password: { type: string }
-        device_name: { type: string, description: Token name for non-SPA clients }
+        device_name: { type: string, description: 'Token name for non-SPA clients' }
     User:
       type: object
       properties:
@@ -876,7 +1124,7 @@ components:
       type: object
       properties:
         code: { type: string, enum: [AE, SA] }
-        name: { type: string, description: Localized by Accept-Language }
+        name: { type: string, description: 'Localized by Accept-Language' }
         currency: { type: string, enum: [AED, SAR] }
         default_locale: { type: string, examples: [ar-AE] }
         supported_locales: { type: array, items: { type: string } }
@@ -894,7 +1142,7 @@ components:
         title: { type: string }
         brand: { type: [string, 'null'] }
         category: { type: [object, 'null'], properties: { slug: { type: string }, name: { type: string } } }
-        price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }], description: Lowest VAT-inclusive variant price }
+        price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }], description: 'Lowest VAT-inclusive variant price' }
         image: { type: [string, 'null'] }
         delivery_estimate: { type: [object, 'null'], properties: { min_days: { type: integer }, max_days: { type: integer } } }
     ProductDetail:
@@ -917,3 +1165,27 @@ components:
                   price: { oneOf: [{ $ref: '#/components/schemas/Money' }, { type: 'null' }] }
                   availability: { type: string, enum: [in_stock, low_stock, out_of_stock] }
                   purchasable: { type: boolean }
+    Quote:
+      type: object
+      description: VAT-inclusive prices; tax is the VAT contained in total (total = subtotal + shipping + customs − discount)
+      properties:
+        currency: { type: string, enum: [AED, SAR] }
+        country: { type: string }
+        items: { type: array, items: { type: object } }
+        shipments:
+          type: array
+          items:
+            type: object
+            properties:
+              number: { type: integer }
+              item_count: { type: integer }
+              customs: { $ref: '#/components/schemas/Money' }
+              estimate: { type: object, properties: { min_days: { type: integer }, max_days: { type: integer } } }
+        shipping_method: { type: object }
+        subtotal: { type: string }
+        shipping: { type: string }
+        customs: { type: string }
+        discount: { type: string }
+        tax: { type: string }
+        total: { type: string }
+        prices_include_tax: { const: true }

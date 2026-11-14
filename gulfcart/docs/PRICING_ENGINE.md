@@ -123,3 +123,19 @@ Per-country rounding rule in country config: `ceil_whole`, `ceil_x9` (e.g. 199, 
 - Whether shipping charged to the customer is included in the VAT base (normally yes).
 - Customs duty base (CIF value) and de minimis thresholds per country and shipping mode.
 - Whether duties are collected at checkout (DDP) or by the courier on delivery (DDU). DDP is the baseline.
+
+## 9. Implementation notes (Sprint 2)
+
+- Engine: `App\Modules\Pricing\Domain\PricingEngine` (pure; unit test reproduces §3 exactly).
+- Stored prices: `product_prices` holds one VAT-inclusive price per variant and country, with
+  the full calculation. `Repricer` recomputes on supplier changes (`SourcingChanged`), rule
+  changes, manual FX entries and the hourly `fx:refresh --reprice`.
+- Source selection: the cheapest eligible authorized source wins for each variant and country.
+- Supplier shipping (`supplier_data.shipping_cost` or supplier `metadata.shipping_cost_per_unit`)
+  is part of the product price. The customer shipping fee at checkout is separate GulfCart revenue.
+- A price expires when its exchange rate is older than `FX_MAX_AGE_HOURS` (24 h); the product
+  then becomes unsellable (`NO_PRICE`) until rates are refreshed.
+- Import VAT is treated as recoverable by default (seeded `is_recoverable = true`); set it to
+  false in `tax_rules` if GulfCart cannot recover it, and prices will include it as a cost.
+- `ConfiguredRateProvider` serves USD pegs (official) and placeholder rates for other pairs.
+  Bind a live `ExchangeRateProvider` before launch.

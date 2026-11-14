@@ -1,10 +1,15 @@
 <?php
 
 use App\Modules\Audit\Providers\AuditServiceProvider;
+use App\Modules\Cart\Providers\CartServiceProvider;
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
+use App\Modules\Checkout\Providers\CheckoutServiceProvider;
 use App\Modules\Countries\Providers\CountriesServiceProvider;
 use App\Modules\Identity\Providers\IdentityServiceProvider;
+use App\Modules\Pricing\Providers\PricingServiceProvider;
+use App\Modules\Shipping\Providers\ShippingServiceProvider;
 use App\Modules\Suppliers\Providers\SuppliersServiceProvider;
+use App\Modules\Tax\Providers\TaxServiceProvider;
 use App\Providers\AppServiceProvider;
 
 return [
@@ -14,4 +19,9 @@ return [
     IdentityServiceProvider::class,
     CatalogServiceProvider::class,
     SuppliersServiceProvider::class,
+    TaxServiceProvider::class,
+    ShippingServiceProvider::class,
+    PricingServiceProvider::class,
+    CartServiceProvider::class,
+    CheckoutServiceProvider::class,
 ];

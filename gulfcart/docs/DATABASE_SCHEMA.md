@@ -387,7 +387,8 @@ CREATE TABLE orders (
     paid_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CHECK (grand_total = subtotal + shipping_total + tax_total + customs_total - discount_total),
+    -- Prices are VAT-inclusive: tax_total is the VAT contained in grand_total (Sprint 2 decision).
+    CHECK (grand_total = subtotal + shipping_total + customs_total - discount_total),
     CHECK (refunded_total <= paid_total)
 );
 

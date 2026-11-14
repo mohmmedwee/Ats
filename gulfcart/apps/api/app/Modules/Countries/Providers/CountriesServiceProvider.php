@@ -2,7 +2,9 @@
 
 namespace App\Modules\Countries\Providers;
 
+use App\Modules\Countries\Application\Address\StaticAddressRules;
 use App\Modules\Countries\Application\EloquentCountryDirectory;
+use App\Modules\Countries\Contracts\AddressRules;
 use App\Modules\Countries\Contracts\CountryDirectory;
 use App\Shared\Modules\ModuleServiceProvider;
 
@@ -16,5 +18,6 @@ final class CountriesServiceProvider extends ModuleServiceProvider
     public function register(): void
     {
         $this->app->singleton(CountryDirectory::class, EloquentCountryDirectory::class);
+        $this->app->singleton(AddressRules::class, StaticAddressRules::class);
     }
 }

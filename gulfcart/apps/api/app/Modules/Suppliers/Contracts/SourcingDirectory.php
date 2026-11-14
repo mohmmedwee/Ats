@@ -15,6 +15,9 @@ interface SourcingDirectory
      */
     public function sourcesFor(string $variantId, string $countryCode): array;
 
+    /** @return list<string> product IDs that have at least one supplier product (for bulk repricing) */
+    public function productIdsWithSources(): array;
+
     /** A specific source regardless of eligibility (used for existing orders). */
     public function source(string $supplierProductId, string $variantId): ?SourceData;
 }
