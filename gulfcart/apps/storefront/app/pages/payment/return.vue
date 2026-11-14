@@ -46,7 +46,18 @@ watch(payment, (p) => {
   tracking.track('purchase', { value: Number(p.amount.amount), currency: p.amount.currency, orderId: p.order_number ?? p.order_id })
 })
 
-onMounted(load)
+// Real providers confirm by webhook a few seconds after the redirect: poll until final (max ~2 min).
+let polls = 0
+let timer: ReturnType<typeof setTimeout> | undefined
+async function poll() {
+  await load().catch(() => undefined)
+  const p = payment.value
+  if (p && p.provider !== 'sandbox' && !['captured', 'failed', 'cancelled'].includes(p.status) && polls++ < 40) {
+    timer = setTimeout(poll, 3000)
+  }
+}
+onMounted(poll)
+onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <template>
@@ -70,7 +81,7 @@ onMounted(load)
         </button>
         <button :disabled="busy" class="w-full rounded border py-2" @click="complete('failure')">{{ $t('payment.fail') }}</button>
       </template>
-      <p v-else>{{ $t('payment.processing') }}</p>
+      <p v-else class="flex items-center justify-center gap-2 text-ink-700"><span class="h-4 w-4 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" /> {{ $t('payment.processing') }}</p>
     </template>
   </section>
 </template>

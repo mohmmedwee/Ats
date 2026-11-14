@@ -51,7 +51,10 @@ final class PaymentService
         ]);
 
         $returnUrl = rtrim((string) config('gulfcart.frontend_url'), '/').($order->locale === 'ar' ? '/ar' : '').'/payment/return';
-        $result = $this->gateway->createIntent(new IntentRequest($payment->id, $due, $order->currency, $order->orderNumber, $returnUrl), $payment->idempotency_key);
+        $result = $this->gateway->createIntent(new IntentRequest(
+            $payment->id, $due, $order->currency, $order->orderNumber, $returnUrl,
+            $order->shippingAddress['full_name'] ?? null, null, $order->shippingAddress['phone'] ?? null,
+        ), $payment->idempotency_key);
         $payment->update(['provider_reference' => $result->providerReference, 'status' => $result->status, 'redirect_url' => $result->redirectUrl]);
 
         return $payment;

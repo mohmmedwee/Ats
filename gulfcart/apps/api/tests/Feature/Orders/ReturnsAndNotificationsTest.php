@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Orders;
 
+use App\Modules\Identity\Contracts\SmsSender;
+use App\Modules\Notifications\Application\Notifier;
 use App\Modules\Notifications\Application\TemplateMail;
 use App\Modules\Notifications\Infrastructure\Models\NotificationLog;
 use App\Modules\Orders\Infrastructure\Models\Order;
 use App\Modules\Suppliers\Application\Connectors\MockSupplierConnector;
 use App\Modules\Suppliers\Contracts\ConnectorResolver;
 use App\Shared\Outbox\OutboxEvent;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\CatalogFixtures;
 use Tests\Support\OrderFlow;
@@ -115,7 +119,7 @@ final class ReturnsAndNotificationsTest extends TestCase
     {
         Mail::fake();
         $texts = [];
-        $this->app->instance(\App\Modules\Identity\Contracts\SmsSender::class, new class($texts) implements \App\Modules\Identity\Contracts\SmsSender
+        $this->app->instance(SmsSender::class, new class($texts) implements SmsSender
         {
             public function __construct(private array &$texts) {}
 
@@ -134,9 +138,9 @@ final class ReturnsAndNotificationsTest extends TestCase
 
         // With WhatsApp configured, the mapped template is sent instead of an SMS.
         config(['gulfcart.whatsapp.provider' => 'meta', 'gulfcart.whatsapp.phone_number_id' => '123', 'gulfcart.whatsapp.token' => 't']);
-        \Illuminate\Support\Facades\Http::fake(['graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['messages' => [['id' => 'wamid.1']]])]);
-        app(\App\Modules\Notifications\Application\Notifier::class)->toCustomer($order->user_id, 'order_delivered', ['order' => $order->order_number], 'test:delivered', 'order', $order->id, "/account/orders/{$order->id}");
-        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages')
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.1']]])]);
+        app(Notifier::class)->toCustomer($order->user_id, 'order_delivered', ['order' => $order->order_number], 'test:delivered', 'order', $order->id, "/account/orders/{$order->id}");
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/123/messages')
             && $r['template']['name'] === 'gc_order_delivered' && $r['template']['components'][0]['parameters'][1]['text'] === $order->order_number);
         $this->assertDatabaseHas('notification_logs', ['template' => 'order_delivered', 'channel' => 'whatsapp', 'status' => 'sent']);
         $this->assertCount(1, $texts);
@@ -149,11 +153,11 @@ final class ReturnsAndNotificationsTest extends TestCase
         $user = $this->customer();
         $auth = $this->customerAuth($user);
         $this->postJson('/api/v1/cart/items', ['variant_id' => $v->id, 'quantity' => 2], $auth + ['X-Country' => 'AE'])->assertCreated();
-        \Illuminate\Support\Facades\DB::table('carts')->update(['updated_at' => now()->subHours(5)]);
-        \Illuminate\Support\Facades\DB::table('cart_items')->update(['updated_at' => now()->subHours(5)]);
+        DB::table('carts')->update(['updated_at' => now()->subHours(5)]);
+        DB::table('cart_items')->update(['updated_at' => now()->subHours(5)]);
 
         $this->artisan('notifications:cart-reminders')->expectsOutput('1 cart reminder(s)')->assertSuccessful();
         $this->artisan('notifications:cart-reminders')->expectsOutput('0 cart reminder(s)')->assertSuccessful();
-        Mail::assertSent(\App\Modules\Notifications\Application\TemplateMail::class, fn ($m) => $m->hasTo($user->email) && str_contains($m->subjectLine, 'cart'));
+        Mail::assertSent(TemplateMail::class, fn ($m) => $m->hasTo($user->email) && str_contains($m->subjectLine, 'cart'));
     }
 }

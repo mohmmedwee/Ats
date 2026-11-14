@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Payments\Application\Gateways\TapGateway;
 use App\Modules\Suppliers\Application\Connectors\Cj\CjDropshippingConnector;
 
 return [
@@ -124,9 +125,16 @@ return [
     ],
 
     'payments' => [
-        // Decision D2 pending: until a provider is contracted, the sandbox gateway is used.
+        // sandbox (development) | tap (production: cards, mada, Apple Pay). See docs/PAYMENTS.md.
         'provider' => env('PAYMENT_PROVIDER', 'sandbox'),
-        'gateways' => [],  // provider name => class implementing PaymentGateway
+        'gateways' => [  // provider name => class implementing PaymentGateway
+            'tap' => TapGateway::class,
+        ],
+        'tap' => [
+            'secret_key' => env('TAP_SECRET_KEY'),
+            // Public API origin Tap can reach for webhooks (defaults to APP_URL).
+            'webhook_base_url' => env('TAP_WEBHOOK_BASE_URL'),
+        ],
         'sandbox' => ['secret' => env('PAYMENT_SANDBOX_SECRET', 'sandbox-dev-secret-change-me')],
         'allow_sandbox_in_production' => (bool) env('ALLOW_SANDBOX_PAYMENTS_IN_PRODUCTION', false),
         'webhook_tolerance_seconds' => 300,
