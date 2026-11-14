@@ -12,6 +12,7 @@ use App\Modules\Orders\Infrastructure\Models\Order;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\Http\ApiResponse;
 use App\Shared\I18n\Translations;
+use App\Shared\Outbox\Outbox;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,6 +76,7 @@ final class OrderController
             } else {
                 throw new ApiException('CANCELLATION_NOT_POSSIBLE', 409);
             }
+            Outbox::record('order', $order->id, 'order.cancelled', ['order_id' => $order->id]);
             $this->audit->record('order.cancelled_by_customer', 'order', $order->id);
         });
 

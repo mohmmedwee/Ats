@@ -31,11 +31,11 @@ final class CheckoutService implements CheckoutSessions
             ?? throw new ApiException('VALIDATION_FAILED', 422, ['fields' => ['address_id' => ['Address not found.']]]);
     }
 
-    public function createSession(string $userId, CountryData $country, string $addressId, string $method): CheckoutSession
+    public function createSession(string $userId, CountryData $country, string $addressId, string $method, ?string $couponCode = null): CheckoutSession
     {
         $cart = $this->cart($userId, $country);
         $address = $this->address($userId, $addressId);
-        $quote = $this->quotes->build($cart, $country, $address, $method, liveCheck: true);
+        $quote = $this->quotes->build($cart, $country, $address, $method, liveCheck: true, couponCode: $couponCode, userId: $userId);
         $expires = now()->addMinutes((int) config('gulfcart.pricing.quote_validity_minutes', 30));
         $quote['expires_at'] = $expires->toIso8601String();
 

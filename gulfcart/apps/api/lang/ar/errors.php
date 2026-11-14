@@ -29,4 +29,11 @@ return [
     'otp_invalid' => 'رمز التحقق غير صحيح أو منتهي الصلاحية.',
     'otp_message' => 'رمز غلف كارت الخاص بك هو :code. ينتهي خلال :minutes دقائق.',
     'invalid_signature' => 'هذا الرابط غير صالح أو منتهي الصلاحية.',
+    'coupon_invalid' => 'لا يمكن استخدام هذا الكود.',
+    'coupon_not_found' => 'الكود غير صحيح.',
+    'coupon_expired' => 'انتهت صلاحية هذا الكود.',
+    'coupon_country' => 'هذا الكود غير صالح في بلدك.',
+    'coupon_min_subtotal' => 'أضف منتجات بقيمة :min_subtotal على الأقل لاستخدام هذا الكود.',
+    'coupon_used_up' => 'نفدت مرات استخدام هذا الكود.',
+    'coupon_already_used' => 'لقد استخدمت هذا الكود من قبل.',
 ];

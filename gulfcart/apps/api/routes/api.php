@@ -39,6 +39,7 @@ Route::middleware('country')->group(function (): void {
     require app_path('Modules/Audit/Http/routes.php');
     require app_path('Modules/Invoices/Http/routes.php');
     require app_path('Modules/Content/Http/routes.php');
+    require app_path('Modules/Promotions/Http/routes.php');
 
     Route::prefix('admin')->middleware(['auth:sanctum', 'mfa.verified', 'permission:'.Permissions::COUNTRIES_MANAGE])->group(function (): void {
         Route::get('countries', [CountryController::class, 'adminIndex']);

@@ -7,6 +7,7 @@ use App\Modules\Cart\Contracts\CartReader;
 use App\Modules\Checkout\Contracts\CheckoutSessions;
 use App\Modules\Orders\Domain\OrderStatus;
 use App\Modules\Orders\Infrastructure\Models\Order;
+use App\Modules\Promotions\Contracts\Coupons;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\Outbox\Outbox;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ final class OrderPlacement
         private readonly CheckoutSessions $sessions,
         private readonly CartReader $carts,
         private readonly AuditLogger $audit,
+        private readonly Coupons $coupons,
     ) {}
 
     public function place(string $userId, string $sessionId, string $locale): Order
@@ -51,6 +53,7 @@ final class OrderPlacement
                 'tax_total' => $q['totals']['tax'],
                 'customs_total' => $q['totals']['customs'],
                 'discount_total' => $q['totals']['discount'],
+                'coupon_code' => $q['coupon']['code'] ?? null,
                 'grand_total' => $q['totals']['total'],
                 'placed_at' => now(),
                 'payment_due_at' => now()->addMinutes((int) config('gulfcart.orders.payment_window_minutes', 60)),
@@ -76,7 +79,12 @@ final class OrderPlacement
                     'exchange_rate' => $line['exchange_rate'],
                     'pricing_snapshot' => $line['pricing'],
                     'shipment_group' => $line['shipment'],
+                    'line_discount' => $line['line_discount'] ?? '0.00',
                 ]);
+            }
+            if (isset($q['coupon']['code'])) {
+                // Re-checks usage limits under a lock: the code may have been used up since the quote.
+                $this->coupons->redeem($q['coupon']['code'], $userId, $order->id, (string) $q['totals']['discount'], $session->currency);
             }
 
             $this->sessions->markCompleted($session->id);

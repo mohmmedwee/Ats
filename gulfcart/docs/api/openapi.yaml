@@ -857,6 +857,41 @@ paths:
       summary: Update a page (any subset of fields)
       parameters: [{ name: page, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/coupons:
+    get:
+      tags: [Admin Promotions]
+      summary: Discount codes with use counts and discount given (pricing.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Promotions]
+      summary: Create a discount code (percent, fixed amount, or free shipping)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, type]
+              properties:
+                code: { type: string, pattern: '^[A-Za-z0-9_-]{3,40}$' }
+                description: { type: [string, 'null'] }
+                type: { type: string, enum: [percent, fixed, free_shipping] }
+                value: { type: number, description: 'Percent (max 90) or amount in the country currency' }
+                max_discount: { type: [number, 'null'] }
+                min_subtotal: { type: [number, 'null'] }
+                countries: { type: array, items: { type: string, enum: [AE, SA] } }
+                starts_at: { type: [string, 'null'], format: date-time }
+                ends_at: { type: [string, 'null'], format: date-time }
+                usage_limit: { type: [integer, 'null'] }
+                per_customer_limit: { type: integer, description: 0 means unlimited }
+                is_active: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/coupons/{coupon}:
+    patch:
+      tags: [Admin Promotions]
+      summary: Update a discount code
+      parameters: [{ name: coupon, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /countries/{code}/address-format:
     get:
       tags: [Countries]
@@ -1615,6 +1650,7 @@ components:
             properties:
               address_id: { type: string, format: uuid }
               shipping_method: { type: string, examples: [standard, express] }
+              coupon_code: { type: string, maxLength: 40, description: 'Optional discount code; COUPON_INVALID with details.reason when it cannot be used' }
   responses:
     Ok:
       description: Success envelope

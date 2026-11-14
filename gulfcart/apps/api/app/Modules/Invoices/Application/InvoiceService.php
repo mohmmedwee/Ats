@@ -33,6 +33,18 @@ final class InvoiceService
 
             $lines = [];
             foreach ($order->items as $item) {
+                if ($item->isDiscounted()) {
+                    // Same per-line VAT the checkout quote computed for the discounted line.
+                    $gross = Decimal::sub($item->lineTotal, $item->lineDiscount, 2);
+                    $vat = $this->contained($gross, $item->vatRate);
+                    $lines[] = [
+                        'description' => $item->snapshot['title'] ?? [], 'sku' => $item->snapshot['sku'] ?? null,
+                        'quantity' => $item->quantity, 'unit_gross' => $item->unitGross, 'discount' => $item->lineDiscount,
+                        'vat_rate' => Decimal::round($item->vatRate, 2), 'net' => Decimal::sub($gross, $vat, 2), 'vat' => $vat, 'gross' => $gross,
+                    ];
+
+                    continue;
+                }
                 $lines[] = [
                     'description' => $item->snapshot['title'] ?? [], 'sku' => $item->snapshot['sku'] ?? null,
                     'quantity' => $item->quantity, 'unit_gross' => $item->unitGross, 'vat_rate' => Decimal::round($item->vatRate, 2),
@@ -75,6 +87,16 @@ final class InvoiceService
             foreach ($itemQuantities as $itemId => $qty) {
                 $item = $order->item($itemId);
                 if ($item === null) {
+                    continue;
+                }
+                if ($item->isDiscounted()) {
+                    $gross = Decimal::mul($item->paidUnitGross(), (string) $qty, 2);
+                    $vat = $this->contained($gross, $item->vatRate);
+                    $lines[] = ['description' => $item->snapshot['title'] ?? [], 'sku' => $item->snapshot['sku'] ?? null, 'quantity' => $qty,
+                        'unit_gross' => $item->paidUnitGross(), 'vat_rate' => Decimal::round($item->vatRate, 2),
+                        'net' => Decimal::sub($gross, $vat, 2), 'vat' => $vat, 'gross' => $gross];
+                    $covered = Decimal::add($covered, $gross, 2);
+
                     continue;
                 }
                 $gross = Decimal::mul($item->unitGross, (string) $qty, 2);
@@ -139,5 +161,11 @@ final class InvoiceService
         $net = Decimal::sub($gross, $vat, 2);
 
         return Decimal::cmp($net, '0') > 0 ? Decimal::round(Decimal::mul(Decimal::div($vat, $net, 8), '100', 8), 2) : '0';
+    }
+
+    private function contained(string $gross, string $ratePercent): string
+    {
+        return Decimal::cmp($ratePercent, '0') === 0 ? '0.00'
+            : Decimal::round(Decimal::div(Decimal::mul($gross, $ratePercent, 8), Decimal::add('100', $ratePercent, 8), 8), 2);
     }
 }

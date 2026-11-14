@@ -39,6 +39,7 @@ final class CheckoutController
         $quote = $this->quotes->build(
             $this->checkout->cart($this->userId($request), $country), $country,
             $this->checkout->address($this->userId($request), $data['address_id']), $data['shipping_method'], liveCheck: false,
+            couponCode: $data['coupon_code'] ?? null, userId: $this->userId($request),
         );
 
         return ApiResponse::success(QuoteBuilder::publicView($quote));
@@ -47,7 +48,7 @@ final class CheckoutController
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request);
-        $session = $this->checkout->createSession($this->userId($request), $this->country($request), $data['address_id'], $data['shipping_method']);
+        $session = $this->checkout->createSession($this->userId($request), $this->country($request), $data['address_id'], $data['shipping_method'], $data['coupon_code'] ?? null);
 
         return ApiResponse::success($this->checkout->present($session), 201);
     }
@@ -63,10 +64,11 @@ final class CheckoutController
     /** @return array{address_id: string, shipping_method: string} */
     private function validated(Request $request): array
     {
-        /** @var array{address_id: string, shipping_method: string} */
+        /** @var array{address_id: string, shipping_method: string, coupon_code?: string|null} */
         return $request->validate([
             'address_id' => ['required', 'uuid'],
             'shipping_method' => ['required', 'string', 'max:50'],
+            'coupon_code' => ['nullable', 'string', 'max:40'],
         ]);
     }
 

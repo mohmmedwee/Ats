@@ -7,6 +7,7 @@ use App\Modules\Catalog\Contracts\CatalogReader;
 use App\Modules\Checkout\Infrastructure\Models\CustomerAddress;
 use App\Modules\Countries\Domain\CountryData;
 use App\Modules\Pricing\Contracts\PriceBook;
+use App\Modules\Promotions\Contracts\Coupons;
 use App\Modules\Shipping\Contracts\ShippingQuoter;
 use App\Modules\Shipping\Domain\ShippingOption;
 use App\Modules\Suppliers\Contracts\ConnectorResolver;
@@ -32,6 +33,7 @@ final class QuoteBuilder
         private readonly ConnectorResolver $connectors,
         private readonly TaxRules $tax,
         private readonly ShippingQuoter $shipping,
+        private readonly Coupons $coupons,
     ) {}
 
     /** @return list<ShippingOption> */
@@ -43,7 +45,7 @@ final class QuoteBuilder
     }
 
     /** @return array<string, mixed> internal quote (contains cost data; never send as-is to customers) */
-    public function build(CartData $cart, CountryData $country, CustomerAddress $address, string $methodCode, bool $liveCheck): array
+    public function build(CartData $cart, CountryData $country, CustomerAddress $address, string $methodCode, bool $liveCheck, ?string $couponCode = null, ?string $userId = null): array
     {
         if ($address->country_id !== $country->id) {
             throw new ApiException('ADDRESS_COUNTRY_MISMATCH', 422);
@@ -71,23 +73,35 @@ final class QuoteBuilder
             ];
         }
 
-        $shippingVatRate = $this->tax->shippingVatRate($country->code);
-        $shippingVat = $this->contained($method->amount, $shippingVatRate);
-        $tax = Decimal::add(Decimal::sum(array_column($lines, 'line_vat'), 2), $shippingVat, 2);
+        $coupon = null;
         $discount = '0.00';
-        $total = Decimal::sub(Decimal::add(Decimal::add($subtotal, $method->amount, 2), $customsTotal, 2), $discount, 2);
+        $shippingAmount = $method->amount;
+        if ($couponCode !== null && trim($couponCode) !== '' && $userId !== null) {
+            $coupon = $this->coupons->evaluate($couponCode, $userId, $country->code, $subtotal);
+            $discount = $coupon->discount;
+            $lines = $this->allocateDiscount($lines, $discount);
+            if ($coupon->freeShipping) {
+                $shippingAmount = '0.00';
+            }
+        }
+
+        $shippingVatRate = $this->tax->shippingVatRate($country->code);
+        $shippingVat = $this->contained($shippingAmount, $shippingVatRate);
+        $tax = Decimal::add(Decimal::sum(array_column($lines, 'line_vat'), 2), $shippingVat, 2);
+        $total = Decimal::sub(Decimal::add(Decimal::add($subtotal, $shippingAmount, 2), $customsTotal, 2), $discount, 2);
 
         return [
             'country' => $country->code,
             'currency' => $country->currency,
             'address_id' => $address->id,
             'shipping_address' => $address->snapshot($country->code),
-            'shipping_method' => ['id' => $method->methodId, 'code' => $method->code, 'name' => $method->name, 'amount' => $method->amount, 'free' => $method->free, 'vat' => $shippingVat],
+            'shipping_method' => ['id' => $method->methodId, 'code' => $method->code, 'name' => $method->name, 'amount' => $shippingAmount, 'free' => $method->free || Decimal::isZero($shippingAmount), 'vat' => $shippingVat],
+            'coupon' => $coupon === null ? null : ['code' => $coupon->code, 'type' => $coupon->type, 'discount' => $discount, 'free_shipping' => $coupon->freeShipping],
             'lines' => $lines,
             'shipments' => $shipments,
             'totals' => [
                 'subtotal' => $subtotal,
-                'shipping' => $method->amount,
+                'shipping' => $shippingAmount,
                 'customs' => $customsTotal,
                 'discount' => $discount,
                 'tax' => $tax,
@@ -132,10 +146,42 @@ final class QuoteBuilder
             'shipping' => $quote['totals']['shipping'],
             'customs' => $quote['totals']['customs'],
             'discount' => $quote['totals']['discount'],
+            'coupon' => isset($quote['coupon']) ? ['code' => $quote['coupon']['code'], 'free_shipping' => $quote['coupon']['free_shipping']] : null,
             'tax' => $quote['totals']['tax'],
             'total' => $quote['totals']['total'],
             'prices_include_tax' => true,
         ];
+    }
+
+    /**
+     * Spreads a VAT-inclusive discount over the lines in proportion to their totals (the last line takes
+     * the rounding remainder) and recomputes each discounted line's contained VAT. Invoices and refunds
+     * use the same per-line figures, so VAT stays consistent everywhere.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     * @return list<array<string, mixed>>
+     */
+    private function allocateDiscount(array $lines, string $discount): array
+    {
+        $subtotal = $this->subtotal($lines);
+        if (Decimal::isZero($discount) || Decimal::isZero($subtotal)) {
+            return $lines;
+        }
+        $left = $discount;
+        $last = count($lines) - 1;
+        foreach ($lines as $i => $line) {
+            $share = $i === $last
+                ? $left
+                : Decimal::round(Decimal::div(Decimal::mul($discount, (string) $line['line_total'], 8), $subtotal, 8), 2);
+            if (Decimal::cmp($share, (string) $line['line_total']) > 0) {
+                $share = (string) $line['line_total'];
+            }
+            $left = Decimal::sub($left, $share, 2);
+            $lines[$i]['line_discount'] = $share;
+            $lines[$i]['line_vat'] = $this->contained(Decimal::sub((string) $line['line_total'], $share, 2), (string) $line['vat_rate']);
+        }
+
+        return $lines;
     }
 
     /**
@@ -188,6 +234,7 @@ final class QuoteBuilder
                 'vat_rate' => $price->vatRate,
                 'line_total' => Decimal::mul($price->gross, $qty, 2),
                 'line_vat' => Decimal::mul($unitVat, $qty, 2),
+                'line_discount' => '0.00',
                 'supplier_id' => $source->supplierId,
                 'supplier_product_id' => $source->supplierProductId,
                 'external_product_id' => $source->externalProductId,

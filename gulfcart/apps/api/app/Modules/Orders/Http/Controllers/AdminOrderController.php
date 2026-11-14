@@ -63,7 +63,7 @@ final class AdminOrderController
         $base = [
             'id' => $o->id, 'order_number' => $o->order_number, 'user_id' => $o->user_id, 'status' => $o->status, 'country_code' => $this->codes[$o->country_id] ?? null,
             'items_count' => (int) $o->items->sum('quantity'),
-            'refund_state' => $o->refund_state, 'currency' => $o->currency,
+            'refund_state' => $o->refund_state, 'currency' => $o->currency, 'coupon_code' => $o->coupon_code,
             'grand_total' => (string) $o->grand_total, 'paid_total' => (string) $o->paid_total, 'refunded_total' => (string) $o->refunded_total,
             'estimated_landed_cost' => Decimal::round($cost, 2),
             'estimated_contribution_before_fees' => Decimal::sub(Decimal::sub($net, (string) $o->customs_total, 2), Decimal::round($cost, 2), 2),
@@ -77,7 +77,7 @@ final class AdminOrderController
             'items' => $o->items->map(fn ($i) => $i->only([
                 'id', 'variant_id', 'supplier_id', 'supplier_product_id', 'quantity', 'unit_gross_price', 'line_total',
                 'unit_supplier_cost', 'unit_supplier_shipping', 'supplier_currency', 'exchange_rate', 'shipment_group',
-                'fulfillment_status', 'refunded_quantity',
+                'fulfillment_status', 'refunded_quantity', 'line_discount',
             ]) + ['title' => $i->product_snapshot['title'] ?? null, 'sku' => $i->product_snapshot['sku'] ?? null])->all(),
         ] : $base;
     }

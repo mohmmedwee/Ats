@@ -26,6 +26,7 @@ const all: { title: string, items: Item[] }[] = [
   ] },
   { title: 'admin.nav.settings', items: [
     { to: '/admin/pricing', label: 'admin.pricing.title', icon: 'percent', perm: ['pricing.manage'] },
+    { to: '/admin/coupons', label: 'admin.coupons.title', icon: 'tag', perm: ['pricing.manage'] },
     { to: '/admin/shipping', label: 'admin.shipping.title', icon: 'truck', perm: ['countries.manage'] },
     { to: '/admin/tax', label: 'admin.tax.title', icon: 'receipt', perm: ['countries.manage'] },
     { to: '/admin/countries', label: 'admin.countries.title', icon: 'globe', perm: ['countries.manage'] },

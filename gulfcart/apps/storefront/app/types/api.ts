@@ -88,6 +88,7 @@ export interface Quote {
   shipping: string
   customs: string
   discount: string
+  coupon?: { code: string, free_shipping: boolean } | null
   tax: string
   total: string
 }

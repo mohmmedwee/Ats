@@ -14,6 +14,7 @@ use App\Modules\Orders\Providers\OrdersServiceProvider;
 use App\Modules\Payments\Providers\PaymentsServiceProvider;
 use App\Modules\Pricing\Providers\PricingServiceProvider;
 use App\Modules\Procurement\Providers\ProcurementServiceProvider;
+use App\Modules\Promotions\Providers\PromotionsServiceProvider;
 use App\Modules\Returns\Providers\ReturnsServiceProvider;
 use App\Modules\Shipping\Providers\ShippingServiceProvider;
 use App\Modules\Suppliers\Providers\SuppliersServiceProvider;
@@ -40,4 +41,5 @@ return [
     AnalyticsServiceProvider::class,
     InvoicesServiceProvider::class,
     ContentServiceProvider::class,
+    PromotionsServiceProvider::class,
 ];

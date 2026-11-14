@@ -11,6 +11,9 @@ const addressId = ref<string | null>(null)
 const options = ref<ShippingOption[]>([])
 const method = ref('standard')
 const quote = ref<Quote | null>(null)
+const couponInput = ref('')
+const coupon = ref<string | null>(null)
+const couponError = ref('')
 const error = ref('')
 const busy = ref(false)
 const showForm = ref(false)
@@ -33,11 +36,34 @@ async function refreshQuote() {
   try {
     options.value = (await request<Envelope<ShippingOption[]>>('/checkout/shipping-options', { method: 'POST', body: { address_id: addressId.value } })).data
     if (!options.value.some(o => o.code === method.value)) method.value = options.value[0]?.code ?? 'standard'
-    quote.value = (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value } })).data
+    quote.value = await fetchQuote(coupon.value)
   }
   catch (e) {
     error.value = apiErrorMessage(e, t('errors.generic'))
   }
+}
+
+async function fetchQuote(code: string | null) {
+  return (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: code || undefined } })).data
+}
+
+async function applyCoupon() {
+  couponError.value = ''
+  const code = couponInput.value.trim()
+  if (!code || !addressId.value) return
+  try {
+    quote.value = await fetchQuote(code)
+    coupon.value = quote.value.coupon?.code ?? code
+  }
+  catch (e) {
+    couponError.value = apiErrorMessage(e, t('errors.generic'))
+  }
+}
+
+async function removeCoupon() {
+  coupon.value = null
+  couponInput.value = ''
+  await refreshQuote()
 }
 
 async function saveAddress() {
@@ -61,7 +87,7 @@ async function placeOrder() {
   error.value = ''
   try {
     await csrf()
-    const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value } })).data
+    const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: coupon.value || undefined } })).data
     const order = (await request<Envelope<{ id: string }>>('/orders', { method: 'POST', body: { checkout_session_id: session.id }, headers: { 'Idempotency-Key': idempotencyKey('order') } })).data
     const payment = (await request<Envelope<Payment>>('/payments/intent', { method: 'POST', body: { order_id: order.id }, headers: { 'Idempotency-Key': idempotencyKey('pay') } })).data
     useCartStore().cart = null
@@ -143,9 +169,21 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
           <div class="flex justify-between"><dt>{{ $t('cart.subtotal') }}</dt><dd>{{ m(quote.subtotal) }}</dd></div>
           <div class="flex justify-between"><dt>{{ $t('checkout.shipping_fee') }}</dt><dd>{{ quote.shipping_method.free ? $t('checkout.free') : m(quote.shipping) }}</dd></div>
           <div v-if="Number(quote.customs) > 0" class="flex justify-between"><dt>{{ $t('checkout.customs') }}</dt><dd>{{ m(quote.customs) }}</dd></div>
+          <div v-if="Number(quote.discount) > 0" class="flex justify-between text-green-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m(quote.discount) }}</dd></div>
           <div class="flex justify-between text-lg font-semibold"><dt>{{ $t('common.total') }}</dt><dd data-test="quote-total">{{ m(quote.total) }}</dd></div>
           <div class="flex justify-between text-gray-500"><dt>{{ $t('checkout.vat_included') }}</dt><dd>{{ m(quote.tax) }}</dd></div>
         </dl>
+        <div class="mt-4 border-t pt-4" data-test="coupon-box">
+          <div v-if="coupon" class="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
+            <span>{{ $t('coupon.applied') }} <b dir="ltr">{{ coupon }}</b></span>
+            <button type="button" class="link" @click="removeCoupon">{{ $t('common.remove') }}</button>
+          </div>
+          <form v-else class="flex gap-2" @submit.prevent="applyCoupon">
+            <input v-model="couponInput" class="input flex-1 uppercase" :placeholder="$t('coupon.placeholder')" dir="ltr" data-test="coupon-input">
+            <button class="btn-outline btn-sm" data-test="coupon-apply">{{ $t('coupon.apply') }}</button>
+          </form>
+          <p v-if="couponError" role="alert" class="mt-1 text-xs text-red-600">{{ couponError }}</p>
+        </div>
         <button :disabled="busy" class="mt-4 w-full rounded bg-gray-900 py-2 text-white disabled:opacity-50" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
       </template>
     </aside>

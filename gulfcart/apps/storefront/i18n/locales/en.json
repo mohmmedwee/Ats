@@ -561,6 +561,32 @@
       "body_ar": "Text (Arabic)",
       "format_hint": "Formatting: start a line with \"## \" for a heading, \"- \" for a bullet, \"1. \" for a numbered step. Leave an empty line between paragraphs.",
       "legal_note": "These are starting texts that match how the store works. Have a lawyer review them and add your company's legal name and address before launch."
+    },
+    "coupons": {
+      "title": "Discount codes",
+      "subtitle": "Codes customers enter at checkout.",
+      "add": "New code",
+      "offer": "Offer",
+      "conditions": "Conditions",
+      "validity": "Valid",
+      "used": "Used",
+      "empty": "No codes yet. Create one like WELCOME10 for new customers.",
+      "free_shipping": "Free delivery",
+      "max": "up to {n}",
+      "min": "min. spend {n}",
+      "per_customer": "{n} per customer",
+      "description": "Internal note",
+      "type": "Type",
+      "types": {
+        "percent": "Percentage off",
+        "fixed": "Fixed amount off"
+      },
+      "amount": "Amount (local currency)",
+      "max_label": "Maximum discount",
+      "min_label": "Minimum spend",
+      "usage_limit": "Total uses",
+      "per_customer_label": "Uses per customer (0 = unlimited)",
+      "hint": "Discounts apply to products (VAT included), not to customs. Amounts are in the shopper's currency (AED or SAR): limit fixed-amount codes to one country. Codes from unpaid orders are given back automatically."
     }
   },
   "errors": {
@@ -773,5 +799,11 @@
     "welcome": "Welcome to GulfCart! What should we call you?",
     "email_optional": "Email (optional, for receipts)",
     "continue": "Continue"
+  },
+  "coupon": {
+    "placeholder": "Discount code",
+    "apply": "Apply",
+    "applied": "Code applied:",
+    "discount": "Discount"
   }
 }

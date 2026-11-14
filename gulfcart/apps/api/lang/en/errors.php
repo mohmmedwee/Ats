@@ -29,4 +29,11 @@ return [
     'otp_invalid' => 'The verification code is invalid or expired.',
     'otp_message' => 'Your GulfCart code is :code. It expires in :minutes minutes.',
     'invalid_signature' => 'This link is invalid or has expired.',
+    'coupon_invalid' => 'This code cannot be used.',
+    'coupon_not_found' => 'This code is not valid.',
+    'coupon_expired' => 'This code has expired.',
+    'coupon_country' => 'This code is not valid in your country.',
+    'coupon_min_subtotal' => 'Spend at least :min_subtotal to use this code.',
+    'coupon_used_up' => 'This code has been fully used.',
+    'coupon_already_used' => 'You have already used this code.',
 ];

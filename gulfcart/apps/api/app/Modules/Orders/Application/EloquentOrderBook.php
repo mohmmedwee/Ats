@@ -101,7 +101,7 @@ final class EloquentOrderBook implements OrderBook
                 (string) $i->unit_gross_price, (string) $i->line_total, (string) $i->unit_supplier_cost,
                 (string) $i->unit_supplier_shipping, $i->supplier_currency, (string) $i->exchange_rate,
                 $i->shipment_group, $i->fulfillment_status, $i->refunded_quantity, $i->product_snapshot,
-                (string) $i->unit_net_price, (string) $i->unit_tax, (string) $i->vat_rate,
+                (string) $i->unit_net_price, (string) $i->unit_tax, (string) $i->vat_rate, (string) $i->line_discount,
             ))->all(),
             (string) $o->shipping_total, (string) $o->customs_total, (string) $o->tax_total, $o->paid_at?->toIso8601String(),
         );

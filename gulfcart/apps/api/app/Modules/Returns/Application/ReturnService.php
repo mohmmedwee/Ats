@@ -62,7 +62,7 @@ final class ReturnService
                 }
                 $return->items()->create([
                     'order_item_id' => $item->id, 'quantity' => $line['quantity'],
-                    'reason_code' => $line['reason_code'], 'unit_refund' => $item->unitGross,
+                    'reason_code' => $line['reason_code'], 'unit_refund' => $item->paidUnitGross(),
                 ]);
             }
 
