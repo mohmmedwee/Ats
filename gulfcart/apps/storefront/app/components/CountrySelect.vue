@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { country } = useApi()
 const countries = ['AE', 'SA'] as const
+const cart = useCartStore()
+watch(country, () => cart.load().catch(() => undefined))
 </script>
 
 <template>

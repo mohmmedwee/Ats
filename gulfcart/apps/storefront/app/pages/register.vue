@@ -2,6 +2,9 @@
 const auth = useAuthStore()
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+// Only same-site relative paths are accepted as redirect targets.
+const redirect = computed(() => { const r = String(route.query.redirect ?? ''); return r.startsWith('/') && !r.startsWith('//') ? r : '/account' })
 const form = reactive({ name: '', email: '', phone: '', password: '', password_confirmation: '' })
 const error = ref('')
 const busy = ref(false)
@@ -11,7 +14,8 @@ async function submit() {
   busy.value = true
   try {
     await auth.register({ ...form, phone: form.phone || undefined })
-    await navigateTo(localePath('/account'))
+    await useCartStore().load().catch(() => undefined)
+    await navigateTo(localePath(redirect.value))
   }
   catch (e) {
     error.value = apiErrorMessage(e, t('errors.generic'))

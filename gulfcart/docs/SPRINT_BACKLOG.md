@@ -1,5 +1,7 @@
 # GulfCart — Sprint Backlog
 
+> **Status (2026-11-14):** Sprints 0–5 implemented. See the reports in [`milestones/`](milestones/).
+
 8 weeks, 4 two-week sprints (Sprint 0–3) for the MVP, then Sprints 4–5.
 
 Assumed team: 1 backend, 1 frontend, 1 QA, 1 product/technical lead. When implementing alone

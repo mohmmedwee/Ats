@@ -4,15 +4,20 @@ Cross-border, multi-source e-commerce **reseller** platform for the UAE and Saud
 GulfCart is the seller of record to the customer: it buys from commercially authorized
 suppliers and ships directly to the customer.
 
-> **Status:** Milestone 1 (Foundation) implemented, see [`docs/milestones/M1-report.md`](docs/milestones/M1-report.md).
-> Next: Sprint 1, Catalog and Supplier Management ([`docs/SPRINT_BACKLOG.md`](docs/SPRINT_BACKLOG.md)).
+> **Status:** MVP software complete (Sprints 0–5). 182 backend tests, storefront in Arabic and English,
+> full purchase journey verified in a browser. Commercial launch still needs the business decisions in
+> [`docs/milestones/S4-S5-report.md`](docs/milestones/S4-S5-report.md#what-remains-before-commercial-launch)
+> (suppliers, payment provider, jurisdiction, customs).
+>
+> Reports: [M1](docs/milestones/M1-report.md) · [S1](docs/milestones/S1-report.md) · [S2](docs/milestones/S2-report.md) · [S3](docs/milestones/S3-report.md) · [S4–S5](docs/milestones/S4-S5-report.md)
 
 ## Quick start
 
 ```bash
 cd gulfcart
 make up                 # docker compose up -d --build
-make migrate-fresh      # migrations + seeders (AE, SA, roles, dev super admin)
+make migrate-fresh      # migrations + seeders (AE, SA, roles, tax, shipping, FX, dev super admin)
+make demo               # demo catalog with an authorized MOCK supplier
 open http://localhost   # storefront; API at http://localhost/api/v1
 ```
 
@@ -54,6 +59,8 @@ and `npm run dev` in `apps/storefront` (see each app's README).
 | [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) | Test layers, critical scenarios, release acceptance |
 | [`docs/SPRINT_BACKLOG.md`](docs/SPRINT_BACKLOG.md) | Sprints, tasks, Definition of Done |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Docker services, environments, production hardening |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Scheduled jobs, daily checks, procurement exception playbook, incidents, backups |
+| [`docs/SUPPLIER_IMPORT.md`](docs/SUPPLIER_IMPORT.md) | Supplier CSV feed format |
 | [`docs/SPEC_REVIEW.md`](docs/SPEC_REVIEW.md) | Corrections made to the v1.0 draft and open decisions |
 | [`docs/architecture/`](docs/architecture/) | System context, containers, ADRs |
 

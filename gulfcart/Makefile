@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate-fresh seed test test-api test-web lint shell
+.PHONY: up down logs migrate-fresh seed demo test test-api test-web lint shell smoke
 
 up:            ## Start the development stack
 	docker compose up -d --build
@@ -14,6 +14,13 @@ migrate-fresh: ## Recreate the database with seed data
 
 seed:
 	docker compose exec api php artisan db:seed
+
+demo:          ## Demo catalog: 5 products, 2 mock suppliers (never in production)
+	docker compose exec api php artisan db:seed --class=DemoCatalogSeeder
+	docker compose exec api php artisan storage:link
+
+smoke:         ## Browser journey against the running stack (needs playwright)
+	cd apps/storefront && BASE_URL=http://localhost node e2e/smoke-journey.cjs ./e2e-output
 
 test: test-api test-web
 

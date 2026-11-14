@@ -136,6 +136,23 @@ SUPPORTED_LOCALES=en,ar
 
 Commit only `.env.example`. Database passwords and supplier keys never go into Git.
 
+## 3.1 Variables added in Sprints 1–5
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CATALOG_DISK` | `public` | Product images disk (`s3` in production) |
+| `CORS_ALLOWED_ORIGINS` | `FRONTEND_URL` | Comma-separated storefront origins (credentials allowed) |
+| `PAYMENT_PROVIDER` | `sandbox` | Payment gateway; sandbox refused in production |
+| `PAYMENT_SANDBOX_SECRET` | dev value | HMAC secret for sandbox webhooks |
+| `PAYMENT_FEE_PERCENT` | `2.9` | Gateway fee used in pricing |
+| `FX_BUFFER_PERCENT` / `FX_MAX_AGE_HOURS` | `1.5` / `24` | FX buffer; prices expire with stale rates |
+| `QUOTE_VALIDITY_MINUTES` / `ORDER_PAYMENT_WINDOW_MINUTES` | `30` / `60` | Checkout lock and payment window |
+| `PROCUREMENT_MAX_COST_INCREASE_PERCENT` | `5` | Cost tolerance before an exception |
+| `OPERATIONS_ALERT_EMAIL` | — | Procurement exception alerts |
+| `ALLOW_MOCK_SUPPLIER_IN_PRODUCTION` / `ALLOW_SANDBOX_PAYMENTS_IN_PRODUCTION` | `false` | Keep false |
+
+Operations, scheduled jobs and incident playbooks: [`OPERATIONS.md`](OPERATIONS.md).
+
 ## 4. Environments
 
 | Environment | Purpose | Data |

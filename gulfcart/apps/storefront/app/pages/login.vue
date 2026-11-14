@@ -2,6 +2,9 @@
 const auth = useAuthStore()
 const { t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+// Only same-site relative paths are accepted as redirect targets.
+const redirect = computed(() => { const r = String(route.query.redirect ?? ''); return r.startsWith('/') && !r.startsWith('//') ? r : '/account' })
 const form = reactive({ login: '', password: '' })
 const error = ref('')
 const busy = ref(false)
@@ -13,7 +16,8 @@ async function submit() {
     const result = await auth.login(form.login, form.password)
     if (result.mfa_required) return navigateTo(localePath('/mfa'))
     if (result.mfa_setup_required) return navigateTo(localePath('/mfa?setup=1'))
-    return navigateTo(localePath('/account'))
+    await useCartStore().load().catch(() => undefined)
+    return navigateTo(localePath(redirect.value))
   }
   catch (e) {
     error.value = apiErrorMessage(e, t('errors.generic'))

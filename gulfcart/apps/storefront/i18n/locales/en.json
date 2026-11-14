@@ -1,17 +1,218 @@
 {
   "brand": "GulfCart",
-  "nav": { "home": "Home", "login": "Log in", "register": "Create account", "account": "My account", "admin": "Admin", "logout": "Log out" },
-  "country": { "label": "Ship to", "AE": "United Arab Emirates", "SA": "Saudi Arabia" },
-  "home": { "title": "Shop global brands, delivered to the Gulf", "subtitle": "Prices in AED and SAR with shipping, VAT and duties shown before you pay." },
+  "nav": {
+    "home": "Home",
+    "login": "Log in",
+    "register": "Create account",
+    "account": "My account",
+    "admin": "Admin",
+    "logout": "Log out",
+    "products": "Shop",
+    "cart": "Cart",
+    "orders": "My orders"
+  },
+  "country": {
+    "label": "Ship to",
+    "AE": "United Arab Emirates",
+    "SA": "Saudi Arabia"
+  },
+  "home": {
+    "title": "Shop global brands, delivered to the Gulf",
+    "subtitle": "Prices in AED and SAR with shipping, VAT and duties shown before you pay."
+  },
   "auth": {
-    "name": "Full name", "email": "Email", "phone": "Mobile number (optional)", "login": "Email or mobile number",
-    "password": "Password", "password_confirmation": "Confirm password",
-    "submit_login": "Log in", "submit_register": "Create account",
-    "no_account": "New to GulfCart?", "have_account": "Already have an account?",
-    "mfa_title": "Two-factor authentication", "mfa_code": "Authentication code", "mfa_submit": "Verify",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Mobile number (optional)",
+    "login": "Email or mobile number",
+    "password": "Password",
+    "password_confirmation": "Confirm password",
+    "submit_login": "Log in",
+    "submit_register": "Create account",
+    "no_account": "New to GulfCart?",
+    "have_account": "Already have an account?",
+    "mfa_title": "Two-factor authentication",
+    "mfa_code": "Authentication code",
+    "mfa_submit": "Verify",
     "mfa_setup_required": "Staff accounts must enable two-factor authentication before using the admin area."
   },
-  "account": { "title": "My account", "welcome": "Welcome, {name}" },
-  "admin": { "title": "Admin dashboard", "users": "Users", "roles": "Roles", "forbidden": "You do not have access to this page." },
-  "errors": { "generic": "Something went wrong. Please try again." }
+  "account": {
+    "title": "My account",
+    "welcome": "Welcome, {name}"
+  },
+  "admin": {
+    "title": "Admin dashboard",
+    "users": "Users",
+    "roles": "Roles",
+    "forbidden": "You do not have access to this page.",
+    "dashboard": "Dashboard",
+    "procurement": "Procurement",
+    "refunds": "Refunds",
+    "products": "Products",
+    "paid_today": "Paid today",
+    "exceptions": "Exceptions",
+    "manual": "Manual purchases",
+    "awaiting_approval": "Refunds awaiting approval",
+    "open_returns": "Open returns",
+    "sellable": "Sellable products",
+    "fx_stale": "Exchange rates are stale",
+    "actions": {
+      "retry": "Retry",
+      "approve": "Record manual purchase",
+      "cancel_refund": "Cancel & refund",
+      "approve_refund": "Approve",
+      "reject_refund": "Reject",
+      "publish": "Publish",
+      "submit": "Submit for review",
+      "unpublish": "Unpublish"
+    },
+    "external_order_id": "Supplier order number",
+    "actual_cost": "Actual cost",
+    "reason": "Reason",
+    "status": "Status",
+    "amount": "Amount",
+    "order": "Order"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again."
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "remove": "Remove",
+    "quantity": "Quantity",
+    "total": "Total",
+    "retry": "Try again",
+    "none": "Nothing here yet.",
+    "load_more": "Load more",
+    "search": "Search",
+    "days": "{min}–{max} days",
+    "prices_include_vat": "Prices include VAT"
+  },
+  "catalog": {
+    "title": "Shop",
+    "search_placeholder": "Search products",
+    "all_categories": "All categories",
+    "sort": {
+      "newest": "Newest",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low"
+    },
+    "from": "From {price}",
+    "delivery": "Delivery in {min}–{max} days",
+    "in_stock": "In stock",
+    "low_stock": "Only a few left",
+    "out_of_stock": "Out of stock",
+    "choose_variant": "Choose an option",
+    "add_to_cart": "Add to cart",
+    "added": "Added to cart",
+    "empty": "No products found."
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "subtotal": "Subtotal",
+    "checkout": "Proceed to checkout",
+    "issues": {
+      "PRICE_CHANGED": "The price changed from {old} to {new}.",
+      "OUT_OF_STOCK": "This item is out of stock.",
+      "UNAVAILABLE": "This item is no longer available."
+    },
+    "review": "Review changes",
+    "login_to_checkout": "Log in to check out"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "address": "Delivery address",
+    "new_address": "Add a new address",
+    "shipping": "Delivery method",
+    "summary": "Order summary",
+    "shipment": "Package {n}",
+    "customs": "Customs & duties",
+    "shipping_fee": "Delivery",
+    "vat_included": "Includes VAT",
+    "discount": "Discount",
+    "free": "Free",
+    "place_order": "Place order and pay",
+    "multi_package": "Your items ship from different suppliers and will arrive in {n} packages.",
+    "quote_expires": "Prices are held until {time}.",
+    "fields": {
+      "full_name": "Full name",
+      "phone": "Mobile number",
+      "address_line_1": "Street, building",
+      "address_line_2": "Apartment (optional)",
+      "district": "Area / district",
+      "city": "City",
+      "state": "Emirate / region",
+      "postal_code": "Postal code",
+      "national_address_code": "National Address short code"
+    }
+  },
+  "payment": {
+    "title": "Payment",
+    "sandbox_notice": "Test payment page (sandbox). No real card is charged.",
+    "pay": "Pay {amount}",
+    "fail": "Simulate a declined payment",
+    "success": "Payment received. Thank you!",
+    "failed": "The payment was declined. You can try again.",
+    "processing": "Processing payment…",
+    "view_order": "View order"
+  },
+  "orders": {
+    "title": "My orders",
+    "empty": "You have no orders yet.",
+    "order": "Order {number}",
+    "placed": "Placed {date}",
+    "package": "Package {n}",
+    "tracking": "Tracking {number}",
+    "cancel": "Cancel order",
+    "cancel_confirm": "Cancel this order? Any payment will be refunded.",
+    "return": "Request a return",
+    "return_submit": "Submit return",
+    "return_reason": "Reason",
+    "returned": "Return requested",
+    "pay_now": "Pay now",
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "payment_failed": "Payment failed",
+      "expired": "Expired",
+      "paid": "Paid",
+      "processing": "Being prepared",
+      "partially_shipped": "Partly shipped",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "package_status": {
+      "pending": "Pending",
+      "preparing": "Preparing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "refund_state": {
+      "none": "",
+      "partial": "Partially refunded",
+      "full": "Refunded"
+    },
+    "reasons": {
+      "damaged": "Damaged",
+      "wrong_item": "Wrong item",
+      "not_as_described": "Not as described",
+      "size_fit": "Size or fit",
+      "changed_mind": "Changed my mind",
+      "other": "Other"
+    }
+  },
+  "mfa": {
+    "setup_title": "Set up two-factor authentication",
+    "setup_step1": "Add this key to your authenticator app (Google Authenticator, 1Password, Authy):",
+    "setup_step2": "Enter the 6-digit code from the app to confirm.",
+    "recovery_title": "Save your recovery codes",
+    "recovery_hint": "Each code works once if you lose your device. Store them somewhere safe.",
+    "start": "Generate key"
+  }
 }
