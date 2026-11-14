@@ -1,0 +1,84 @@
+# GulfCart CI. Lives at the repository root while GulfCart is in the gulfcart/
+# subfolder; move to gulfcart/.github/workflows/ci.yml (and drop the path
+# filters and working-directory prefixes) when GulfCart gets its own repository.
+name: GulfCart CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['gulfcart/**', '.github/workflows/gulfcart-ci.yml']
+  pull_request:
+    paths: ['gulfcart/**', '.github/workflows/gulfcart-ci.yml']
+
+concurrency:
+  group: gulfcart-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (Laravel)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gulfcart/apps/api
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: gulfcart_test
+          POSTGRES_USER: gulfcart
+          POSTGRES_PASSWORD: gulfcart_dev_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gulfcart -d gulfcart_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: intl, pdo_pgsql, redis, zip, bcmath
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+      - name: Security audit
+        run: composer audit --no-dev
+      - name: Tests
+        run: php artisan test
+
+  storefront:
+    name: Storefront (Nuxt)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gulfcart/apps/storefront
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: gulfcart/apps/storefront/package-lock.json
+      - run: npm ci
+      - run: npx nuxi prepare
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  openapi:
+    name: OpenAPI lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx --yes @redocly/cli@1 lint gulfcart/docs/api/openapi.yaml

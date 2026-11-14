@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     REST API for the GulfCart storefront and admin dashboard.
-    Paths are added module by module; Milestone 1 covers health and authentication.
+    Paths are added module by module. Milestone 1 covers health, countries, authentication, staff MFA and admin user roles.\n\nAll requests accept `Accept-Language` (ar|en) and, except health, `X-Country` (AE|SA). Every response carries `X-Request-Id`.
 servers:
   - url: https://api.gulfcart.com/api/v1
   - url: http://localhost/api/v1
@@ -13,7 +13,10 @@ security:
   - sanctum: []
 tags:
   - name: Health
+  - name: Countries
   - name: Authentication
+  - name: MFA
+  - name: Admin
 
 paths:
   /health/live:
@@ -91,8 +94,15 @@ paths:
                         type: object
                         properties:
                           user: { $ref: '#/components/schemas/User' }
-                          mfa_required: { type: boolean }
-        '401': { $ref: '#/components/responses/Unauthenticated' }
+                          mfa_required: { type: boolean, description: Staff must call /auth/mfa/challenge }
+                          mfa_setup_required: { type: boolean, description: Staff must enrol via /auth/mfa/setup and /auth/mfa/confirm }
+                          token: { type: string, description: 'Only for non-SPA clients. Staff tokens carry the mfa:pending ability until the challenge succeeds.' }
+        '401':
+          description: INVALID_CREDENTIALS
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+        '403':
+          description: ACCOUNT_DISABLED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/RateLimited' }
   /auth/logout:
@@ -117,6 +127,217 @@ paths:
                   - properties:
                       data: { $ref: '#/components/schemas/User' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Send a password reset link (same response whether or not the account exists)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset the password with the emailed token; revokes all API tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, email, password, password_confirmation]
+              properties:
+                token: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10 }
+                password_confirmation: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/mfa/setup:
+    post:
+      tags: [MFA]
+      summary: Staff only. Start TOTP enrolment
+      responses:
+        '200':
+          description: Secret to add to an authenticator app
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          secret: { type: string }
+                          otpauth_url: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: MFA_ALREADY_ENABLED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+  /auth/mfa/confirm:
+    post:
+      tags: [MFA]
+      summary: Staff only. Confirm enrolment with a TOTP code; returns recovery codes once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: MFA enabled and the current session or token is verified
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          recovery_codes: { type: array, items: { type: string } }
+                          token: { type: string, description: Replacement full-access token (token clients only) }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: MFA_CODE_INVALID or VALIDATION_FAILED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/mfa/challenge:
+    post:
+      tags: [MFA]
+      summary: Staff only. Complete login with a TOTP code or a one-time recovery code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: Verified
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          verified: { const: true }
+                          token: { type: string, description: Replacement full-access token; the pending token is revoked }
+        '403':
+          description: FORBIDDEN or MFA_SETUP_REQUIRED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+        '422':
+          description: MFA_CODE_INVALID (wrong, expired or replayed code)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /countries:
+    get:
+      tags: [Countries]
+      summary: Active launch countries
+      security: []
+      responses:
+        '200':
+          description: Countries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/Country' } }
+  /countries/current:
+    get:
+      tags: [Countries]
+      summary: Country resolved from X-Country, ?country= or the default (AE)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Country' }]
+      responses:
+        '200':
+          description: Current country
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/Country' }
+        '422':
+          description: COUNTRY_NOT_SUPPORTED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users (permission users.manage; staff MFA required)
+      parameters:
+        - { name: type, in: query, schema: { type: string, enum: [customer, staff] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200':
+          description: Page of users; meta.pagination has page, per_page, total, last_page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/User' } }
+        '401': { $ref: '#/components/responses/AdminUnauthenticated' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+  /admin/users/{user}/roles:
+    put:
+      tags: [Admin]
+      summary: Replace a user's roles (permission roles.manage; staff MFA required; audited)
+      parameters:
+        - { name: user, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles]
+              properties:
+                roles:
+                  type: array
+                  items: { type: string, enum: [customer, support, operations, catalog_manager, finance, admin, super_admin] }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/AdminUnauthenticated' }
+        '403': { $ref: '#/components/responses/AdminForbidden' }
+        '404':
+          description: NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+        '422':
+          description: VALIDATION_FAILED (unknown role, staff role for a customer, removing own super_admin)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
 
 components:
   securitySchemes:
@@ -146,6 +367,32 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: FORBIDDEN
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    AdminUnauthenticated:
+      description: UNAUTHENTICATED, or MFA_REQUIRED when the staff session/token has not passed the MFA challenge
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    AdminForbidden:
+      description: FORBIDDEN (not staff or missing permission) or MFA_SETUP_REQUIRED
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Message:
+      description: Message
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/SuccessEnvelope'
+              - properties:
+                  data:
+                    type: object
+                    properties: { message: { type: string } }
     RateLimited:
       description: Too many requests
       content:
@@ -185,20 +432,29 @@ components:
         currency: { type: string, enum: [AED, SAR] }
     HealthResponse:
       type: object
+      required: [success, data, meta]
       properties:
-        status: { type: string, enum: [ok, degraded, down] }
-        checks:
+        success: { type: boolean, description: false when status is down }
+        data:
           type: object
-          additionalProperties: { type: string, enum: [ok, down] }
+          properties:
+            status: { type: string, enum: [ok, down] }
+            checks:
+              type: object
+              description: postgres, redis and queue (readiness only)
+              additionalProperties: { type: string, enum: [ok, down] }
+        meta: { $ref: '#/components/schemas/Meta' }
     RegisterRequest:
       type: object
       required: [name, password]
       properties:
         name: { type: string, maxLength: 150 }
-        email: { type: string, format: email }
-        phone: { type: string, description: E.164 }
-        password: { type: string, minLength: 10 }
+        email: { type: [string, 'null'], format: email }
+        phone: { type: [string, 'null'], description: 'E.164, e.g. +971501234567' }
+        password: { type: string, minLength: 10, description: Must contain letters and numbers }
+        password_confirmation: { type: string }
         locale: { type: string, enum: [ar, en] }
+        device_name: { type: string, description: Token name for non-SPA clients }
       description: At least one of email or phone is required.
     LoginRequest:
       type: object
@@ -206,6 +462,7 @@ components:
       properties:
         login: { type: string, description: Email or E.164 phone }
         password: { type: string }
+        device_name: { type: string, description: Token name for non-SPA clients }
     User:
       type: object
       properties:
@@ -214,6 +471,23 @@ components:
         email: { type: [string, 'null'] }
         phone: { type: [string, 'null'] }
         type: { type: string, enum: [customer, staff] }
+        status: { type: string, enum: [active, suspended, closed] }
+        preferred_locale: { type: [string, 'null'] }
         roles: { type: array, items: { type: string } }
         permissions: { type: array, items: { type: string } }
         mfa_enabled: { type: boolean }
+    MfaCodeRequest:
+      type: object
+      properties:
+        code: { type: string, pattern: '^\\d{6}$' }
+        recovery_code: { type: string }
+      description: Provide either code or recovery_code (challenge only).
+    Country:
+      type: object
+      properties:
+        code: { type: string, enum: [AE, SA] }
+        name: { type: string, description: Localized by Accept-Language }
+        currency: { type: string, enum: [AED, SAR] }
+        default_locale: { type: string, examples: [ar-AE] }
+        supported_locales: { type: array, items: { type: string } }
+        timezone: { type: string, examples: [Asia/Dubai] }

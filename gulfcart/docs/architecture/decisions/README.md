@@ -7,7 +7,7 @@ ADRs stay in place with status "Superseded by ADR-NNN".
 |---|---|---|
 | [ADR-001](ADR-001-modular-monolith.md) | Modular monolith instead of microservices | Accepted |
 | [ADR-002](ADR-002-laravel-backend.md) | Laravel 13 backend | Accepted |
-| [ADR-003](ADR-003-nuxt-storefront.md) | Nuxt storefront (Nuxt 4 recommended) | Proposed |
+| [ADR-003](ADR-003-nuxt-storefront.md) | Nuxt 4 storefront | Accepted |
 | [ADR-004](ADR-004-postgresql.md) | PostgreSQL as primary database | Accepted |
 | [ADR-005](ADR-005-redis.md) | Redis for queues and cache | Accepted |
 | [ADR-006](ADR-006-supplier-connector-abstraction.md) | Supplier Connector abstraction | Accepted |

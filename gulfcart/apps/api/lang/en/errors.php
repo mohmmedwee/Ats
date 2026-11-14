@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'generic' => 'Something went wrong.',
+    'validation_failed' => 'The given data was invalid.',
+    'unauthenticated' => 'Authentication is required.',
+    'invalid_credentials' => 'These credentials do not match our records.',
+    'account_disabled' => 'This account is disabled.',
+    'forbidden' => 'You do not have permission to perform this action.',
+    'not_found' => 'The requested resource was not found.',
+    'method_not_allowed' => 'This method is not allowed for this endpoint.',
+    'csrf_token_mismatch' => 'Your session has expired. Refresh the page and try again.',
+    'rate_limited' => 'Too many requests. Please try again later.',
+    'bad_request' => 'The request could not be processed.',
+    'conflict' => 'The request conflicts with the current state. Try again shortly.',
+    'service_unavailable' => 'The service is temporarily unavailable.',
+    'internal_error' => 'An unexpected error occurred.',
+    'idempotency_key_required' => 'The Idempotency-Key header is required for this request.',
+    'idempotency_key_reused' => 'This Idempotency-Key was already used with a different request.',
+    'country_not_supported' => 'This country is not supported.',
+    'mfa_required' => 'Two-factor authentication is required.',
+    'mfa_setup_required' => 'Enable two-factor authentication to continue.',
+    'mfa_already_enabled' => 'Two-factor authentication is already enabled.',
+    'mfa_code_invalid' => 'The authentication code is invalid.',
+    'password_reset_link_sent' => 'If an account exists for this email, a reset link has been sent.',
+    'staff_role_for_customer' => 'Staff roles cannot be assigned to customer accounts.',
+    'cannot_remove_own_super_admin' => 'You cannot remove your own super admin role.',
+];

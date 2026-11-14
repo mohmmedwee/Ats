@@ -69,7 +69,7 @@ milestone they block.
 
 | # | Decision | Owner | Blocks |
 |---|---|---|---|
-| D1 | Confirm Nuxt 4 instead of Nuxt 3 (ADR-003) | Tech lead | Milestone 1 |
+| D1 | ~~Confirm Nuxt 4 instead of Nuxt 3 (ADR-003)~~ **Resolved: Nuxt 4** | Tech lead | — |
 | D2 | Payment provider(s) for AE and SA (must support AED, SAR, mada, Apple Pay) | Business | Sprint 3 |
 | D3 | Courier / consolidation partner and DDP vs DDU | Operations | Sprint 2 (shipping), Sprint 4 |
 | D4 | Guest checkout policy (current: phone verification required) | Product | Sprint 2 |

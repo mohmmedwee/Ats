@@ -81,6 +81,7 @@ milestone. Deliver working code, not architecture descriptions.
 
 ## Quality gates
 
-- Backend: `php artisan test`, Pint (`--test`), Larastan level 8.
+- Backend: `php artisan test` (PHPUnit, on PostgreSQL), Pint (`--test`), `composer audit`.
+  Pest and Larastan level 8 are planned (see `docs/milestones/M1-report.md`, follow-ups).
 - Frontend: `nuxi typecheck`, ESLint, Vitest.
 - CI must be green before a task counts as done (see `docs/SPRINT_BACKLOG.md`, Definition of Done).

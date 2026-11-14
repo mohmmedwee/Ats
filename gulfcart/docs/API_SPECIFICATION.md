@@ -47,12 +47,14 @@ Listings add `meta.pagination: { "next_cursor": "…", "prev_cursor": null, "lim
 | HTTP | Code |
 |---|---|
 | 400 | `BAD_REQUEST`, `IDEMPOTENCY_KEY_REQUIRED` |
-| 401 | `UNAUTHENTICATED`, `MFA_REQUIRED` |
-| 403 | `FORBIDDEN` |
+| 401 | `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `MFA_REQUIRED` |
+| 403 | `FORBIDDEN`, `ACCOUNT_DISABLED`, `MFA_SETUP_REQUIRED` |
 | 404 | `NOT_FOUND` |
-| 409 | `IDEMPOTENCY_KEY_REUSED` (same key, different body), `ILLEGAL_STATE_TRANSITION`, `CONFLICT` |
+| 405 | `METHOD_NOT_ALLOWED` |
+| 409 | `IDEMPOTENCY_KEY_REUSED` (same key, different body), `ILLEGAL_STATE_TRANSITION`, `CONFLICT`, `MFA_ALREADY_ENABLED` |
 | 410 | `QUOTE_EXPIRED` |
-| 422 | `VALIDATION_FAILED` (`details.fields`), `PRODUCT_OUT_OF_STOCK`, `PRICE_CHANGED`, `COUNTRY_NOT_SUPPORTED`, `PRODUCT_NOT_AVAILABLE_IN_COUNTRY` |
+| 419 | `CSRF_TOKEN_MISMATCH` |
+| 422 | `VALIDATION_FAILED` (`details.fields`), `PRODUCT_OUT_OF_STOCK`, `PRICE_CHANGED`, `COUNTRY_NOT_SUPPORTED`, `PRODUCT_NOT_AVAILABLE_IN_COUNTRY`, `MFA_CODE_INVALID` |
 | 429 | `RATE_LIMITED` |
 | 500 / 503 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` |
 
@@ -61,7 +63,14 @@ Listings add `meta.pagination: { "next_cursor": "…", "prev_cursor": null, "lim
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/health/live` | Process is up (no dependencies) |
-| GET | `/health/ready` | PostgreSQL, Redis and queue reachable |
+| GET | `/health/ready` | PostgreSQL, Redis and queue reachable; `503` with `success: false` otherwise |
+
+## 2.1 Countries
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/countries` | Active countries (localized names) |
+| GET | `/countries/current` | Country resolved from `X-Country` / `?country=` / default |
 
 ## 3. Authentication
 
@@ -73,8 +82,8 @@ Listings add `meta.pagination: { "next_cursor": "…", "prev_cursor": null, "lim
 | POST | `/auth/forgot-password` | Password recovery |
 | POST | `/auth/reset-password` | Password reset |
 | GET | `/auth/me` | Current user, roles, permissions |
-| POST | `/auth/otp/send` | Send phone OTP |
-| POST | `/auth/verify-otp` | Verify OTP |
+| POST | `/auth/otp/send` | Send phone OTP (Sprint 2, with the SMS provider) |
+| POST | `/auth/verify-otp` | Verify OTP (Sprint 2) |
 | POST | `/auth/mfa/setup` | Staff: begin TOTP enrolment |
 | POST | `/auth/mfa/confirm` | Staff: confirm TOTP |
 | POST | `/auth/mfa/challenge` | Staff: complete login with TOTP |
@@ -222,7 +231,8 @@ provider event ID (`payment_webhook_events`), respond 2xx fast and process on a 
 | POST | `/admin/pricing/simulate` | Run the pricing engine without saving |
 | GET/POST/PATCH | `/admin/countries` | Country configuration |
 | GET/POST/PATCH | `/admin/tax-rules`, `/admin/customs-rules`, `/admin/shipping-methods` | Country rule sets |
-| GET/POST/PATCH | `/admin/users`, `/admin/roles` | Staff and RBAC |
+| GET | `/admin/users` | Users (implemented in M1) |
+| PUT | `/admin/users/{user}/roles` | Replace roles (implemented in M1) |
 | GET | `/admin/audit-logs` | Audit trail |
 
 ## 11. OpenAPI file layout

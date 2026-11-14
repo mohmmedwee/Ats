@@ -4,8 +4,23 @@ Cross-border, multi-source e-commerce **reseller** platform for the UAE and Saud
 GulfCart is the seller of record to the customer: it buys from commercially authorized
 suppliers and ships directly to the customer.
 
-> **Status:** specification baseline v1.0. No application code yet.
-> The next step is **Milestone 1 — Foundation** ([`docs/milestones/M1-foundation.md`](docs/milestones/M1-foundation.md)).
+> **Status:** Milestone 1 (Foundation) implemented, see [`docs/milestones/M1-report.md`](docs/milestones/M1-report.md).
+> Next: Sprint 1, Catalog and Supplier Management ([`docs/SPRINT_BACKLOG.md`](docs/SPRINT_BACKLOG.md)).
+
+## Quick start
+
+```bash
+cd gulfcart
+make up                 # docker compose up -d --build
+make migrate-fresh      # migrations + seeders (AE, SA, roles, dev super admin)
+open http://localhost   # storefront; API at http://localhost/api/v1
+```
+
+Dev super admin (local only, from `apps/api/.env`): `admin@gulfcart.local` / `ChangeMe-123`.
+Staff must enrol in TOTP MFA before using `/admin`. Mail is captured by Mailpit at http://localhost:8025.
+
+Without Docker: run PostgreSQL and Redis locally, then `php artisan serve` in `apps/api`
+and `npm run dev` in `apps/storefront` (see each app's README).
 
 ## Baseline decisions
 
@@ -16,7 +31,7 @@ suppliers and ships directly to the customer.
 | Fulfillment | Automated purchasing through authorized Supplier Connectors, manual fallback |
 | Company jurisdiction | **Deferred**, see [`docs/SPEC_REVIEW.md`](docs/SPEC_REVIEW.md#open-business-decisions) |
 | Backend | Laravel 13, PHP 8.4+ |
-| Frontend | Nuxt (Vue 3, TypeScript, Tailwind CSS), see ADR-003 for the version |
+| Frontend | Nuxt 4 (Vue 3, TypeScript, Tailwind CSS) |
 | Data | PostgreSQL 17, Redis 7 |
 | Architecture | Modular monolith, REST/JSON `/api/v1`, OpenAPI 3.1 |
 | Languages / currencies | Arabic + English, AED + SAR |

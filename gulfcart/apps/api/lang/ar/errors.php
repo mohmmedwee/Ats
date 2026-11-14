@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'generic' => 'حدث خطأ ما.',
+    'validation_failed' => 'البيانات المدخلة غير صحيحة.',
+    'unauthenticated' => 'يجب تسجيل الدخول.',
+    'invalid_credentials' => 'بيانات الدخول غير صحيحة.',
+    'account_disabled' => 'هذا الحساب معطّل.',
+    'forbidden' => 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
+    'not_found' => 'المورد المطلوب غير موجود.',
+    'method_not_allowed' => 'هذه الطريقة غير مسموحة لهذا المسار.',
+    'csrf_token_mismatch' => 'انتهت صلاحية الجلسة. حدّث الصفحة وحاول مرة أخرى.',
+    'rate_limited' => 'طلبات كثيرة جداً. يرجى المحاولة لاحقاً.',
+    'bad_request' => 'تعذّرت معالجة الطلب.',
+    'conflict' => 'الطلب يتعارض مع الحالة الحالية. حاول بعد قليل.',
+    'service_unavailable' => 'الخدمة غير متاحة مؤقتاً.',
+    'internal_error' => 'حدث خطأ غير متوقع.',
+    'idempotency_key_required' => 'الترويسة Idempotency-Key مطلوبة لهذا الطلب.',
+    'idempotency_key_reused' => 'استُخدم مفتاح Idempotency-Key هذا سابقاً مع طلب مختلف.',
+    'country_not_supported' => 'هذه الدولة غير مدعومة.',
+    'mfa_required' => 'التحقق بخطوتين مطلوب.',
+    'mfa_setup_required' => 'فعّل التحقق بخطوتين للمتابعة.',
+    'mfa_already_enabled' => 'التحقق بخطوتين مفعّل بالفعل.',
+    'mfa_code_invalid' => 'رمز التحقق غير صحيح.',
+    'password_reset_link_sent' => 'إذا كان هناك حساب بهذا البريد، فقد أُرسل رابط إعادة التعيين.',
+    'staff_role_for_customer' => 'لا يمكن إسناد أدوار الموظفين إلى حسابات العملاء.',
+    'cannot_remove_own_super_admin' => 'لا يمكنك إزالة دور المدير العام عن نفسك.',
+];

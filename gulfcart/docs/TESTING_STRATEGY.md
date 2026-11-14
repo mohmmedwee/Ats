@@ -17,6 +17,9 @@
 | Frontend | Components, composables, i18n, RTL | Vitest + Vue Test Utils |
 | E2E | Full customer journey AE and SA, ar and en | Playwright |
 
+Milestone 1 uses PHPUnit (bundled with Laravel) for every PHP layer; moving to Pest is a
+follow-up. Architecture rules are enforced by `tests/Architecture/ModuleBoundariesTest.php`.
+
 Feature tests run against **PostgreSQL**, not SQLite, because constraints, JSONB and row
 locks are part of the behaviour under test.
 

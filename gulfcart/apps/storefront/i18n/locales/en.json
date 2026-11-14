@@ -1,0 +1,17 @@
+{
+  "brand": "GulfCart",
+  "nav": { "home": "Home", "login": "Log in", "register": "Create account", "account": "My account", "admin": "Admin", "logout": "Log out" },
+  "country": { "label": "Ship to", "AE": "United Arab Emirates", "SA": "Saudi Arabia" },
+  "home": { "title": "Shop global brands, delivered to the Gulf", "subtitle": "Prices in AED and SAR with shipping, VAT and duties shown before you pay." },
+  "auth": {
+    "name": "Full name", "email": "Email", "phone": "Mobile number (optional)", "login": "Email or mobile number",
+    "password": "Password", "password_confirmation": "Confirm password",
+    "submit_login": "Log in", "submit_register": "Create account",
+    "no_account": "New to GulfCart?", "have_account": "Already have an account?",
+    "mfa_title": "Two-factor authentication", "mfa_code": "Authentication code", "mfa_submit": "Verify",
+    "mfa_setup_required": "Staff accounts must enable two-factor authentication before using the admin area."
+  },
+  "account": { "title": "My account", "welcome": "Welcome, {name}" },
+  "admin": { "title": "Admin dashboard", "users": "Users", "roles": "Roles", "forbidden": "You do not have access to this page." },
+  "errors": { "generic": "Something went wrong. Please try again." }
+}

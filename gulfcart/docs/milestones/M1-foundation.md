@@ -1,5 +1,7 @@
 # Milestone 1 — Foundation
 
+**Status: implemented.** See [`M1-report.md`](M1-report.md).
+
 Covers Sprint 0 tasks GC-001 to GC-010. Read [`../../AGENTS.md`](../../AGENTS.md) first.
 
 ## Scope
