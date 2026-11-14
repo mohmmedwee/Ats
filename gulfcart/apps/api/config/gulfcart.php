@@ -54,6 +54,15 @@ return [
         'refund_approval_threshold' => ['AED' => '500', 'SAR' => '500'],
     ],
 
+    'returns' => [
+        // Per-country windows live in countries.settings.returns.window_days (legal review pending).
+        'default_window_days' => 14,
+    ],
+
+    'notifications' => [
+        'operations_email' => env('OPERATIONS_ALERT_EMAIL', 'operations@gulfcart.local'),
+    ],
+
     'procurement' => [
         // Do not buy when the supplier's current cost is this much above the expected cost.
         'max_cost_increase_percent' => env('PROCUREMENT_MAX_COST_INCREASE_PERCENT', '5'),

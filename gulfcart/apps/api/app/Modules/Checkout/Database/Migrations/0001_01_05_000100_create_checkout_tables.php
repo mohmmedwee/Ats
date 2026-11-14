@@ -13,15 +13,16 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users');
             $table->foreignUuid('country_id')->constrained('countries');
-            $table->string('full_name', 150);
-            $table->string('phone', 30);
-            $table->string('address_line_1', 255);
-            $table->string('address_line_2', 255)->nullable();
+            // PII encrypted at rest (Laravel encrypted casts): stored as text.
+            $table->text('full_name');
+            $table->text('phone');
+            $table->text('address_line_1');
+            $table->text('address_line_2')->nullable();
             $table->string('district', 100)->nullable();
             $table->string('city', 100);
             $table->string('state', 100);
             $table->string('postal_code', 30)->nullable();
-            $table->string('national_address_code', 20)->nullable();
+            $table->text('national_address_code')->nullable();
             $table->boolean('is_default')->default(false);
             $table->softDeletesTz();
             $table->timestampsTz();

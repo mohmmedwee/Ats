@@ -5,6 +5,7 @@ use App\Modules\Identity\Http\Middleware\EnsureMfaVerified;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\Exceptions\ApiExceptionRenderer;
 use App\Shared\Http\Middleware\RequestId;
+use App\Shared\Http\Middleware\SecurityHeaders;
 use App\Shared\Http\Middleware\SetLocale;
 use App\Shared\Idempotency\EnsureIdempotency;
 use Illuminate\Foundation\Application;
@@ -24,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(RequestId::class);
         $middleware->statefulApi();
-        $middleware->api(prepend: [SetLocale::class]);
+        $middleware->api(prepend: [SetLocale::class, SecurityHeaders::class]);
         $middleware->throttleApi('api');
         $middleware->trustProxies(at: '*');
         $middleware->alias([

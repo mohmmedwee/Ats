@@ -12,6 +12,9 @@ servers:
 security:
   - sanctum: []
 tags:
+  - name: Admin Reports
+  - name: Returns
+  - name: Admin Returns
   - name: Orders
   - name: Payments
   - name: Admin Orders
@@ -1213,6 +1216,118 @@ paths:
       parameters: [{ name: refund, in: path, required: true, schema: { type: string, format: uuid } }]
       responses:
         '200': { $ref: '#/components/responses/Ok' }
+
+  # ---------- Returns ----------
+  /orders/{id}/return:
+    post:
+      tags: [Returns]
+      summary: Request a return for delivered items
+      description: >
+        Allowed within the country return window (countries.settings.returns.window_days; AE 14, SA 7).
+        The quantity cannot exceed what is not yet refunded or reserved by an open return.
+        422 ITEM_NOT_RETURNABLE or RETURN_WINDOW_CLOSED.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [order_item_id, quantity, reason_code]
+                    properties:
+                      order_item_id: { type: string, format: uuid }
+                      quantity: { type: integer, minimum: 1 }
+                      reason_code: { type: string, enum: [damaged, wrong_item, not_as_described, size_fit, changed_mind, other] }
+                note: { type: string }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+  /returns:
+    get:
+      tags: [Returns]
+      summary: Customer return requests
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /returns/{id}:
+    get:
+      tags: [Returns]
+      summary: Return request details
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/returns:
+    get:
+      tags: [Admin Returns]
+      summary: Return requests (orders.view_any)
+      parameters: [{ name: status, in: query, schema: { type: string } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/returns/{return}/{action}:
+    post:
+      tags: [Admin Returns]
+      summary: approve, reject, receive, or refund (refund pays unit price × returned quantity)
+      parameters:
+        - { name: return, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [approve, reject, receive, refund] } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  # ---------- Admin reports, audit, countries ----------
+  /admin/dashboard:
+    get:
+      tags: [Admin Reports]
+      summary: Operational KPIs (orders.view_any)
+      description: >
+        Paid orders and revenue today per currency, orders by status, procurement queue,
+        refunds awaiting approval, open returns, sellable products per country, FX staleness
+        and failed outbox events.
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/finance/reports:
+    get:
+      tags: [Admin Reports]
+      summary: Finance report per country and currency (pricing.manage or audit.view)
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: country, in: query, schema: { type: string, enum: [AE, SA] } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+  /admin/audit-logs:
+    get:
+      tags: [Admin Reports]
+      summary: Append-only audit trail (audit.view)
+      parameters:
+        - { name: entity_type, in: query, schema: { type: string } }
+        - { name: entity_id, in: query, schema: { type: string, format: uuid } }
+        - { name: user_id, in: query, schema: { type: string, format: uuid } }
+        - { name: action, in: query, description: Prefix match, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/countries:
+    get:
+      tags: [Admin Country Rules]
+      summary: Countries with operational settings (countries.manage)
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /admin/countries/{code}:
+    patch:
+      tags: [Admin Country Rules]
+      summary: Update rounding, return window, payment methods, seller and importer details (audited)
+      parameters: [{ name: code, in: path, required: true, schema: { type: string, enum: [AE, SA] } }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
 components:
   securitySchemes:

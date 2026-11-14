@@ -2,6 +2,8 @@
 
 namespace App\Modules\Identity\Providers;
 
+use App\Modules\Identity\Application\EloquentUserDirectory;
+use App\Modules\Identity\Contracts\UserDirectory;
 use App\Shared\Modules\ModuleServiceProvider;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -14,6 +16,11 @@ final class IdentityServiceProvider extends ModuleServiceProvider
     protected function moduleName(): string
     {
         return 'Identity';
+    }
+
+    public function register(): void
+    {
+        $this->app->singleton(UserDirectory::class, EloquentUserDirectory::class);
     }
 
     public function boot(): void

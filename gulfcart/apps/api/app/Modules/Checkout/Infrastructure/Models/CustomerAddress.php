@@ -29,7 +29,14 @@ class CustomerAddress extends Model
 
     protected function casts(): array
     {
-        return ['is_default' => 'boolean'];
+        return [
+            'is_default' => 'boolean',
+            'full_name' => 'encrypted',
+            'phone' => 'encrypted',
+            'address_line_1' => 'encrypted',
+            'address_line_2' => 'encrypted',
+            'national_address_code' => 'encrypted',
+        ];
     }
 
     /** @return array<string, string|null> immutable copy stored on orders and sent to suppliers */

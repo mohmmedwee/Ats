@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Countries\Http\Controllers\CountryController;
+use App\Modules\Identity\Domain\Permissions;
 use App\Modules\Payments\Http\Controllers\PaymentController;
 use App\Shared\Health\HealthController;
 use Illuminate\Support\Facades\Route;
@@ -33,4 +34,12 @@ Route::middleware('country')->group(function (): void {
     require app_path('Modules/Orders/Http/routes.php');
     require app_path('Modules/Payments/Http/routes.php');
     require app_path('Modules/Procurement/Http/routes.php');
+    require app_path('Modules/Returns/Http/routes.php');
+    require app_path('Modules/Analytics/Http/routes.php');
+    require app_path('Modules/Audit/Http/routes.php');
+
+    Route::prefix('admin')->middleware(['auth:sanctum', 'mfa.verified', 'permission:'.Permissions::COUNTRIES_MANAGE])->group(function (): void {
+        Route::get('countries', [CountryController::class, 'adminIndex']);
+        Route::patch('countries/{code}', [CountryController::class, 'adminUpdate'])->where('code', '[A-Za-z]{2}');
+    });
 });

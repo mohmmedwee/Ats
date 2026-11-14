@@ -17,13 +17,13 @@ final class CountrySeeder extends Seeder
                 'code' => 'AE', 'currency_code' => 'AED', 'default_locale' => 'ar-AE', 'timezone' => 'Asia/Dubai',
                 'name' => ['en' => 'United Arab Emirates', 'ar' => 'الإمارات العربية المتحدة'],
                 'supported_locales' => '{ar-AE,en-AE}',
-                'settings' => ['phone_prefix' => '+971', 'rounding' => 'ceil_whole'],
+                'settings' => ['phone_prefix' => '+971', 'rounding' => 'ceil_whole', 'returns' => ['window_days' => 14]],
             ],
             [
                 'code' => 'SA', 'currency_code' => 'SAR', 'default_locale' => 'ar-SA', 'timezone' => 'Asia/Riyadh',
                 'name' => ['en' => 'Saudi Arabia', 'ar' => 'المملكة العربية السعودية'],
                 'supported_locales' => '{ar-SA,en-SA}',
-                'settings' => ['phone_prefix' => '+966', 'rounding' => 'ceil_whole'],
+                'settings' => ['phone_prefix' => '+966', 'rounding' => 'ceil_whole', 'returns' => ['window_days' => 7]],
             ],
         ];
 
