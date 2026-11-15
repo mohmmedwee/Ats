@@ -6,6 +6,7 @@ use App\Modules\Audit\Contracts\AuditLogger;
 use App\Modules\Catalog\Application\EloquentCatalogWriter;
 use App\Modules\Catalog\Application\ListingRefresher;
 use App\Modules\Catalog\Application\ProductPublisher;
+use App\Modules\Catalog\Contracts\CatalogPricing;
 use App\Modules\Catalog\Domain\ProductStatus;
 use App\Modules\Catalog\Http\Requests\AvailabilityRequest;
 use App\Modules\Catalog\Http\Requests\ProductRequest;
@@ -26,6 +27,7 @@ final class ProductController
         private readonly ListingRefresher $listing,
         private readonly CountryDirectory $countries,
         private readonly AuditLogger $audit,
+        private readonly CatalogPricing $pricing,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -62,8 +64,19 @@ final class ProductController
     {
         $product->load(['variants', 'images', 'availability']);
         $this->shareCountryCodes($request);
+        $data = (new AdminProductResource($product))->resolve($request);
 
-        return ApiResponse::success((new AdminProductResource($product))->resolve($request), $status);
+        // Selling price of each option per country (each variant is priced from its own supplier cost).
+        $ids = $product->variants->pluck('id')->all();
+        $byCountry = [];
+        foreach ($this->countries->active() as $c) {
+            $byCountry[$c->code] = $ids === [] ? [] : $this->pricing->variantPrices($ids, $c->code);
+        }
+        $data['variants'] = collect($data['variants'] ?? [])->map(fn ($v) => $v + [
+            'prices' => (object) array_filter(array_map(fn ($prices) => $prices[$v['id']] ?? null, $byCountry)),
+        ])->values()->all();
+
+        return ApiResponse::success($data, $status);
     }
 
     public function update(ProductRequest $request, Product $product): JsonResponse

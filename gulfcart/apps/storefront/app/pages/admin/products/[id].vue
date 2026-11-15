@@ -3,7 +3,7 @@ definePageMeta({ middleware: 'staff', layout: 'admin' })
 type T = { en?: string | null, ar?: string | null }
 interface Product {
   id: string, slug: string, status: string, title: T, description: T | null, category_id: string | null, brand: string | null, weight_grams: number | null, hs_code: string | null
-  variants: { id: string, sku: string, attributes: Record<string, string>, weight_grams: number | null, is_active: boolean }[]
+  variants: { id: string, sku: string, attributes: Record<string, string>, weight_grams: number | null, is_active: boolean, prices: Record<string, { amount: string, currency: string }> }[]
   images: { id: string, url: string | null, source_url: string | null, rights_status: string, rights_basis: string | null, downloaded: boolean }[]
   availability: { country: string, is_available: boolean, min_days: number | null, max_days: number | null, is_sellable: boolean, unsellable_reason: string | null, from_price: { amount: string, currency: string } | null }[]
 }
@@ -66,6 +66,21 @@ async function removeImage(id: string) {
   await run(() => send('DELETE', `/admin/images/${id}`), t('admin.common.done'))
   await load()
 }
+const editingOptions = ref<string | null>(null)
+const optionsText = ref('')
+function editOptions(v: Product['variants'][number]) {
+  editingOptions.value = v.id
+  optionsText.value = Object.entries(v.attributes).map(([k, val]) => `${k}=${val}`).join('\n')
+}
+async function saveOptions(id: string) {
+  const attributes = Object.fromEntries(optionsText.value.split('\n').map(l => l.split('=').map(x => x.trim())).filter(p => p.length === 2 && p[0] && p[1]).map(([k, val]) => [k!.toLowerCase(), val!]))
+  const ok = await run(() => send('PATCH', `/admin/variants/${id}`, { attributes }), t('admin.common.saved'))
+  if (ok !== undefined) {
+    editingOptions.value = null
+    await load()
+  }
+}
+
 async function toggleVariant(v: Product['variants'][number]) {
   await run(() => send('PATCH', `/admin/variants/${v.id}`, { is_active: !v.is_active }), t('admin.common.saved'))
   await load()
@@ -148,9 +163,20 @@ const actions = computed(() => {
         </div>
         <div class="card p-5">
           <h2 class="mb-3 font-bold">{{ $t('admin.products_page.variants_title') }}</h2>
-          <div v-for="v in product.variants" :key="v.id" class="flex items-center justify-between border-b border-ink-100 py-2 text-sm last:border-0">
-            <span><span class="block font-mono text-xs" dir="ltr">{{ v.sku }}</span><span class="text-ink-500">{{ Object.entries(v.attributes).map(([k, val]) => `${k}: ${val}`).join(' · ') }}</span></span>
-            <button type="button" class="chip text-xs" :class="v.is_active ? 'chip-active' : ''" @click="toggleVariant(v)">{{ v.is_active ? $t('admin.common.active') : $t('admin.common.inactive') }}</button>
+          <p class="mb-2 text-xs text-ink-500">{{ $t('admin.products_page.attributes_hint') }}</p>
+          <div v-for="v in product.variants" :key="v.id" class="border-b border-ink-100 py-2 text-sm last:border-0" data-test="admin-variant">
+            <div class="flex items-center justify-between gap-2">
+              <button type="button" class="min-w-0 text-start" @click="editOptions(v)">
+                <span class="block font-mono text-xs" dir="ltr">{{ v.sku }}</span>
+                <span class="text-ink-700">{{ Object.entries(v.attributes).map(([k, val]) => `${k}: ${val}`).join(' · ') }}</span>
+                <span class="block text-xs text-ink-500" dir="ltr">{{ Object.values(v.prices ?? {}).map(p => formatMoney(p, locale)).join(' · ') || '—' }}</span>
+              </button>
+              <button type="button" class="chip shrink-0 text-xs" :class="v.is_active ? 'chip-active' : ''" @click="toggleVariant(v)">{{ v.is_active ? $t('admin.common.active') : $t('admin.common.inactive') }}</button>
+            </div>
+            <div v-if="editingOptions === v.id" class="mt-2 space-y-2">
+              <textarea v-model="optionsText" class="input font-mono text-xs" rows="3" dir="ltr" />
+              <button type="button" class="btn-primary btn-sm" @click="saveOptions(v.id)">{{ $t('admin.products_page.save_options') }}</button>
+            </div>
           </div>
         </div>
       </div>

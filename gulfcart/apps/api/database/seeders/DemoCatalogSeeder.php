@@ -87,10 +87,36 @@ final class DemoCatalogSeeder extends Seeder
                 'product_id' => $product->id, 'external_product_id' => strtoupper($slug), 'cost_price' => $cost,
                 'cost_currency' => 'USD', 'stock_status' => $n % 7 === 3 ? 'low_stock' : 'in_stock',
             ]);
-            foreach ($options as $i => $option) {
-                $key = preg_match('/^(XS|S|M|L|XL|\d{2})$/', $option) ? 'size' : 'option';
-                $variant = $product->variants()->create(['sku' => strtoupper($slug).'-'.($i + 1), 'attributes' => [$key => $option]]);
-                $sp->mappings()->create(['variant_id' => $variant->id, 'external_variant_id' => strtoupper($slug).'-V'.($i + 1)]);
+            $sized = preg_match('/^(XS|S|M|L|XL|\d{2})$/', $options[0]) === 1;
+            // Clothing gets colours × sizes: one picture per colour, larger sizes and some colours cost more.
+            $colours = $sized && in_array($cat, ['dresses', 'tops', 'men', 'kids'], true)
+                ? [['Black', 'أسود', [40, 40, 46], [20, 20, 24], '0'], ['Beige', 'بيج', [236, 222, 200], [200, 180, 150], '0'], ['Navy', 'كحلي', [40, 60, 110], [20, 30, 70], '1.50']]
+                : [null];
+            $i = 0;
+            foreach ($colours as $colour) {
+                $colourImage = null;
+                if ($colour !== null) {
+                    $cpath = "products/{$product->id}/".strtolower($colour[0]).'.png';
+                    Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->put($cpath, $this->png($colour[2], $colour[3]));
+                    $colourImage = $product->images()->create(['storage_path' => $cpath, 'rights_status' => 'approved', 'rights_basis' => 'own_photo', 'sort_order' => $i + 1]);
+                }
+                foreach ($options as $j => $option) {
+                    $i++;
+                    $attributes = $colour !== null ? ['color' => $colour[0], 'size' => $option] : [$sized ? 'size' : 'option' => $option];
+                    $variant = $product->variants()->create(['sku' => strtoupper($slug).'-'.$i, 'attributes' => $attributes]);
+                    $extra = $colour !== null ? $colour[4] : '0';
+                    if ($sized && in_array($option, ['XL', '56', '58'], true)) {
+                        $extra = (string) ((float) $extra + 2);
+                    }
+                    $sp->mappings()->create([
+                        'variant_id' => $variant->id, 'external_variant_id' => strtoupper($slug).'-V'.$i,
+                        'cost_price' => $extra === '0' ? null : number_format((float) $cost + (float) $extra, 2, '.', ''),
+                        'stock_status' => $colour !== null && $colour[0] === 'Navy' && $j === 0 ? 'out_of_stock' : null,
+                    ]);
+                    if ($colourImage !== null && $j === 0) {
+                        $colourImage->update(['variant_id' => $variant->id]);
+                    }
+                }
             }
             foreach ($countries->active() as $country) {
                 $product->availability()->create(['country_id' => $country->id, 'is_available' => true, 'estimated_delivery_min_days' => 6, 'estimated_delivery_max_days' => 11]);

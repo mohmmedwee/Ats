@@ -15,9 +15,11 @@ const { data: product, error } = await useAsyncData(
 const { data: countryInfo } = await useAsyncData(() => `country-${country.value}`, () => request<Envelope<{ return_window_days: number }>>('/countries/current').then(r => r.data), { server: false, watch: [country] })
 const { data: related } = await useAsyncData(
   () => `related-${route.params.slug}-${country.value}`,
-  async () => product.value?.category ? (await request<Envelope<ProductCard[]>>('/products', { query: { category: product.value.category.slug, limit: 11 } })).data.filter(p => p.slug !== route.params.slug).slice(0, 10) : [],
+  async () => product.value ? (await request<Envelope<ProductCard[]>>(`/products/${product.value.id}/related`, { query: { limit: 12 } })).data : [],
   { server: false, watch: [product] },
 )
+const recent = useRecentlyViewed()
+const recentOthers = computed(() => recent.items.value.filter(p => p.id !== product.value?.id))
 
 const selected = ref<string | null>(null)
 const qty = ref(1)
@@ -69,8 +71,20 @@ watch(product, (p) => {
   imageIndex.value = 0
 }, { immediate: true })
 
-const optionName = computed(() => Object.keys(product.value?.variants[0]?.attributes ?? {})[0] ?? 'option')
-const label = (v: Variant) => Object.values(v.attributes).join(' / ') || v.sku
+const hasOptions = computed(() => (product.value?.variants.length ?? 0) > 1 || Object.keys(product.value?.variants[0]?.attributes ?? {}).length > 0)
+const priceRange = computed(() => {
+  const prices = (product.value?.variants ?? []).map(v => v.price).filter((p): p is NonNullable<typeof p> => !!p)
+  if (prices.length < 2) return null
+  const sorted = [...prices].sort((a, b) => Number(a.amount) - Number(b.amount))
+  return sorted[0]!.amount === sorted[sorted.length - 1]!.amount ? null : { min: sorted[0]!, max: sorted[sorted.length - 1]! }
+})
+function showImage(url: string) {
+  const i = product.value?.images.findIndex(img => img.url === url) ?? -1
+  if (i >= 0) imageIndex.value = i
+}
+watch(product, (p) => {
+  if (p) recent.add({ id: p.id, slug: p.slug, title: p.title, brand: p.brand, category: p.category, price: p.price, image: p.image, delivery_estimate: p.delivery_estimate })
+})
 
 async function addToCart() {
   if (!variant.value) return
@@ -116,20 +130,19 @@ async function addToCart() {
           </div>
         </div>
         <div class="rounded-2xl bg-brand-50 p-4">
-          <p class="text-3xl font-bold text-brand-600" data-test="product-price">{{ formatMoney(variant?.price ?? product.price, locale) }}</p>
+          <p class="text-3xl font-bold text-brand-600" data-test="product-price">
+            <span v-if="!variant?.price && priceRange" class="text-base font-semibold">{{ $t('product.from') }} </span>{{ formatMoney(variant?.price ?? product.price, locale) }}
+          </p>
+          <p v-if="priceRange && variant?.price" class="text-xs text-ink-500">{{ $t('product.price_by_option', { min: formatMoney(priceRange.min, locale), max: formatMoney(priceRange.max, locale) }) }}</p>
           <p class="mt-1 text-xs text-ink-700">{{ $t('product.price_note') }}</p>
         </div>
 
-        <div v-if="product.variants.length > 1 || optionName === 'size'">
-          <div class="mb-2 flex items-center justify-between">
-            <p class="text-sm font-semibold">{{ $t(`product.option.${optionName}`, optionName) }}: <span class="font-normal text-ink-700">{{ variant ? label(variant) : '' }}</span></p>
-            <button v-if="product.size_guide" type="button" class="link text-xs" data-test="size-guide" @click="sizeGuideOpen = true">{{ $t('product.size_guide') }}</button>
-          </div>
-          <div class="flex flex-wrap gap-2" data-test="variant-options">
-            <button v-for="v in product.variants" :key="v.id" type="button" class="chip" :class="{ 'chip-active': v.id === selected, 'cursor-not-allowed text-ink-300 line-through': !v.purchasable }" :disabled="!v.purchasable" @click="selected = v.id">
-              {{ label(v) }}
-            </button>
-          </div>
+        <div v-if="hasOptions" data-test="variant-options">
+          <VariantPicker v-model="selected" :variants="product.variants" :images="product.images" @image="showImage">
+            <template v-for="k in ['size', 'option']" :key="k" #[`after-${k}`]>
+              <button v-if="product.size_guide" type="button" class="link text-xs" data-test="size-guide" @click="sizeGuideOpen = true">{{ $t('product.size_guide') }}</button>
+            </template>
+          </VariantPicker>
         </div>
         <p v-if="variant" class="text-sm font-medium" :class="variant.availability === 'out_of_stock' ? 'text-red-600' : variant.availability === 'low_stock' ? 'text-gold-600' : 'text-green-700'">
           {{ $t(`catalog.${variant.availability}`) }}
@@ -182,9 +195,22 @@ async function addToCart() {
       <RichText v-if="product.size_guide" :text="product.size_guide" />
     </AdminModal>
 
-    <section v-if="related?.length">
+    <section v-if="related?.length" data-test="related">
       <h2 class="section-title mb-3">{{ $t('product.related') }}</h2>
-      <ProductGrid :products="related" />
+      <div class="no-scrollbar -mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
+        <div v-for="p in related" :key="p.id" class="w-40 shrink-0 snap-start md:w-auto">
+          <ProductCardItem :product="p" />
+        </div>
+      </div>
+    </section>
+
+    <section v-if="recentOthers.length" data-test="recently-viewed">
+      <h2 class="section-title mb-3">{{ $t('product.recently_viewed') }}</h2>
+      <div class="no-scrollbar -mx-3 flex gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:px-0">
+        <div v-for="p in recentOthers" :key="p.id" class="w-36 shrink-0">
+          <ProductCardItem :product="p" />
+        </div>
+      </div>
     </section>
 
     <!-- sticky mobile purchase bar -->

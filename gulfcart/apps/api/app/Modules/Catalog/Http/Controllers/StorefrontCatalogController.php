@@ -73,6 +73,49 @@ final class StorefrontCatalogController
         return ApiResponse::success($this->present($product, $country, true));
     }
 
+    /**
+     * "You may also like": same category, then the parent category's other children, then the same
+     * brand, ordered by closeness in price; topped up with new arrivals.
+     */
+    public function related(Request $request, string $id): JsonResponse
+    {
+        $country = $this->country($request);
+        $limit = min(24, max(1, $request->integer('limit', 12)));
+        $product = $this->visible($country)->where('products.id', $id)->first() ?? throw new ApiException('NOT_FOUND', 404);
+        $price = (float) $product->getAttribute('from_price');
+        $picked = [];
+        $collect = function ($query) use (&$picked, $limit, $id, $price) {
+            if (count($picked) >= $limit) {
+                return;
+            }
+            $query->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
+                ->orderByRaw('abs(pca.from_price - ?)', [$price])->limit($limit - count($picked))
+                ->with(['images', 'category'])->get()->each(function (Product $p) use (&$picked) {
+                    $picked[$p->id] = $p;
+                });
+        };
+
+        if ($product->category_id !== null) {
+            $collect($this->visible($country)->where('products.category_id', $product->category_id));
+            $parent = Category::query()->whereKey($product->category_id)->value('parent_id');
+            if ($parent !== null) {
+                $collect($this->visible($country)->whereIn('products.category_id', $this->categoryWithDescendants((string) Category::query()->whereKey($parent)->value('slug'))));
+            }
+        }
+        if ($product->brand) {
+            $collect($this->visible($country)->where('products.brand', $product->brand));
+        }
+        if (count($picked) < $limit) {
+            $this->visible($country)->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
+                ->orderByDesc('products.published_at')->limit($limit - count($picked))->with(['images', 'category'])->get()
+                ->each(function (Product $p) use (&$picked) {
+                    $picked[$p->id] = $p;
+                });
+        }
+
+        return ApiResponse::success(array_values(array_map(fn (Product $p) => $this->present($p, $country, false), $picked)));
+    }
+
     public function variants(Request $request, string $id): JsonResponse
     {
         $country = $this->country($request);

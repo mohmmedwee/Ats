@@ -16,6 +16,7 @@ Route::get('categories', [StorefrontCatalogController::class, 'categories']);
 Route::get('categories/{slug}/products', [StorefrontCatalogController::class, 'byCategory']);
 Route::get('products', [StorefrontCatalogController::class, 'index']);
 Route::get('products/search', [StorefrontCatalogController::class, 'search']);
+Route::get('products/{id}/related', [StorefrontCatalogController::class, 'related'])->whereUuid('id');
 Route::get('products/{id}/variants', [StorefrontCatalogController::class, 'variants'])->whereUuid('id');
 Route::get('products/{id}/availability', [StorefrontCatalogController::class, 'availability'])->whereUuid('id');
 Route::get('products/{slug}', [StorefrontCatalogController::class, 'show']);

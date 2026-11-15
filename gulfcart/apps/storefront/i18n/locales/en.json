@@ -280,7 +280,10 @@
         "NO_APPROVED_IMAGE": "Needs an approved image",
         "NO_AUTHORIZED_SOURCE": "No active supplier",
         "NO_PRICE": "No price yet"
-      }
+      },
+      "variant_prices": "Price",
+      "attributes_hint": "Options as name=value, one per line (e.g. color=Black, size=M). Prices come from each option's supplier cost.",
+      "save_options": "Save options"
     },
     "cj": {
       "title": "CJ products",
@@ -767,7 +770,11 @@
     "price_note": "Includes VAT · customs shown at checkout if any",
     "option": {
       "size": "Size",
-      "option": "Option"
+      "option": "Option",
+      "color": "Colour",
+      "colour": "Colour",
+      "material": "Material",
+      "style": "Style"
     },
     "ships_from": "Ships directly from our supplier, tracked to your door",
     "all_in": "All-in pricing",
@@ -775,7 +782,10 @@
     "returns_note": "From the day your package is delivered",
     "description": "Details",
     "related": "You may also like",
-    "size_guide": "Size guide"
+    "size_guide": "Size guide",
+    "recently_viewed": "Recently viewed",
+    "from": "from",
+    "price_by_option": "Price depends on the option: {min} – {max}"
   },
   "footer": {
     "shop": "Shop",
@@ -842,5 +852,27 @@
     "paypal": "PayPal",
     "usd_note": "Charged in US dollars: about {amount}. Your bank may add a currency fee.",
     "cancelled": "You cancelled the payment. Your order is saved: you can pay any time."
+  },
+  "colors": {
+    "black": "Black",
+    "white": "White",
+    "beige": "Beige",
+    "cream": "Cream",
+    "navy": "Navy",
+    "blue": "Blue",
+    "red": "Red",
+    "burgundy": "Burgundy",
+    "pink": "Pink",
+    "green": "Green",
+    "olive": "Olive",
+    "khaki": "Khaki",
+    "brown": "Brown",
+    "grey": "Grey",
+    "gray": "Grey",
+    "yellow": "Yellow",
+    "orange": "Orange",
+    "purple": "Purple",
+    "gold": "Gold",
+    "silver": "Silver"
   }
 }
