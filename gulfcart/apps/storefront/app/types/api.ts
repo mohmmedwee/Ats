@@ -14,6 +14,7 @@ export interface ProductCard {
   price: Money | null
   image: string | null
   delivery_estimate: { min_days: number, max_days: number } | null
+  colors?: { name: string, image: string | null }[]
 }
 
 export interface Variant {

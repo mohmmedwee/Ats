@@ -9,14 +9,14 @@ const active = computed(() => String(route.query.category ?? ''))
 </script>
 
 <template>
-  <nav class="border-b bg-white">
-    <div class="no-scrollbar mx-auto flex max-w-7xl gap-6 overflow-x-auto px-4 text-sm md:overflow-visible">
-      <NuxtLink :to="localePath('/products')" class="whitespace-nowrap border-b-2 py-3" :class="!active ? 'border-ink-900 font-semibold' : 'border-transparent text-ink-700'">
+  <nav class="bg-white">
+    <div class="no-scrollbar mx-auto flex max-w-7xl gap-6 overflow-x-auto px-3 text-[13px] md:justify-center md:gap-8 md:overflow-visible md:px-4">
+      <NuxtLink :to="localePath('/products')" class="whitespace-nowrap border-b-2 py-2.5" :class="!active ? 'border-ink-900 font-semibold' : 'border-transparent text-ink-700'">
         {{ $t('home.all') }}
       </NuxtLink>
       <template v-for="c in categories" :key="c.id">
         <div class="group relative">
-          <NuxtLink :to="localePath({ path: '/products', query: { category: c.slug } })" class="block whitespace-nowrap border-b-2 py-3" :class="active === c.slug || c.children.some(ch => ch.slug === active) ? 'border-ink-900 font-semibold' : 'border-transparent text-ink-700 hover:text-ink-900'">
+          <NuxtLink :to="localePath({ path: '/products', query: { category: c.slug } })" class="block whitespace-nowrap border-b-2 py-2.5" :class="active === c.slug || c.children.some(ch => ch.slug === active) ? 'border-ink-900 font-semibold' : 'border-transparent text-ink-700 hover:text-ink-900'">
             {{ c.name }}
           </NuxtLink>
           <!-- desktop dropdown with sub-sections -->
@@ -27,7 +27,7 @@ const active = computed(() => String(route.query.category ?? ''))
           </div>
         </div>
       </template>
-      <NuxtLink :to="localePath('/brands')" class="whitespace-nowrap border-b-2 border-transparent py-3 text-ink-700 hover:text-ink-900">{{ $t('brands.title') }}</NuxtLink>
+      <NuxtLink :to="localePath('/brands')" class="whitespace-nowrap border-b-2 border-transparent py-2.5 text-ink-700 hover:text-ink-900">{{ $t('brands.title') }}</NuxtLink>
     </div>
   </nav>
 </template>

@@ -26,7 +26,13 @@
     "under": "Under {amount}",
     "for_you": "Picked for you",
     "see_all": "See all",
-    "best_value": "Best value"
+    "best_value": "Best value",
+    "trending": "Trending now",
+    "tabs": {
+      "for_you": "For you",
+      "new": "New in",
+      "under": "Under {amount}"
+    }
   },
   "auth": {
     "name": "Full name",
@@ -923,5 +929,25 @@
   "categories": {
     "title": "Categories",
     "shop_all": "Shop all"
+  },
+  "banner": {
+    "new_kicker": "Just landed",
+    "new_title": "New in this week",
+    "shop_now": "Shop now",
+    "tech_kicker": "Electronics",
+    "tech_title": "Tech you'll love",
+    "discover": "Discover",
+    "value_kicker": "Best value",
+    "value_title": "Everything under {amount}"
+  },
+  "tiles": {
+    "new_kicker": "New",
+    "new": "Fresh arrivals",
+    "under_kicker": "Deals",
+    "under": "Under {amount}",
+    "tech_kicker": "Tech",
+    "tech": "Phones & gadgets",
+    "brands_kicker": "Brands",
+    "brands": "Shop by brand"
   }
 }

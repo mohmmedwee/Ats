@@ -95,7 +95,7 @@ function totp(secret) {
   await page.screenshot({ path: `${out}/order-en.png` });
 
   // 5. Admin: dev super admin enrols in MFA and sees the dashboard
-  await page.click('text=Log out');
+  await page.click('[data-test=nav-logout]');
   await page.waitForTimeout(500);
   await page.goto(BASE + '/login?mode=email');
   await page.waitForLoadState('networkidle');

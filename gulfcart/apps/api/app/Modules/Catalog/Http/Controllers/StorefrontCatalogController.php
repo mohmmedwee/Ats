@@ -8,6 +8,7 @@ use App\Modules\Catalog\Domain\ProductStatus;
 use App\Modules\Catalog\Infrastructure\Models\Brand;
 use App\Modules\Catalog\Infrastructure\Models\Category;
 use App\Modules\Catalog\Infrastructure\Models\Product;
+use App\Modules\Catalog\Infrastructure\Models\ProductImage;
 use App\Modules\Countries\Domain\CountryData;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\Http\ApiResponse;
@@ -15,6 +16,8 @@ use App\Shared\I18n\Translations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -30,9 +33,10 @@ final class StorefrontCatalogController
     {
         $all = Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('slug')->get();
         $byParent = $all->groupBy(fn ($c) => $c->parent_id ?? 'root');
-        $build = function (string $parent) use (&$build, $byParent): array {
+        $previews = Cache::remember('catalog.category_previews', 600, fn () => $this->categoryPreviews($all));
+        $build = function (string $parent) use (&$build, $byParent, $previews): array {
             return ($byParent[$parent] ?? collect())->map(fn ($c) => [
-                'id' => $c->id, 'slug' => $c->slug, 'name' => Translations::pick($c->name), 'image_url' => $c->imageUrl(), 'children' => $build($c->id),
+                'id' => $c->id, 'slug' => $c->slug, 'name' => Translations::pick($c->name), 'image_url' => $c->imageUrl() ?? $previews[$c->id] ?? null, 'children' => $build($c->id),
             ])->values()->all();
         };
 
@@ -117,7 +121,7 @@ final class StorefrontCatalogController
             }
             $query->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
                 ->orderByRaw('abs(pca.from_price - ?)', [$price])->limit($limit - count($picked))
-                ->with(['images', 'category', 'brandRecord'])->get()->each(function (Product $p) use (&$picked) {
+                ->with(['images', 'category', 'brandRecord', 'variants'])->get()->each(function (Product $p) use (&$picked) {
                     $picked[$p->id] = $p;
                 });
         };
@@ -134,7 +138,7 @@ final class StorefrontCatalogController
         }
         if (count($picked) < $limit) {
             $this->visible($country)->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
-                ->orderByDesc('products.published_at')->limit($limit - count($picked))->with(['images', 'category', 'brandRecord'])->get()
+                ->orderByDesc('products.published_at')->limit($limit - count($picked))->with(['images', 'category', 'brandRecord', 'variants'])->get()
                 ->each(function (Product $p) use (&$picked) {
                     $picked[$p->id] = $p;
                 });
@@ -171,7 +175,7 @@ final class StorefrontCatalogController
     private function listing(Request $request, ?string $categorySlug, ?string $q): JsonResponse
     {
         $country = $this->country($request);
-        $query = $this->visible($country)->with(['images', 'category', 'brandRecord']);
+        $query = $this->visible($country)->with(['images', 'category', 'brandRecord', 'variants']);
 
         if ($categorySlug !== null && $categorySlug !== '') {
             $ids = $this->categoryWithDescendants($categorySlug);
@@ -218,6 +222,51 @@ final class StorefrontCatalogController
         return null;
     }
 
+    /**
+     * Colour swatches for a product card: distinct colour values of active variants, each with the
+     * photo attached to a variant of that colour when there is one.
+     *
+     * @param  Collection<int, ProductImage>  $images
+     * @return list<array{name: string, image: string|null}>
+     */
+    private function colours(Product $p, $images): array
+    {
+        if (! $p->relationLoaded('variants')) {
+            return [];
+        }
+        $out = [];
+        foreach ($p->variants->where('is_active', true) as $v) {
+            $name = $v->attributes['color'] ?? $v->attributes['colour'] ?? null;
+            if (! is_string($name) || isset($out[$name])) {
+                continue;
+            }
+            $out[$name] = ['name' => $name, 'image' => $images->first(fn ($i) => $i->variant_id === $v->id)?->publicUrl()];
+        }
+
+        return array_slice(array_values($out), 0, 6);
+    }
+
+    /**
+     * @param  Collection<int, Category>  $all
+     * @return array<string, string>
+     */
+    private function categoryPreviews($all): array
+    {
+        $out = [];
+        foreach ($all as $c) {
+            $ids = $this->categoryWithDescendants($c->slug);
+            $product = Product::query()->where('status', ProductStatus::PUBLISHED)->whereIn('category_id', $ids)
+                ->with('images')->orderByDesc('published_at')->limit(5)->get()
+                ->first(fn ($p) => $p->images->contains(fn ($i) => $i->isDisplayable()));
+            $url = $product?->images->first(fn ($i) => $i->isDisplayable())?->publicUrl();
+            if ($url !== null) {
+                $out[$c->id] = $url;
+            }
+        }
+
+        return $out;
+    }
+
     /** @return Builder<Product> */
     private function visible(CountryData $country): Builder
     {
@@ -246,6 +295,7 @@ final class StorefrontCatalogController
                 ? ['amount' => (string) $p->getAttribute('from_price'), 'currency' => (string) $p->getAttribute('from_price_currency')]
                 : null,
             'image' => $images->first()?->publicUrl(),
+            'colors' => $this->colours($p, $images),
             'delivery_estimate' => $this->estimate($p),
         ];
 

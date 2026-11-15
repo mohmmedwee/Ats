@@ -26,7 +26,13 @@
     "under": "أقل من {amount}",
     "for_you": "مختارات لك",
     "see_all": "عرض الكل",
-    "best_value": "أفضل قيمة"
+    "best_value": "أفضل قيمة",
+    "trending": "الأكثر رواجاً",
+    "tabs": {
+      "for_you": "مختار لك",
+      "new": "وصل حديثاً",
+      "under": "أقل من {amount}"
+    }
   },
   "auth": {
     "name": "الاسم الكامل",
@@ -923,5 +929,25 @@
   "categories": {
     "title": "الأقسام",
     "shop_all": "تسوق الكل"
+  },
+  "banner": {
+    "new_kicker": "وصل حديثاً",
+    "new_title": "جديد هذا الأسبوع",
+    "shop_now": "تسوّق الآن",
+    "tech_kicker": "إلكترونيات",
+    "tech_title": "تقنية ستحبها",
+    "discover": "اكتشف",
+    "value_kicker": "أفضل قيمة",
+    "value_title": "كل شيء بأقل من {amount}"
+  },
+  "tiles": {
+    "new_kicker": "جديد",
+    "new": "وصل حديثاً",
+    "under_kicker": "عروض",
+    "under": "أقل من {amount}",
+    "tech_kicker": "تقنية",
+    "tech": "جوالات وأجهزة",
+    "brands_kicker": "ماركات",
+    "brands": "تسوّق حسب الماركة"
   }
 }
