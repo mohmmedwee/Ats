@@ -125,15 +125,21 @@ export interface Tracking {
   events: { code: string, description: string | null, location: string | null, occurred_at: string }[]
 }
 
+/** Customer-facing progress of one package. */
+export interface PackageProgress {
+  steps: { key: 'placed' | 'confirmed' | 'preparing' | 'shipped' | 'delivered', done: boolean, at: string | null }[]
+  estimated_delivery: { from: string, to: string } | null
+}
+
 export interface OrderDetail extends OrderSummary {
   shipping_address: Record<string, string | null>
   shipping_method: { code: string | null, name: string | null }
-  packages: {
+  packages: (PackageProgress & {
     number: number
     status: string
     tracking: Tracking[]
     items: { id: string, title: string, sku: string, attributes: Record<string, string>, image: string | null, quantity: number, refunded_quantity: number, unit_price: Money, line_total: Money, status: string }[]
-  }[]
+  })[]
   totals: Record<'subtotal' | 'shipping' | 'customs' | 'discount' | 'tax' | 'total' | 'paid' | 'refunded', Money>
   payment_due_at: string | null
   can_cancel: boolean

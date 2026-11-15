@@ -59,6 +59,34 @@ final class OrderController
      * Unpaid orders are cancelled immediately. Paid orders are cancelled and fully refunded only
      * while no supplier purchase has been made; otherwise the customer is directed to returns.
      */
+    /**
+     * Track without signing in: order number + the phone number on the delivery address.
+     * Returns progress only (no prices, address or payment details). Same answer for any mismatch.
+     */
+    public function track(Request $request): JsonResponse
+    {
+        $data = $request->validate(['order_number' => ['required', 'string', 'max:30'], 'phone' => ['required', 'string', 'max:30']]);
+        $digits = fn (?string $v) => substr(preg_replace('/\D+/', '', (string) $v) ?? '', -9);
+        $order = Order::query()->with('items')->where('order_number', mb_strtoupper(trim($data['order_number'])))->first();
+        $wanted = $digits($data['phone']);
+        if ($order === null || strlen($wanted) < 7 || ! hash_equals($digits($order->shipping_address_snapshot['phone'] ?? null), $wanted)) {
+            throw new ApiException('NOT_FOUND', 404);
+        }
+        $full = $this->detail($order);
+
+        return ApiResponse::success([
+            'order_number' => $full['order_number'],
+            'status' => $full['status'],
+            'placed_at' => $full['placed_at'],
+            'item_count' => $full['item_count'],
+            'packages' => array_map(fn ($p) => [
+                'number' => $p['number'], 'status' => $p['status'], 'steps' => $p['steps'], 'estimated_delivery' => $p['estimated_delivery'],
+                'tracking' => array_map(fn ($t) => array_intersect_key($t, array_flip(['carrier', 'tracking_number', 'tracking_url', 'status', 'events'])), $p['tracking']),
+                'items' => array_map(fn ($i) => ['title' => $i['title'], 'image' => $i['image'], 'quantity' => $i['quantity'], 'attributes' => $i['attributes']], $p['items']),
+            ], $full['packages']),
+        ]);
+    }
+
     public function cancel(Request $request, string $id): JsonResponse
     {
         $order = $this->owned($request, $id);
@@ -113,6 +141,7 @@ final class OrderController
                 'number' => (int) $group,
                 'status' => $this->packageStatus($items->pluck('fulfillment_status')->all()),
                 'tracking' => $tracking->get($group, collect())->values()->all(),
+                ...$this->timeline($o, (int) $group, $items->pluck('fulfillment_status')->all(), $tracking->get($group, collect())->values()->all()),
                 'items' => $items->map(fn ($i) => [
                     'id' => $i->id,
                     'title' => Translations::pick($i->product_snapshot['title'] ?? null),
@@ -135,6 +164,38 @@ final class OrderController
             'payment_due_at' => $o->status === OrderStatus::PENDING_PAYMENT ? $o->payment_due_at->toIso8601String() : null,
             'can_cancel' => in_array($o->status, [OrderStatus::PENDING_PAYMENT, OrderStatus::PAYMENT_FAILED, OrderStatus::PAID, OrderStatus::PROCESSING], true)
                 && ! $o->items->contains(fn ($i) => in_array($i->fulfillment_status, ['purchased', 'shipped', 'delivered'], true)),
+        ];
+    }
+
+    /**
+     * Customer timeline for one package: placed → confirmed → preparing → shipped → delivered,
+     * with dates where known, and the expected delivery window.
+     *
+     * @param  list<string>  $statuses
+     * @param  list<array<string, mixed>>  $tracking
+     * @return array{steps: list<array{key: string, done: bool, at: string|null}>, estimated_delivery: array{from: string, to: string}|null}
+     */
+    private function timeline(Order $o, int $group, array $statuses, array $tracking): array
+    {
+        $status = $this->packageStatus($statuses);
+        $rank = ['pending' => 1, 'preparing' => 2, 'shipped' => 3, 'delivered' => 4][$status] ?? 0;
+        $paid = $o->paid_at !== null;
+        $first = fn (string $key) => collect($tracking)->pluck($key)->filter()->sort()->first();
+        $steps = [
+            ['key' => 'placed', 'done' => true, 'at' => $o->placed_at->toIso8601String()],
+            ['key' => 'confirmed', 'done' => $paid, 'at' => $o->paid_at?->toIso8601String()],
+            ['key' => 'preparing', 'done' => $paid && $rank >= 2, 'at' => null],
+            ['key' => 'shipped', 'done' => $rank >= 3, 'at' => $first('shipped_at')],
+            ['key' => 'delivered', 'done' => $rank >= 4, 'at' => $first('delivered_at')],
+        ];
+        $estimate = $o->shipping_method_snapshot['estimates'][(string) $group] ?? null;
+        $start = $o->paid_at ?? $o->placed_at;
+
+        return [
+            'steps' => $status === 'cancelled' ? [] : $steps,
+            'estimated_delivery' => is_array($estimate) && $status !== 'cancelled' && $rank < 4
+                ? ['from' => $start->copy()->addDays((int) $estimate['min_days'])->toDateString(), 'to' => $start->copy()->addDays((int) $estimate['max_days'])->toDateString()]
+                : null,
         ];
     }
 

@@ -1403,6 +1403,20 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /orders/track:
+    post:
+      tags: [Orders]
+      summary: 'Track without signing in: order number + phone on the delivery address. Progress only (timeline, estimate, carrier events); no prices or address. 10 per minute.'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [order_number, phone], properties: { order_number: { type: string, maxLength: 30 }, phone: { type: string, maxLength: 30 } } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
   /orders/{id}:
     get:
       tags: [Orders]

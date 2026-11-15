@@ -1021,5 +1021,31 @@
     "points_signed": "Points (use minus to remove)",
     "note": "Reason",
     "no_points_yet": "No customer has points yet."
+  },
+  "track": {
+    "title": "Track your order",
+    "subtitle": "Enter your order number and the phone number on the delivery address.",
+    "order_number": "Order number",
+    "phone": "Phone number",
+    "submit": "Track",
+    "not_found": "We could not find an order with this number and phone. Check both and try again.",
+    "eta": "Expected delivery:",
+    "carrier_site": "Carrier website",
+    "more": "Show {n} more updates",
+    "less": "Show less",
+    "cancelled": "This package was cancelled.",
+    "steps": {
+      "placed": "Order placed",
+      "confirmed": "Payment confirmed",
+      "preparing": "Preparing",
+      "shipped": "Shipped",
+      "delivered": "Delivered"
+    },
+    "next": {
+      "confirmed": "Waiting for payment",
+      "preparing": "We are ordering it for you",
+      "shipped": "Packing and handing to the carrier",
+      "delivered": "On its way to you"
+    }
   }
 }

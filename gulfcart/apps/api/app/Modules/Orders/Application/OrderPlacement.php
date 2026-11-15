@@ -44,7 +44,9 @@ final class OrderPlacement
                 'country_id' => $session->countryId,
                 'address_id' => $session->addressId,
                 'shipping_address_snapshot' => $q['shipping_address'],
-                'shipping_method_snapshot' => $q['shipping_method'],
+                // Delivery estimate per package, for the tracking timeline.
+                'shipping_method_snapshot' => $q['shipping_method'] + ['estimates' => collect($q['shipments'] ?? [])
+                    ->mapWithKeys(fn ($sh) => [(string) $sh['number'] => $sh['estimate'] ?? null])->filter()->all()],
                 'currency' => $session->currency,
                 'locale' => $locale,
                 'status' => OrderStatus::PENDING_PAYMENT,

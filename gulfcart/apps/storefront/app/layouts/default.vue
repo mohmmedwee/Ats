@@ -86,6 +86,7 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
           <NuxtLink :to="localePath('/brands')" class="block hover:text-brand-600">{{ $t('brands.title') }}</NuxtLink>
           <NuxtLink :to="localePath('/products?sort=price_asc')" class="block hover:text-brand-600">{{ $t('home.best_value') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/orders')" class="block hover:text-brand-600">{{ $t('nav.orders') }}</NuxtLink>
+          <NuxtLink :to="localePath('/track')" class="block hover:text-brand-600" data-test="footer-track">{{ $t('track.title') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/wishlist')" class="block hover:text-brand-600">{{ $t('wishlist.title') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/rewards')" class="block hover:text-brand-600">{{ $t('rewards.title') }}</NuxtLink>
         </div>

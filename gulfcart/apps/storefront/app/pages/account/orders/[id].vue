@@ -83,23 +83,19 @@ onMounted(load)
       <button class="rounded bg-gray-900 px-4 py-1 text-white">{{ $t('orders.return_submit') }}</button>
     </form>
 
-    <div v-for="p in order.packages" :key="p.number" class="rounded border p-3" data-test="package">
-      <div class="mb-2 flex flex-wrap items-center gap-2">
-        <h2 class="font-medium">{{ $t('orders.package', { n: p.number }) }}</h2>
+    <div v-for="p in order.packages" :key="p.number" class="space-y-4 rounded-md border border-ink-100 p-4" data-test="package">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="text-sm font-extrabold uppercase tracking-wide">{{ $t('orders.package', { n: p.number }) }}</h2>
         <StatusBadge :status="p.status" scope="orders.package_status" />
-        <template v-for="tr in p.tracking" :key="tr.tracking_number ?? ''">
-          <a v-if="tr.tracking_url" :href="tr.tracking_url" target="_blank" rel="noopener" class="text-sm underline" dir="ltr">{{ tr.carrier }} {{ tr.tracking_number }}</a>
-        </template>
       </div>
-      <ul class="text-sm">
-        <li v-for="i in p.items" :key="i.id" class="flex justify-between py-1">
-          <span>{{ i.quantity }} × {{ i.title }} <span class="text-gray-500">{{ Object.values(i.attributes).join(' / ') }}</span></span>
-          <span>{{ formatMoney(i.line_total, locale) }}</span>
+      <OrderTimeline :pkg="p" />
+      <ul class="divide-y divide-ink-100 border-t border-ink-100 text-sm">
+        <li v-for="i in p.items" :key="i.id" class="flex items-center gap-3 py-2.5">
+          <img v-if="i.image" :src="i.image" alt="" class="h-16 w-12 shrink-0 rounded object-cover">
+          <span class="min-w-0 flex-1"><span class="line-clamp-1">{{ i.title }}</span><span class="text-xs text-ink-500" dir="auto">{{ i.quantity }} × {{ Object.values(i.attributes).join(' / ') }}</span></span>
+          <span class="font-semibold">{{ formatMoney(i.line_total, locale) }}</span>
         </li>
       </ul>
-      <ol v-for="tr in p.tracking" :key="`ev-${tr.tracking_number}`" class="mt-2 border-s ps-3 text-xs text-gray-600">
-        <li v-for="e in tr.events" :key="e.code + e.occurred_at">{{ new Date(e.occurred_at).toLocaleString(locale) }} — {{ e.description }}</li>
-      </ol>
     </div>
 
     <div v-if="invoices.length" class="text-sm">
