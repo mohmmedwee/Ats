@@ -19,5 +19,8 @@ final class VariantPrice
         public readonly ?string $exchangeRateId,
         public readonly string $exchangeRate,
         public readonly array $calculation,
+        /** Regular price when a flash sale lowered this one. */
+        public readonly ?string $compareAt = null,
+        public readonly ?string $saleEndsAt = null,
     ) {}
 }

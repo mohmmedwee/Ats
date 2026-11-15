@@ -452,6 +452,8 @@ paths:
         - { name: q, in: query, schema: { type: string, maxLength: 100 } }
         - { name: ids, in: query, description: 'Comma-separated product IDs (max 100), e.g. for the wishlist', schema: { type: string } }
         - { name: brand, in: query, description: 'Brand slug(s), comma-separated', schema: { type: string } }
+        - { name: price_max, in: query, schema: { type: number, minimum: 0 } }
+        - { name: sale, in: query, description: 'Only products covered by a running flash sale', schema: { type: boolean } }
         - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc] } }
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
@@ -893,6 +895,45 @@ paths:
       tags: [Admin Promotions]
       summary: Update a discount code
       parameters: [{ name: coupon, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /flash-sales/current:
+    get:
+      tags: [Promotions]
+      summary: Flash sales running now in the request country (biggest first) for the countdown banner
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Country' }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/flash-sales:
+    get:
+      tags: [Admin Promotions]
+      summary: Flash sales with status (scheduled, running, ended, paused) (pricing.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Promotions]
+      summary: Schedule a flash sale. Prices drop for its window; never below cost (net price stays at or above variable cost)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, percent_off, scope, starts_at, ends_at]
+              properties:
+                name: { type: object, properties: { en: { type: string }, ar: { type: [string, 'null'] } } }
+                percent_off: { type: number, exclusiveMinimum: 0, maximum: 90 }
+                scope: { type: string, enum: [all, category, product] }
+                category_id: { type: [string, 'null'], format: uuid, description: 'Required for scope=category; covers sub-categories' }
+                product_id: { type: [string, 'null'], format: uuid, description: Required for scope=product }
+                countries: { type: array, items: { type: string, enum: [AE, SA] }, description: Empty means all countries }
+                starts_at: { type: string, format: date-time }
+                ends_at: { type: string, format: date-time }
+                is_active: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/flash-sales/{flashSale}:
+    patch:
+      tags: [Admin Promotions]
+      summary: Update or pause a flash sale
+      parameters: [{ name: flashSale, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /products/{productId}/reviews:
     get:

@@ -11,7 +11,7 @@ use App\Modules\Pricing\Infrastructure\Models\ProductPrice;
 
 final class EloquentPriceBook implements CatalogPricing, PriceBook
 {
-    public function __construct(private readonly CountryDirectory $countries, private readonly CatalogReader $catalog) {}
+    public function __construct(private readonly CountryDirectory $countries, private readonly CatalogReader $catalog, private readonly FlashSales $sales) {}
 
     public function priceFor(string $variantId, string $countryCode): ?VariantPrice
     {
@@ -38,7 +38,7 @@ final class EloquentPriceBook implements CatalogPricing, PriceBook
             );
         }
 
-        return $out;
+        return $this->sales->applyAll($out, $country->code);
     }
 
     public function fromPrice(string $productId, string $countryCode): ?array
@@ -49,11 +49,17 @@ final class EloquentPriceBook implements CatalogPricing, PriceBook
         }
         $min = collect($prices)->sortBy(fn (VariantPrice $p) => (float) $p->gross)->first();
 
-        return ['amount' => $min->gross, 'currency' => $min->currency];
+        return ['amount' => $min->gross, 'currency' => $min->currency] + ($min->compareAt !== null ? ['compare_at' => $min->compareAt, 'sale_ends_at' => $min->saleEndsAt] : []);
     }
 
     public function variantPrices(array $variantIds, string $countryCode): array
     {
-        return array_map(fn (VariantPrice $p) => ['amount' => $p->gross, 'currency' => $p->currency], $this->pricesFor($variantIds, $countryCode));
+        return array_map(fn (VariantPrice $p) => ['amount' => $p->gross, 'currency' => $p->currency]
+            + ($p->compareAt !== null ? ['compare_at' => $p->compareAt, 'sale_ends_at' => $p->saleEndsAt] : []), $this->pricesFor($variantIds, $countryCode));
+    }
+
+    public function saleTargets(string $countryCode): array
+    {
+        return $this->sales->targets($countryCode);
     }
 }

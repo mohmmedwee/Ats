@@ -17,3 +17,10 @@ export function formatDateTime(iso: string | null | undefined, locale = 'en'): s
   if (!iso) return '—'
   return new Intl.DateTimeFormat(locale.startsWith('ar') ? 'ar-AE' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
 }
+
+/** Whole-number discount between a sale price and the regular price, or 0 when not on sale. */
+export function salePercent(price: Money | null | undefined, regular: Money | null | undefined): number {
+  const p = Number(price?.amount ?? 0)
+  const r = Number(regular?.amount ?? 0)
+  return r > 0 && p > 0 && p < r ? Math.round((1 - p / r) * 100) : 0
+}

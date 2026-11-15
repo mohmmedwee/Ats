@@ -68,6 +68,9 @@ useHead(() => ({
     : [],
 }))
 const currentImage = computed(() => product.value?.images[imageIndex.value])
+const shownPrice = computed(() => variant.value?.price ?? product.value?.price ?? null)
+const regularPrice = computed(() => (variant.value ? variant.value.compare_at_price : product.value?.compare_at_price) ?? null)
+const off = computed(() => salePercent(shownPrice.value, regularPrice.value))
 const variant = computed<Variant | undefined>(() => product.value?.variants.find(v => v.id === selected.value))
 watch(product, (p) => {
   selected.value = p?.variants.find(v => v.purchasable)?.id ?? p?.variants[0]?.id ?? null
@@ -83,7 +86,17 @@ const priceRange = computed(() => {
 })
 function showImage(url: string) {
   const i = product.value?.images.findIndex(img => img.url === url) ?? -1
-  if (i >= 0) imageIndex.value = i
+  if (i >= 0) {
+    imageIndex.value = i
+    const el = swipe.value
+    if (el) el.scrollTo({ left: el.clientWidth * i * (document.dir === 'rtl' ? -1 : 1), behavior: 'smooth' })
+  }
+}
+/** Phone gallery: which photo is in view. */
+const swipe = ref<HTMLElement | null>(null)
+function onSwipe() {
+  const el = swipe.value
+  if (el) imageIndex.value = Math.round(Math.abs(el.scrollLeft) / el.clientWidth)
 }
 watch(product, (p) => {
   if (p) recent.add({ id: p.id, slug: p.slug, title: p.title, brand: p.brand, category: p.category, price: p.price, image: p.image, delivery_estimate: p.delivery_estimate })
@@ -104,109 +117,134 @@ async function addToCart() {
 </script>
 
 <template>
-  <div v-if="error" class="card p-10 text-center text-ink-500">{{ $t('catalog.empty') }}</div>
-  <div v-else-if="product" class="space-y-8">
-    <nav class="flex items-center gap-1 text-xs text-ink-500">
-      <NuxtLink :to="localePath('/')">{{ $t('nav.home') }}</NuxtLink>
+  <div v-if="error" class="py-20 text-center text-ink-500">{{ $t('catalog.empty') }}</div>
+  <div v-else-if="product" class="space-y-10">
+    <nav class="hidden items-center gap-1 text-xs text-ink-500 md:flex">
+      <NuxtLink :to="localePath('/')" class="hover:text-ink-900">{{ $t('nav.home') }}</NuxtLink>
       <AppIcon name="chevron" :size="12" class="rtl:rotate-180" />
-      <NuxtLink v-if="product.category" :to="localePath({ path: '/products', query: { category: product.category.slug } })">{{ product.category.name }}</NuxtLink>
+      <NuxtLink v-if="product.category" :to="localePath({ path: '/products', query: { category: product.category.slug } })" class="hover:text-ink-900">{{ product.category.name }}</NuxtLink>
     </nav>
 
-    <div class="grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-10">
-      <div class="flex flex-col-reverse gap-3 md:flex-row">
-        <div class="no-scrollbar flex gap-2 overflow-x-auto md:flex-col">
-          <button v-for="(img, i) in product.images" :key="img.url" class="h-20 w-16 shrink-0 overflow-hidden rounded-lg border-2" :class="i === imageIndex ? 'border-ink-900' : 'border-transparent'" @click="imageIndex = i">
-            <img :src="img.url" :alt="img.alt ?? ''" class="h-full w-full object-cover">
-          </button>
+    <div class="grid gap-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12">
+      <!-- gallery: swipe on phones, thumbnails + large photo on desktop -->
+      <div class="-mx-3 -mt-4 md:mx-0 md:mt-0">
+        <div class="relative md:hidden">
+          <div ref="swipe" class="no-scrollbar flex snap-x snap-mandatory overflow-x-auto" @scroll.passive="onSwipe">
+            <div v-for="img in product.images" :key="img.url" class="aspect-[3/4] w-full shrink-0 snap-start bg-ink-100">
+              <img :src="img.url" :alt="img.alt ?? product.title" class="h-full w-full object-cover">
+            </div>
+          </div>
+          <span v-if="product.images.length > 1" class="absolute bottom-3 end-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white" dir="ltr">{{ imageIndex + 1 }} / {{ product.images.length }}</span>
         </div>
-        <div class="aspect-[3/4] flex-1 overflow-hidden rounded-2xl bg-white">
-          <img v-if="currentImage" :src="currentImage.url" :alt="currentImage.alt ?? product.title" class="h-full w-full object-cover">
+        <div class="hidden gap-3 md:flex">
+          <div class="no-scrollbar flex max-h-[640px] w-[72px] shrink-0 flex-col gap-2 overflow-y-auto">
+            <button v-for="(img, i) in product.images" :key="img.url" class="aspect-[3/4] w-full shrink-0 overflow-hidden rounded-md border-2 transition" :class="i === imageIndex ? 'border-ink-900' : 'border-transparent opacity-70 hover:opacity-100'" @mouseenter="imageIndex = i" @click="imageIndex = i">
+              <img :src="img.url" :alt="img.alt ?? ''" class="h-full w-full object-cover">
+            </button>
+          </div>
+          <div class="aspect-[3/4] flex-1 overflow-hidden rounded-md bg-ink-100">
+            <img v-if="currentImage" :src="currentImage.url" :alt="currentImage.alt ?? product.title" class="h-full w-full object-cover">
+          </div>
         </div>
       </div>
 
-      <div class="space-y-5">
-        <div>
-          <NuxtLink v-if="product.brand_info" :to="localePath({ path: '/products', query: { brand: product.brand_info.slug } })" class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-500 hover:text-brand-600" data-test="product-brand">
+      <div class="space-y-5 md:sticky md:top-32 md:self-start">
+        <div class="space-y-1.5">
+          <NuxtLink v-if="product.brand_info" :to="localePath({ path: '/products', query: { brand: product.brand_info.slug } })" class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-900 hover:underline" data-test="product-brand">
             <img v-if="product.brand_info.logo_url" :src="product.brand_info.logo_url" alt="" class="h-5 w-auto">{{ product.brand_info.name }}
-            <span v-if="product.brand_info.authorized" class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] normal-case tracking-normal text-green-700">✓ {{ $t('brands.authorized_short') }}</span>
+            <span v-if="product.brand_info.authorized" class="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-green-700">✓ {{ $t('brands.authorized_short') }}</span>
           </NuxtLink>
-          <p v-else-if="product.brand" class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ product.brand }}</p>
-          <div class="flex items-start justify-between gap-3">
-            <h1 class="mt-1 text-xl font-semibold leading-snug md:text-2xl" data-test="product-title">{{ product.title }}</h1>
-            <WishlistButton :product-id="product.id" />
-          </div>
-        </div>
-        <div class="rounded-2xl bg-brand-50 p-4">
-          <p class="text-3xl font-bold text-brand-600" data-test="product-price">
-            <span v-if="!variant?.price && priceRange" class="text-base font-semibold">{{ $t('product.from') }} </span>{{ formatMoney(variant?.price ?? product.price, locale) }}
-          </p>
-          <p v-if="priceRange && variant?.price" class="text-xs text-ink-500">{{ $t('product.price_by_option', { min: formatMoney(priceRange.min, locale), max: formatMoney(priceRange.max, locale) }) }}</p>
-          <p class="mt-1 text-xs text-ink-700">{{ $t('product.price_note') }}</p>
+          <p v-else-if="product.brand" class="text-xs font-bold uppercase tracking-widest text-ink-900">{{ product.brand }}</p>
+          <h1 class="text-lg leading-snug text-ink-700 md:text-xl" data-test="product-title">{{ product.title }}</h1>
         </div>
 
-        <div v-if="hasOptions" data-test="variant-options">
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <p class="text-[28px] font-extrabold leading-none" :class="off ? 'text-brand-600' : 'text-ink-900'" data-test="product-price">
+              <span v-if="!variant?.price && priceRange" class="text-sm font-semibold text-ink-500">{{ $t('product.from') }} </span>{{ formatMoney(shownPrice, locale) }}
+            </p>
+            <template v-if="off && regularPrice">
+              <s class="text-base text-ink-500" data-test="regular-price">{{ formatMoney(regularPrice, locale) }}</s>
+              <span class="rounded bg-brand-600 px-1.5 py-0.5 text-xs font-black text-white" dir="ltr">−{{ off }}%</span>
+            </template>
+          </div>
+          <div v-if="off && product.sale_ends_at" class="flex items-center gap-2 rounded-md bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700" data-test="sale-timer">
+            <span>⚡ {{ $t('flash.ends_in') }}</span><SaleCountdown :ends="product.sale_ends_at" />
+          </div>
+          <p v-if="priceRange && variant?.price" class="text-xs text-ink-500">{{ $t('product.price_by_option', { min: formatMoney(priceRange.min, locale), max: formatMoney(priceRange.max, locale) }) }}</p>
+          <p class="text-xs text-ink-500">{{ $t('product.price_note') }}</p>
+        </div>
+
+        <div v-if="hasOptions" class="border-t border-ink-100 pt-5" data-test="variant-options">
           <VariantPicker v-model="selected" :variants="product.variants" :images="product.images" @image="showImage">
             <template v-for="k in ['size', 'option']" :key="k" #[`after-${k}`]>
-              <button v-if="product.size_guide" type="button" class="link text-xs" data-test="size-guide" @click="sizeGuideOpen = true">{{ $t('product.size_guide') }}</button>
+              <button v-if="product.size_guide" type="button" class="text-xs font-semibold underline underline-offset-4" data-test="size-guide" @click="sizeGuideOpen = true">{{ $t('product.size_guide') }}</button>
             </template>
           </VariantPicker>
         </div>
-        <p v-if="variant" class="text-sm font-medium" :class="variant.availability === 'out_of_stock' ? 'text-red-600' : variant.availability === 'low_stock' ? 'text-gold-600' : 'text-green-700'">
-          {{ $t(`catalog.${variant.availability}`) }}
+        <p v-if="variant" class="flex items-center gap-1.5 text-sm font-medium" :class="variant.availability === 'out_of_stock' ? 'text-red-600' : variant.availability === 'low_stock' ? 'text-gold-600' : 'text-green-700'">
+          <span class="h-2 w-2 rounded-full bg-current" />{{ $t(`catalog.${variant.availability}`) }}
         </p>
 
-        <div class="hidden items-center gap-3 md:flex">
-          <div class="flex items-center rounded-full border border-ink-300">
-            <button class="h-10 w-10 text-lg" :aria-label="'-1'" @click="qty = Math.max(1, qty - 1)">−</button>
-            <span class="w-8 text-center" :aria-label="$t('common.quantity')">{{ qty }}</span>
-            <button class="h-10 w-10 text-lg" :aria-label="'+1'" @click="qty = Math.min(20, qty + 1)">+</button>
+        <div class="hidden items-stretch gap-2 md:flex">
+          <div class="flex items-center rounded-md border border-ink-300">
+            <button class="h-12 w-10 text-lg" :aria-label="'-1'" @click="qty = Math.max(1, qty - 1)">−</button>
+            <span class="w-8 text-center font-semibold" :aria-label="$t('common.quantity')">{{ qty }}</span>
+            <button class="h-12 w-10 text-lg" :aria-label="'+1'" @click="qty = Math.min(20, qty + 1)">+</button>
           </div>
-          <button :disabled="!variant?.purchasable || cart.busy" class="btn-primary flex-1 py-3 text-base" data-test="add-to-cart" @click="addToCart">
-            <AppIcon name="cart" :size="18" /> {{ $t('catalog.add_to_cart') }}
+          <button :disabled="!variant?.purchasable || cart.busy" class="btn-primary flex-1 text-base font-bold uppercase tracking-wide" data-test="add-to-cart" @click="addToCart">
+            {{ $t('catalog.add_to_cart') }}
           </button>
+          <span class="flex w-12 items-center justify-center rounded-md border border-ink-300"><WishlistButton :product-id="product.id" /></span>
         </div>
-        <p v-if="message" role="status" class="flex items-center gap-2 text-sm text-green-700" data-test="cart-message">
+        <p v-if="message" role="status" class="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800" data-test="cart-message">
           <AppIcon name="check" :size="16" /> {{ message }}
-          <NuxtLink :to="localePath('/cart')" class="font-semibold underline">{{ $t('cart.title') }}</NuxtLink>
+          <NuxtLink :to="localePath('/cart')" class="ms-auto font-bold underline">{{ $t('cart.title') }}</NuxtLink>
         </p>
 
-        <ul class="card divide-y text-sm">
-          <li v-if="product.warranty" class="flex items-start gap-3 p-3" data-test="warranty">
-            <AppIcon name="shield" class="mt-0.5 shrink-0 text-brand-600" />
-            <div><p class="font-semibold">{{ $t('product.warranty') }}</p><p class="text-xs text-ink-500">{{ product.warranty }}</p></div>
-          </li>
-          <li v-if="product.delivery_estimate" class="flex items-start gap-3 p-3">
-            <AppIcon name="truck" class="mt-0.5 shrink-0 text-brand-600" />
+        <ul class="divide-y divide-ink-100 border-y border-ink-100 text-sm">
+          <li v-if="product.delivery_estimate" class="flex items-start gap-3 py-3">
+            <AppIcon name="truck" class="mt-0.5 shrink-0" />
             <div><p class="font-semibold">{{ $t('catalog.delivery', { min: product.delivery_estimate.min_days, max: product.delivery_estimate.max_days }) }}</p><p class="text-xs text-ink-500">{{ $t('product.ships_from') }}</p></div>
           </li>
-          <li class="flex items-start gap-3 p-3">
-            <AppIcon name="receipt" class="mt-0.5 shrink-0 text-brand-600" />
+          <li class="flex items-start gap-3 py-3">
+            <AppIcon name="receipt" class="mt-0.5 shrink-0" />
             <div><p class="font-semibold">{{ $t('product.all_in') }}</p><p class="text-xs text-ink-500">{{ $t('promo.all_in_price') }}</p></div>
           </li>
-          <li v-if="countryInfo" class="flex items-start gap-3 p-3">
-            <AppIcon name="return" class="mt-0.5 shrink-0 text-brand-600" />
+          <li v-if="countryInfo" class="flex items-start gap-3 py-3">
+            <AppIcon name="return" class="mt-0.5 shrink-0" />
             <div><p class="font-semibold">{{ $t('product.returns', { days: countryInfo.return_window_days }) }}</p><p class="text-xs text-ink-500">{{ $t('product.returns_note') }}</p></div>
           </li>
-          <li class="flex items-start gap-3 p-3">
-            <AppIcon name="shield" class="mt-0.5 shrink-0 text-brand-600" />
-            <div><p class="font-semibold">{{ $t('footer.secure') }}</p></div>
+          <li v-if="product.warranty" class="flex items-start gap-3 py-3" data-test="warranty">
+            <AppIcon name="shield" class="mt-0.5 shrink-0" />
+            <div><p class="font-semibold">{{ $t('product.warranty') }}</p><p class="text-xs text-ink-500">{{ product.warranty }}</p></div>
+          </li>
+          <li class="flex items-center gap-3 py-3">
+            <AppIcon name="shield" class="shrink-0" /><p class="font-semibold">{{ $t('footer.secure') }}</p>
           </li>
         </ul>
 
-        <div v-if="specRows.length" class="card overflow-hidden" data-test="specifications">
-          <p class="p-4 pb-2 text-sm font-bold">{{ $t('product.specifications') }}</p>
-          <table class="w-full text-sm">
-            <tbody>
-              <tr v-for="(r, i) in specRows" :key="i" class="border-t border-ink-100">
-                <th class="w-2/5 bg-ink-100/50 px-4 py-2 text-start font-medium text-ink-700">{{ r[0] }}</th>
-                <td class="px-4 py-2">{{ r[1] }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-if="product.description" class="card p-4">
-          <p class="mb-2 text-sm font-bold">{{ $t('product.description') }}</p>
-          <p class="whitespace-pre-line text-sm leading-6 text-ink-700">{{ product.description }}</p>
+        <!-- details as accordions -->
+        <div class="divide-y divide-ink-100 border-b border-ink-100">
+          <details v-if="product.description" open class="group py-1">
+            <summary class="flex cursor-pointer list-none items-center justify-between py-3 text-sm font-bold uppercase tracking-wide">
+              {{ $t('product.description') }}<AppIcon name="plus" :size="16" class="transition group-open:rotate-45" />
+            </summary>
+            <p class="whitespace-pre-line pb-4 text-sm leading-7 text-ink-700">{{ product.description }}</p>
+          </details>
+          <details v-if="specRows.length" class="group py-1" data-test="specifications" :open="!product.description">
+            <summary class="flex cursor-pointer list-none items-center justify-between py-3 text-sm font-bold uppercase tracking-wide">
+              {{ $t('product.specifications') }}<AppIcon name="plus" :size="16" class="transition group-open:rotate-45" />
+            </summary>
+            <table class="mb-4 w-full text-sm">
+              <tbody>
+                <tr v-for="(r, i) in specRows" :key="i" class="border-t border-ink-100 first:border-t-0">
+                  <th class="w-2/5 py-2 pe-3 text-start font-medium text-ink-500">{{ r[0] }}</th>
+                  <td class="py-2">{{ r[1] }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </details>
         </div>
       </div>
     </div>
@@ -219,8 +257,8 @@ async function addToCart() {
 
     <section v-if="related?.length" data-test="related">
       <h2 class="section-title mb-3">{{ $t('product.related') }}</h2>
-      <div class="no-scrollbar -mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-6">
-        <div v-for="p in related" :key="p.id" class="w-40 shrink-0 snap-start md:w-auto">
+      <div class="no-scrollbar -mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:px-0 lg:grid-cols-6">
+        <div v-for="p in related" :key="p.id" class="w-[140px] shrink-0 snap-start md:w-auto">
           <ProductCardItem :product="p" />
         </div>
       </div>
@@ -228,18 +266,20 @@ async function addToCart() {
 
     <section v-if="recentOthers.length" data-test="recently-viewed">
       <h2 class="section-title mb-3">{{ $t('product.recently_viewed') }}</h2>
-      <div class="no-scrollbar -mx-3 flex gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:px-0">
-        <div v-for="p in recentOthers" :key="p.id" class="w-36 shrink-0">
+      <div class="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 pb-2 md:mx-0 md:gap-3 md:px-0">
+        <div v-for="p in recentOthers" :key="p.id" class="w-32 shrink-0 md:w-40">
           <ProductCardItem :product="p" />
         </div>
       </div>
     </section>
 
     <!-- sticky mobile purchase bar -->
-    <div class="fixed inset-x-0 bottom-14 z-20 flex items-center gap-3 border-t bg-white p-3 md:hidden">
-      <p class="text-lg font-bold text-brand-600">{{ formatMoney(variant?.price ?? product.price, locale) }}</p>
-      <button :disabled="!variant?.purchasable || cart.busy" class="btn-primary flex-1 py-3" data-test="add-to-cart-mobile" @click="addToCart">{{ $t('catalog.add_to_cart') }}</button>
+    <div class="fixed inset-x-0 bottom-14 z-20 flex items-center gap-2 border-t border-ink-100 bg-white px-3 py-2.5 md:hidden">
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-ink-300"><WishlistButton :product-id="product.id" /></span>
+      <button :disabled="!variant?.purchasable || cart.busy" class="btn-primary h-11 flex-1 font-bold" data-test="add-to-cart-mobile" @click="addToCart">
+        {{ $t('catalog.add_to_cart') }} · <span dir="auto">{{ formatMoney(shownPrice, locale) }}</span>
+      </button>
     </div>
   </div>
-  <div v-else class="grid animate-pulse gap-6 md:grid-cols-2"><div class="aspect-[3/4] rounded-2xl bg-white" /><div class="space-y-3"><div class="h-8 rounded bg-white" /><div class="h-20 rounded bg-white" /></div></div>
+  <div v-else class="grid animate-pulse gap-6 md:grid-cols-2"><div class="aspect-[3/4] rounded-md bg-ink-100" /><div class="space-y-3"><div class="h-8 rounded bg-ink-100" /><div class="h-20 rounded bg-ink-100" /></div></div>
 </template>

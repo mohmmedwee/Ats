@@ -7,6 +7,7 @@ use App\Modules\Catalog\Contracts\SellabilityRule;
 use App\Modules\Pricing\Application\ConfiguredRateProvider;
 use App\Modules\Pricing\Application\EloquentExchangeRates;
 use App\Modules\Pricing\Application\EloquentPriceBook;
+use App\Modules\Pricing\Application\FlashSales;
 use App\Modules\Pricing\Application\HasPrice;
 use App\Modules\Pricing\Application\HttpRateProvider;
 use App\Modules\Pricing\Application\RuleResolver;
@@ -29,6 +30,7 @@ final class PricingServiceProvider extends ModuleServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(FlashSales::class);
         $this->app->singleton(EloquentPriceBook::class);
         $this->app->alias(EloquentPriceBook::class, PriceBook::class);
         $this->app->singleton(CatalogPricing::class, fn ($app) => $app->make(EloquentPriceBook::class));

@@ -133,87 +133,90 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
 </script>
 
 <template>
-  <section class="grid gap-8 md:grid-cols-2">
-    <div class="space-y-6">
-      <h1 class="text-2xl font-semibold">{{ $t('checkout.title') }}</h1>
+  <section class="grid gap-6 md:grid-cols-[minmax(0,1fr)_400px] md:items-start md:gap-10">
+    <div class="space-y-5">
+      <h1 class="text-lg font-extrabold uppercase tracking-wide md:text-xl">{{ $t('checkout.title') }}</h1>
 
-      <fieldset class="space-y-2">
-        <legend class="font-medium">{{ $t('checkout.address') }}</legend>
-        <label v-for="a in addresses" :key="a.id" class="flex gap-2 rounded border p-2">
-          <input v-model="addressId" type="radio" name="address" :value="a.id">
-          <span>{{ a.full_name }} — {{ a.address_line_1 }}, {{ a.city }} <span dir="ltr">{{ a.phone }}</span></span>
+      <fieldset class="space-y-2 rounded-md border border-ink-100 p-4 md:p-5">
+        <legend class="flex items-center gap-2 px-1 text-sm font-extrabold uppercase tracking-wide"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-xs text-white">1</span>{{ $t('checkout.address') }}</legend>
+        <label v-for="a in addresses" :key="a.id" class="flex cursor-pointer gap-3 rounded-md border p-3 text-sm transition" :class="addressId === a.id ? 'border-ink-900 bg-ink-100/50' : 'border-ink-100 hover:border-ink-300'">
+          <input v-model="addressId" type="radio" name="address" :value="a.id" class="mt-1 accent-ink-900">
+          <span><b class="block">{{ a.full_name }}</b><span class="text-ink-700">{{ a.address_line_1 }}, {{ a.city }}</span> · <span dir="ltr" class="text-ink-500">{{ a.phone }}</span></span>
         </label>
-        <button v-if="!showForm" type="button" class="text-sm underline" @click="showForm = true">{{ $t('checkout.new_address') }}</button>
-        <form v-if="showForm" class="space-y-2 rounded border p-3" data-test="address-form" @submit.prevent="saveAddress">
-          <label v-for="f in fieldNames" :key="f" class="block text-sm">{{ $t(`checkout.fields.${f}`) }}
-            <input v-model="form[f]" :required="!['address_line_2', 'district'].includes(f)" :dir="f === 'phone' ? 'ltr' : undefined" class="mt-1 w-full rounded border px-2 py-1" :name="f">
+        <button v-if="!showForm" type="button" class="flex items-center gap-1 text-sm font-semibold underline underline-offset-4" @click="showForm = true"><AppIcon name="plus" :size="15" />{{ $t('checkout.new_address') }}</button>
+        <form v-if="showForm" class="grid gap-3 pt-2 md:grid-cols-2" data-test="address-form" @submit.prevent="saveAddress">
+          <label v-for="f in fieldNames" :key="f" class="block" :class="f.startsWith('address_line') ? 'md:col-span-2' : ''"><span class="label">{{ $t(`checkout.fields.${f}`) }}</span>
+            <input v-model="form[f]" :required="!['address_line_2', 'district'].includes(f)" :dir="f === 'phone' ? 'ltr' : undefined" class="input" :name="f">
           </label>
-          <label class="block text-sm">{{ $t('checkout.fields.state') }}
-            <select v-model="form.state" required class="mt-1 w-full rounded border px-2 py-1" name="state">
+          <label class="block"><span class="label">{{ $t('checkout.fields.state') }}</span>
+            <select v-model="form.state" required class="input" name="state">
               <option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option>
             </select>
           </label>
           <template v-if="country === 'SA'">
-            <label class="block text-sm">{{ $t('checkout.fields.postal_code') }}<input v-model="form.postal_code" class="mt-1 w-full rounded border px-2 py-1" dir="ltr"></label>
-            <label class="block text-sm">{{ $t('checkout.fields.national_address_code') }}<input v-model="form.national_address_code" class="mt-1 w-full rounded border px-2 py-1" dir="ltr"></label>
+            <label class="block"><span class="label">{{ $t('checkout.fields.postal_code') }}</span><input v-model="form.postal_code" class="input" dir="ltr"></label>
+            <label class="block"><span class="label">{{ $t('checkout.fields.national_address_code') }}</span><input v-model="form.national_address_code" class="input" dir="ltr"></label>
           </template>
-          <button class="rounded bg-gray-900 px-4 py-1 text-white">{{ $t('common.save') }}</button>
+          <div class="md:col-span-2"><button class="btn-primary">{{ $t('common.save') }}</button></div>
         </form>
       </fieldset>
 
-      <fieldset v-if="options.length" class="space-y-2">
-        <legend class="font-medium">{{ $t('checkout.shipping') }}</legend>
-        <label v-for="o in options" :key="o.code" class="flex justify-between rounded border p-2">
-          <span><input v-model="method" type="radio" name="method" :value="o.code"> {{ o.name }}</span>
-          <span>{{ o.free ? $t('checkout.free') : formatMoney(o.price, locale) }}</span>
+      <fieldset v-if="options.length" class="space-y-2 rounded-md border border-ink-100 p-4 md:p-5">
+        <legend class="flex items-center gap-2 px-1 text-sm font-extrabold uppercase tracking-wide"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-xs text-white">2</span>{{ $t('checkout.shipping') }}</legend>
+        <label v-for="o in options" :key="o.code" class="flex cursor-pointer items-center justify-between gap-3 rounded-md border p-3 text-sm transition" :class="method === o.code ? 'border-ink-900 bg-ink-100/50' : 'border-ink-100 hover:border-ink-300'">
+          <span class="flex items-center gap-3"><input v-model="method" type="radio" name="method" :value="o.code" class="accent-ink-900"><AppIcon name="truck" :size="18" />{{ o.name }}</span>
+          <span class="font-bold" :class="o.free ? 'text-green-700' : ''">{{ o.free ? $t('checkout.free') : formatMoney(o.price, locale) }}</span>
+        </label>
+      </fieldset>
+
+      <fieldset v-if="payMethods.length > 1 && quote" class="space-y-2 rounded-md border border-ink-100 p-4 md:p-5" data-test="pay-methods">
+        <legend class="flex items-center gap-2 px-1 text-sm font-extrabold uppercase tracking-wide"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-xs text-white">3</span>{{ $t('pay_method.title') }}</legend>
+        <label v-for="pm in payMethods" :key="pm.provider" class="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm transition" :class="payWith === pm.provider ? 'border-ink-900 bg-ink-100/50' : 'border-ink-100 hover:border-ink-300'">
+          <input v-model="payWith" type="radio" name="pay-with" :value="pm.provider" class="accent-ink-900" :data-test="`pay-${pm.provider}`">
+          <span class="flex-1">
+            <span class="block font-semibold">{{ $t(`pay_method.${pm.provider}`, pm.provider) }}</span>
+            <span v-if="pm.currency_note" class="block text-xs text-ink-500">{{ $t('pay_method.usd_note', { amount: usd(quote.total, quote.currency) }) }}</span>
+          </span>
+          <span v-if="pm.provider === 'paypal'" class="font-bold italic text-[#003087]" dir="ltr">Pay<span class="text-[#009cde]">Pal</span></span>
         </label>
       </fieldset>
     </div>
 
-    <aside class="h-fit rounded border p-4">
-      <h2 class="mb-3 font-medium">{{ $t('checkout.summary') }}</h2>
-      <p v-if="error" role="alert" class="mb-3 text-red-600">{{ error }}</p>
+    <aside class="rounded-md bg-ink-100/60 p-5 md:sticky md:top-36">
+      <h2 class="mb-4 text-sm font-extrabold uppercase tracking-wide">{{ $t('checkout.summary') }}</h2>
+      <p v-if="error" role="alert" class="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
+      <div v-if="!quote && !error" class="space-y-2"><div class="h-4 animate-pulse rounded bg-white" /><div class="h-4 w-2/3 animate-pulse rounded bg-white" /></div>
       <template v-if="quote">
-        <p v-if="quote.shipments.length > 1" class="mb-3 rounded bg-blue-50 p-2 text-sm">{{ $t('checkout.multi_package', { n: quote.shipments.length }) }}</p>
-        <div v-for="s in quote.shipments" :key="s.number" class="mb-3">
-          <p class="text-sm font-medium">{{ $t('checkout.shipment', { n: s.number }) }} · {{ $t('common.days', { min: s.estimate.min_days, max: s.estimate.max_days }) }}</p>
-          <ul class="text-sm">
-            <li v-for="i in quote.items.filter(x => x.shipment === s.number)" :key="i.variant_id" class="flex justify-between">
-              <span>{{ i.quantity }} × {{ i.title }}</span><span>{{ formatMoney(i.line_total, locale) }}</span>
+        <p v-if="quote.shipments.length > 1" class="mb-3 rounded-md bg-white p-2.5 text-xs">{{ $t('checkout.multi_package', { n: quote.shipments.length }) }}</p>
+        <div v-for="s in quote.shipments" :key="s.number" class="mb-4">
+          <p class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-ink-500"><AppIcon name="box" :size="14" />{{ $t('checkout.shipment', { n: s.number }) }} · {{ $t('common.days', { min: s.estimate.min_days, max: s.estimate.max_days }) }}</p>
+          <ul class="space-y-1 text-sm">
+            <li v-for="i in quote.items.filter(x => x.shipment === s.number)" :key="i.variant_id" class="flex justify-between gap-3">
+              <span class="line-clamp-1 text-ink-700">{{ i.quantity }} × {{ i.title }}</span><span class="shrink-0">{{ formatMoney(i.line_total, locale) }}</span>
             </li>
           </ul>
         </div>
-        <dl class="space-y-1 border-t pt-2 text-sm">
+        <dl class="space-y-1.5 border-t border-ink-300/60 pt-3 text-sm">
           <div class="flex justify-between"><dt>{{ $t('cart.subtotal') }}</dt><dd>{{ m(quote.subtotal) }}</dd></div>
-          <div class="flex justify-between"><dt>{{ $t('checkout.shipping_fee') }}</dt><dd>{{ quote.shipping_method.free ? $t('checkout.free') : m(quote.shipping) }}</dd></div>
+          <div class="flex justify-between"><dt>{{ $t('checkout.shipping_fee') }}</dt><dd :class="quote.shipping_method.free ? 'font-semibold text-green-700' : ''">{{ quote.shipping_method.free ? $t('checkout.free') : m(quote.shipping) }}</dd></div>
           <div v-if="Number(quote.customs) > 0" class="flex justify-between"><dt>{{ $t('checkout.customs') }}</dt><dd>{{ m(quote.customs) }}</dd></div>
-          <div v-if="Number(quote.discount) > 0" class="flex justify-between text-green-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m(quote.discount) }}</dd></div>
-          <div class="flex justify-between text-lg font-semibold"><dt>{{ $t('common.total') }}</dt><dd data-test="quote-total">{{ m(quote.total) }}</dd></div>
-          <div class="flex justify-between text-gray-500"><dt>{{ $t('checkout.vat_included') }}</dt><dd>{{ m(quote.tax) }}</dd></div>
+          <div v-if="Number(quote.discount) > 0" class="flex justify-between text-brand-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m(quote.discount) }}</dd></div>
+          <div class="flex justify-between border-t border-ink-300/60 pt-2 text-lg font-extrabold"><dt>{{ $t('common.total') }}</dt><dd data-test="quote-total">{{ m(quote.total) }}</dd></div>
+          <div class="flex justify-between text-xs text-ink-500"><dt>{{ $t('checkout.vat_included') }}</dt><dd>{{ m(quote.tax) }}</dd></div>
         </dl>
-        <div class="mt-4 border-t pt-4" data-test="coupon-box">
-          <div v-if="coupon" class="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
+        <div class="mt-4" data-test="coupon-box">
+          <div v-if="coupon" class="flex items-center justify-between rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
             <span>{{ $t('coupon.applied') }} <b dir="ltr">{{ coupon }}</b></span>
-            <button type="button" class="link" @click="removeCoupon">{{ $t('common.remove') }}</button>
+            <button type="button" class="font-semibold underline" @click="removeCoupon">{{ $t('common.remove') }}</button>
           </div>
           <form v-else class="flex gap-2" @submit.prevent="applyCoupon">
-            <input v-model="couponInput" class="input flex-1 uppercase" :placeholder="$t('coupon.placeholder')" dir="ltr" data-test="coupon-input">
-            <button class="btn-outline btn-sm" data-test="coupon-apply">{{ $t('coupon.apply') }}</button>
+            <input v-model="couponInput" class="input flex-1 bg-white uppercase" :placeholder="$t('coupon.placeholder')" dir="ltr" data-test="coupon-input">
+            <button class="btn-outline btn-sm bg-white" data-test="coupon-apply">{{ $t('coupon.apply') }}</button>
           </form>
           <p v-if="couponError" role="alert" class="mt-1 text-xs text-red-600">{{ couponError }}</p>
         </div>
-        <fieldset v-if="payMethods.length > 1" class="mt-4 space-y-2" data-test="pay-methods">
-          <legend class="mb-1 text-sm font-semibold">{{ $t('pay_method.title') }}</legend>
-          <label v-for="pm in payMethods" :key="pm.provider" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm" :class="payWith === pm.provider ? 'border-ink-900 bg-ink-100/50' : 'border-ink-300'">
-            <input v-model="payWith" type="radio" name="pay-with" :value="pm.provider" :data-test="`pay-${pm.provider}`">
-            <span class="flex-1">
-              <span class="block font-medium">{{ $t(`pay_method.${pm.provider}`, pm.provider) }}</span>
-              <span v-if="pm.currency_note && quote" class="block text-xs text-ink-500">{{ $t('pay_method.usd_note', { amount: usd(quote.total, quote.currency) }) }}</span>
-            </span>
-            <span v-if="pm.provider === 'paypal'" class="font-bold italic text-[#003087]" dir="ltr">Pay<span class="text-[#009cde]">Pal</span></span>
-          </label>
-        </fieldset>
-        <button :disabled="busy" class="mt-4 w-full rounded bg-gray-900 py-2 text-white disabled:opacity-50" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
+        <button :disabled="busy" class="btn-primary mt-5 h-12 w-full text-base font-bold uppercase tracking-wide" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
+        <p class="mt-3 flex items-center justify-center gap-2 text-xs text-ink-500"><AppIcon name="shield" :size="15" /> {{ $t('footer.secure') }}</p>
       </template>
     </aside>
   </section>

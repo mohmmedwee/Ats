@@ -76,6 +76,7 @@ final class StorefrontCatalogController
             'sort' => ['nullable', 'in:newest,price_asc,price_desc'],
             'limit' => ['nullable', 'integer', 'between:1,100'],
             'price_max' => ['nullable', 'numeric', 'min:0'],
+            'sale' => ['nullable', 'boolean'],
         ]);
 
         return $this->listing($request, $request->query('category'), $request->query('q'));
@@ -193,6 +194,9 @@ final class StorefrontCatalogController
             $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
         }
 
+        if ($request->boolean('sale')) {
+            $this->whereOnSale($query, $country);
+        }
         if (is_numeric($max = $request->query('price_max'))) {
             $query->where('pca.from_price', '<=', $max);
         }
@@ -294,10 +298,21 @@ final class StorefrontCatalogController
             'price' => $p->getAttribute('from_price') !== null
                 ? ['amount' => (string) $p->getAttribute('from_price'), 'currency' => (string) $p->getAttribute('from_price_currency')]
                 : null,
+            'compare_at_price' => null,
+            'sale_ends_at' => null,
             'image' => $images->first()?->publicUrl(),
             'colors' => $this->colours($p, $images),
             'delivery_estimate' => $this->estimate($p),
         ];
+
+        if ($data['price'] !== null && $this->onSale($p, $country)) {
+            $sale = $this->pricing->fromPrice($p->id, $country->code);
+            if ($sale !== null && isset($sale['compare_at'])) {
+                $data['price'] = ['amount' => $sale['amount'], 'currency' => $sale['currency']];
+                $data['compare_at_price'] = ['amount' => $sale['compare_at'], 'currency' => $sale['currency']];
+                $data['sale_ends_at'] = $sale['sale_ends_at'] ?? null;
+            }
+        }
 
         if ($detailed) {
             $variants = $this->variantRows($p, $country);
@@ -330,7 +345,8 @@ final class StorefrontCatalogController
             'id' => $v->id,
             'sku' => $v->sku,
             'attributes' => (object) $v->attributes,
-            'price' => $prices[$v->id] ?? null,
+            'price' => isset($prices[$v->id]) ? ['amount' => $prices[$v->id]['amount'], 'currency' => $prices[$v->id]['currency']] : null,
+            'compare_at_price' => isset($prices[$v->id]['compare_at']) ? ['amount' => $prices[$v->id]['compare_at'], 'currency' => $prices[$v->id]['currency']] : null,
             'availability' => $stock[$v->id] ?? 'out_of_stock',
             'purchasable' => isset($prices[$v->id]) && isset($stock[$v->id]) && $stock[$v->id] !== 'out_of_stock',
         ])->all();
@@ -349,6 +365,46 @@ final class StorefrontCatalogController
         $max = $p->getAttribute('estimated_delivery_max_days');
 
         return $min !== null && $max !== null ? ['min_days' => (int) $min, 'max_days' => (int) $max] : null;
+    }
+
+    /** @return array{all: bool, product_ids: list<string>, category_ids: list<string>} category_ids include sub-sections */
+    private function saleScope(CountryData $country): array
+    {
+        // Memoised on the request: controller instances can be reused across requests.
+        $key = 'catalog.sale_scope.'.$country->code;
+        if (request()->attributes->has($key)) {
+            return request()->attributes->get($key);
+        }
+        $t = $this->pricing->saleTargets($country->code);
+        $ids = $t['category_ids'];
+        $frontier = $ids;
+        while ($frontier !== []) {
+            $frontier = Category::query()->whereIn('parent_id', $frontier)->pluck('id')->all();
+            $ids = array_merge($ids, $frontier);
+        }
+
+        $scope = ['all' => $t['all'], 'product_ids' => $t['product_ids'], 'category_ids' => array_values(array_unique($ids))];
+        request()->attributes->set($key, $scope);
+
+        return $scope;
+    }
+
+    private function onSale(Product $p, CountryData $country): bool
+    {
+        $scope = $this->saleScope($country);
+
+        return $scope['all'] || in_array($p->id, $scope['product_ids'], true) || in_array($p->category_id, $scope['category_ids'], true);
+    }
+
+    /** @param Builder<Product> $query */
+    private function whereOnSale(Builder $query, CountryData $country): void
+    {
+        $scope = $this->saleScope($country);
+        if ($scope['all']) {
+            return;
+        }
+        $query->where(fn ($q) => $q->whereIn('products.id', $scope['product_ids'] === [] ? ['00000000-0000-0000-0000-000000000000'] : $scope['product_ids'])
+            ->orWhereIn('products.category_id', $scope['category_ids'] === [] ? ['00000000-0000-0000-0000-000000000000'] : $scope['category_ids']));
     }
 
     /** @return list<string> */

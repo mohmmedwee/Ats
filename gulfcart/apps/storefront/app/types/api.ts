@@ -15,6 +15,9 @@ export interface ProductCard {
   image: string | null
   delivery_estimate: { min_days: number, max_days: number } | null
   colors?: { name: string, image: string | null }[]
+  /** Regular price while a flash sale lowers `price`. */
+  compare_at_price?: Money | null
+  sale_ends_at?: string | null
 }
 
 export interface Variant {
@@ -22,6 +25,7 @@ export interface Variant {
   sku: string
   attributes: Record<string, string>
   price: Money | null
+  compare_at_price?: Money | null
   availability: Availability
   purchasable: boolean
 }

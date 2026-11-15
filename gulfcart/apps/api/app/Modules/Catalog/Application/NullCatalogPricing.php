@@ -16,4 +16,9 @@ final class NullCatalogPricing implements CatalogPricing
     {
         return [];
     }
+
+    public function saleTargets(string $countryCode): array
+    {
+        return ['all' => false, 'product_ids' => [], 'category_ids' => []];
+    }
 }

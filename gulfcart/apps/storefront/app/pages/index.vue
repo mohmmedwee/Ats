@@ -69,6 +69,8 @@ const tiles = computed(() => [
       </NuxtLink>
     </section>
 
+    <FlashSaleStrip />
+
     <!-- trending row -->
     <section v-if="fresh?.length" class="px-3 md:px-4">
       <div class="mb-3 flex items-end justify-between">

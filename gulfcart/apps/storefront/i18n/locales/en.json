@@ -949,5 +949,31 @@
     "tech": "Phones & gadgets",
     "brands_kicker": "Brands",
     "brands": "Shop by brand"
+  },
+  "flash": {
+    "ends_in": "Ends in",
+    "up_to": "Up to {n}% off",
+    "admin_title": "Flash sales",
+    "add": "New flash sale",
+    "admin_subtitle": "Time-limited discounts with a countdown on the site. Prices go back automatically when the sale ends.",
+    "name": "Name",
+    "discount": "Discount",
+    "applies_to": "Applies to",
+    "window": "When",
+    "empty": "No flash sales yet.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "scope": {
+      "all": "Whole store",
+      "category": "Category",
+      "product": "One product"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "running": "Running",
+      "ended": "Ended",
+      "paused": "Paused"
+    },
+    "hint": "Safe pricing: a sale never takes a product below its cost (supplier price, shipping, fees and VAT). If the discount is too deep for a product, it gets the lowest price that still covers its cost. Customers in the cart see the new price before paying."
   }
 }
