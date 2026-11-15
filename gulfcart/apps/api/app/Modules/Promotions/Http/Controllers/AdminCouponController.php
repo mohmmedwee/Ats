@@ -17,7 +17,7 @@ final class AdminCouponController
 
     public function index(): JsonResponse
     {
-        $coupons = Coupon::query()->withCount(['redemptions as used' => fn ($q) => $q->where('status', 'active')])
+        $coupons = Coupon::query()->whereNull('user_id')->withCount(['redemptions as used' => fn ($q) => $q->where('status', 'active')])
             ->withSum(['redemptions as discount_given' => fn ($q) => $q->where('status', 'active')], 'amount')
             ->latest()->get();
 

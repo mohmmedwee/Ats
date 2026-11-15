@@ -10,6 +10,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property string $code
+ * @property string|null $user_id personal code (points, referral) usable only by this customer
+ * @property string|null $source
  * @property string|null $description
  * @property string $type
  * @property string $value

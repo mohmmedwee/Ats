@@ -38,4 +38,10 @@ return [
     'coupon_already_used' => 'لقد استخدمت هذا الكود من قبل.',
     'review_not_allowed' => 'يمكن تقييم المنتج فقط من العملاء الذين استلموه.',
     'review_already_exists' => 'لقد قيّمت هذا المنتج من قبل.',
+    'loyalty_points' => 'اختر النقاط بمضاعفات :min.',
+    'loyalty_insufficient' => 'رصيد نقاطك لا يكفي.',
+    'referral_not_found' => 'رمز الدعوة غير صحيح.',
+    'referral_own_code' => 'لا يمكنك استخدام رمز دعوتك.',
+    'referral_already_used' => 'لقد استخدمت رمز دعوة من قبل.',
+    'referral_not_new' => 'رموز الدعوة للعملاء الجدد قبل أول طلب.',
 ];

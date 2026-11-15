@@ -38,4 +38,10 @@ return [
     'coupon_already_used' => 'You have already used this code.',
     'review_not_allowed' => 'Only customers who received this product can review it.',
     'review_already_exists' => 'You have already reviewed this product.',
+    'loyalty_points' => 'Choose points in steps of :min.',
+    'loyalty_insufficient' => 'You do not have enough points.',
+    'referral_not_found' => 'This invite code is not valid.',
+    'referral_own_code' => 'You cannot use your own invite code.',
+    'referral_already_used' => 'You have already used an invite code.',
+    'referral_not_new' => 'Invite codes are for new customers before their first order.',
 ];

@@ -4,6 +4,7 @@ import type { Address, CheckoutSession, Envelope, Payment, Quote, ShippingOption
 definePageMeta({ middleware: 'auth' })
 const { request, csrf, country, idempotencyKey } = useApi()
 const { locale, t } = useI18n()
+const localePath = useLocalePath()
 
 const addresses = ref<Address[]>([])
 const regions = ref<{ code: string, name: string }[]>([])
@@ -25,6 +26,10 @@ onMounted(async () => {
 })
 const error = ref('')
 const busy = ref(false)
+const points = ref<{ balance: number, min_redeem: number, balance_value: { amount: string, currency: string } } | null>(null)
+onMounted(async () => {
+  points.value = (await request<Envelope<{ balance: number, min_redeem: number, balance_value: { amount: string, currency: string } }>>('/loyalty').catch(() => null))?.data ?? null
+})
 const showForm = ref(false)
 const form = reactive({ full_name: '', phone: '', address_line_1: '', address_line_2: '', district: '', city: '', state: '', postal_code: '', national_address_code: '' })
 
@@ -214,6 +219,9 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <button class="btn-outline btn-sm bg-white" data-test="coupon-apply">{{ $t('coupon.apply') }}</button>
           </form>
           <p v-if="couponError" role="alert" class="mt-1 text-xs text-red-600">{{ couponError }}</p>
+          <NuxtLink v-if="!coupon && points && points.balance >= points.min_redeem" :to="localePath('/account/rewards')" class="mt-2 flex items-center gap-1.5 text-xs font-semibold text-brand-700 underline underline-offset-2" data-test="points-hint">
+            <AppIcon name="coins" :size="14" />{{ $t('rewards.checkout_hint', { points: points.balance, amount: formatMoney(points.balance_value, locale) }) }}
+          </NuxtLink>
         </div>
         <button :disabled="busy" class="btn-primary mt-5 h-12 w-full text-base font-bold uppercase tracking-wide" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
         <p class="mt-3 flex items-center justify-center gap-2 text-xs text-ink-500"><AppIcon name="shield" :size="15" /> {{ $t('footer.secure') }}</p>

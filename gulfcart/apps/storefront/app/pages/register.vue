@@ -15,7 +15,8 @@ async function submit() {
   try {
     await auth.register({ ...form, phone: form.phone || undefined })
     await useCartStore().load().catch(() => undefined)
-    await navigateTo(localePath(redirect.value))
+    const welcome = await useReferral().applyPending()
+    await navigateTo(localePath(welcome ? '/account/rewards?welcome=1' : redirect.value))
   }
   catch (e) {
     error.value = apiErrorMessage(e, t('errors.generic'))

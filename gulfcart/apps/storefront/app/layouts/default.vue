@@ -12,6 +12,7 @@ const { locale } = useI18n()
 watch(locale, () => loadSite())
 
 onMounted(() => {
+  useReferral().capture(route.query.ref)
   loadSite()
   if (!auth.loaded) auth.fetchMe()
   cart.load().catch(() => undefined)
@@ -86,6 +87,7 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
           <NuxtLink :to="localePath('/products?sort=price_asc')" class="block hover:text-brand-600">{{ $t('home.best_value') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/orders')" class="block hover:text-brand-600">{{ $t('nav.orders') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/wishlist')" class="block hover:text-brand-600">{{ $t('wishlist.title') }}</NuxtLink>
+          <NuxtLink :to="localePath('/account/rewards')" class="block hover:text-brand-600">{{ $t('rewards.title') }}</NuxtLink>
         </div>
         <div class="space-y-2" data-test="footer-pages">
           <p class="font-semibold text-ink-900">{{ $t('footer.help') }}</p>

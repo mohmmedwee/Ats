@@ -176,6 +176,17 @@ return [
         'stale_lock_minutes' => 10,
     ],
 
+    // Rewards: points on the items total of paid orders, converted into personal discount codes.
+    'loyalty' => [
+        'enabled' => (bool) env('LOYALTY_ENABLED', true),
+        'points_per_unit' => (int) env('LOYALTY_POINTS_PER_UNIT', 1),      // per 1 AED / SAR spent
+        'point_value' => env('LOYALTY_POINT_VALUE', '0.05'),               // 100 points = 5 AED / SAR
+        'min_redeem' => (int) env('LOYALTY_MIN_REDEEM', 100),
+        'referrer_points' => (int) env('LOYALTY_REFERRER_POINTS', 500),    // when the invited friend's first order is paid
+        'friend_percent' => (int) env('LOYALTY_FRIEND_PERCENT', 10),       // welcome code for the invited friend
+        'friend_max' => env('LOYALTY_FRIEND_MAX', '50'),
+    ],
+
     'allow_mock_supplier_in_production' => (bool) env('ALLOW_MOCK_SUPPLIER_IN_PRODUCTION', false),
 
     // Local development only (DevSuperAdminSeeder).

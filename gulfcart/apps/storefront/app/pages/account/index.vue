@@ -59,5 +59,6 @@ const verifyCode = () => call(async () => {
 
     <NuxtLink :to="localePath('/account/orders')" class="underline">{{ $t('nav.orders') }}</NuxtLink>
     <NuxtLink :to="localePath('/account/wishlist')" class="ms-4 underline">{{ $t('wishlist.title') }}</NuxtLink>
+    <NuxtLink :to="localePath('/account/rewards')" class="ms-4 underline" data-test="account-rewards">{{ $t('rewards.title') }}</NuxtLink>
   </section>
 </template>

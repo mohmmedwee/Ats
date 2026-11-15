@@ -44,7 +44,7 @@ final class CouponService implements Coupons
 
     private function decide(?Coupon $coupon, string $userId, string $countryCode, string $subtotal): CouponDecision
     {
-        if ($coupon === null || ! $coupon->is_active) {
+        if ($coupon === null || ! $coupon->is_active || ($coupon->user_id !== null && $coupon->user_id !== $userId)) {
             throw self::invalid('not_found');
         }
         if (($coupon->starts_at && $coupon->starts_at->isFuture()) || ($coupon->ends_at && $coupon->ends_at->isPast())) {

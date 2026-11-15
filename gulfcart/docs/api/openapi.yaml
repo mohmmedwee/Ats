@@ -935,6 +935,54 @@ paths:
       summary: Update or pause a flash sale
       parameters: [{ name: flashSale, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /loyalty:
+    get:
+      tags: [Promotions]
+      summary: 'Rewards: points balance and its value, history, unused personal codes, referral code and whether a friend''s code can still be entered'
+      security: [{ sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/Country' }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '401': { $ref: '#/components/responses/Unauthenticated' } }
+  /loyalty/redeem:
+    post:
+      tags: [Promotions]
+      summary: 'Convert points (multiples of min_redeem) into a one-time personal discount code worth points × point_value'
+      security: [{ sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/Country' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [points], properties: { points: { type: integer, minimum: 1 } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '422': { description: 'LOYALTY_INVALID_POINTS or LOYALTY_INSUFFICIENT', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /loyalty/referral:
+    post:
+      tags: [Promotions]
+      summary: 'New customer enters a friend''s invite code (before the first paid order): returns a welcome code; the friend earns bonus points when that first order is paid'
+      security: [{ sanctum: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string, maxLength: 16 } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '422': { description: 'REFERRAL_INVALID with reason not_found, own_code, already_used or not_new', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /admin/loyalty:
+    get:
+      tags: [Admin Promotions]
+      summary: Outstanding points and their value, totals by type, referrals, top holders (pricing.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/loyalty/adjust:
+    post:
+      tags: [Admin Promotions]
+      summary: Add or remove points for a customer with a note (audited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, points, note]
+              properties: { user_id: { type: string, format: uuid }, points: { type: integer, description: Signed, not zero }, note: { type: string, maxLength: 255 } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]
