@@ -959,6 +959,17 @@ paths:
         - { name: country, in: query, schema: { type: string, enum: [AE, SA], default: AE } }
         - { name: lang, in: query, schema: { type: string, enum: [en, ar], default: en } }
       responses: { '200': { description: RSS 2.0 XML, content: { application/xml: {} } } }
+  /payments/methods:
+    get:
+      tags: [Payments]
+      summary: Payment methods the customer can choose at checkout (default first; PayPal is charged in USD)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /payments/{id}/confirm:
+    post:
+      tags: [Payments]
+      summary: Called on return from the provider; captures approved PayPal orders (no effect for other providers)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
   /countries/{code}/address-format:
     get:
       tags: [Countries]
@@ -1259,6 +1270,7 @@ paths:
               required: [order_id]
               properties:
                 order_id: { type: string, format: uuid }
+                provider: { type: string, description: 'One of GET /payments/methods; default provider when omitted' }
       responses:
         '201': { $ref: '#/components/responses/Created' }
         '409':

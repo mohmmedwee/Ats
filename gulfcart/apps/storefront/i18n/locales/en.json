@@ -834,5 +834,13 @@
     "more": "Privacy policy",
     "accept": "Accept all",
     "essential": "Essential only"
+  },
+  "pay_method": {
+    "title": "Pay with",
+    "tap": "Card, Apple Pay or mada",
+    "sandbox": "Card (test)",
+    "paypal": "PayPal",
+    "usd_note": "Charged in US dollars: about {amount}. Your bank may add a currency fee.",
+    "cancelled": "You cancelled the payment. Your order is saved: you can pay any time."
   }
 }

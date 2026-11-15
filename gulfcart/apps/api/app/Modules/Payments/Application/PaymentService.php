@@ -3,7 +3,7 @@
 namespace App\Modules\Payments\Application;
 
 use App\Modules\Orders\Contracts\OrderBook;
-use App\Modules\Payments\Contracts\PaymentGateway;
+use App\Modules\Payments\Contracts\ConfirmsOnReturn;
 use App\Modules\Payments\Domain\IntentRequest;
 use App\Modules\Payments\Domain\WebhookEvent;
 use App\Modules\Payments\Infrastructure\Models\Payment;
@@ -20,13 +20,14 @@ use Illuminate\Support\Str;
 final class PaymentService
 {
     public function __construct(
-        private readonly PaymentGateway $gateway,
+        private readonly GatewayRegistry $gateways,
         private readonly OrderBook $orders,
         private readonly RefundService $refunds,
     ) {}
 
-    public function createIntent(string $userId, string $orderId, string $idempotencyKey): Payment
+    public function createIntent(string $userId, string $orderId, string $idempotencyKey, ?string $provider = null): Payment
     {
+        $gateway = $this->gateways->forCustomer($provider);
         $order = $this->orders->get($orderId);
         if ($order === null || $order->userId !== $userId) {
             throw new ApiException('NOT_FOUND', 404);
@@ -40,18 +41,18 @@ final class PaymentService
         }
 
         $open = Payment::query()->where('order_id', $orderId)->whereIn('status', ['created', 'requires_action'])
-            ->where('amount', $due)->latest()->first();
+            ->where('provider', $gateway->name())->where('amount', $due)->latest()->first();
         if ($open !== null) {
             return $open; // reuse the open intent instead of creating parallel ones
         }
 
         $payment = Payment::query()->create([
-            'order_id' => $orderId, 'provider' => $this->gateway->name(), 'idempotency_key' => 'pay_'.$idempotencyKey,
+            'order_id' => $orderId, 'provider' => $gateway->name(), 'idempotency_key' => 'pay_'.$idempotencyKey,
             'amount' => $due, 'currency' => $order->currency, 'status' => 'created',
         ]);
 
         $returnUrl = rtrim((string) config('gulfcart.frontend_url'), '/').($order->locale === 'ar' ? '/ar' : '').'/payment/return';
-        $result = $this->gateway->createIntent(new IntentRequest(
+        $result = $gateway->createIntent(new IntentRequest(
             $payment->id, $due, $order->currency, $order->orderNumber, $returnUrl,
             $order->shippingAddress['full_name'] ?? null, null, $order->shippingAddress['phone'] ?? null,
         ), $payment->idempotency_key);
@@ -61,27 +62,51 @@ final class PaymentService
     }
 
     /** @return string processed | duplicate | ignored | failed */
-    public function handleWebhook(Request $request): string
+    public function handleWebhook(Request $request, ?string $provider = null): string
     {
-        $event = $this->gateway->parseWebhook($request);
+        $gateway = $provider === null ? $this->gateways->default() : $this->gateways->get($provider);
+
+        return $this->process($gateway->parseWebhook($request), $gateway->name());
+    }
+
+    /**
+     * Finishes a payment when the customer returns from the provider page (PayPal captures here). The
+     * same capture also arrives by webhook; the shared event ID makes the second one a duplicate.
+     */
+    public function confirm(string $paymentId): Payment
+    {
+        $payment = Payment::query()->findOrFail($paymentId);
+        $gateway = $this->gateways->get($payment->provider);
+        if ($gateway instanceof ConfirmsOnReturn && $payment->status === 'requires_action' && $payment->provider_reference !== null) {
+            $event = $gateway->confirm($payment->provider_reference);
+            if ($event !== null) {
+                $this->process($event, $gateway->name());
+            }
+        }
+
+        return $payment->refresh();
+    }
+
+    private function process(WebhookEvent $event, string $provider): string
+    {
         if ($event->eventId === '' || $event->type === '') {
             throw new ApiException('BAD_REQUEST', 400);
         }
 
-        return DB::transaction(function () use ($event): string {
+        return DB::transaction(function () use ($event, $provider): string {
             $inserted = PaymentWebhookEvent::query()->insertOrIgnore([
-                'id' => (string) Str::uuid7(), 'provider' => $this->gateway->name(),
+                'id' => (string) Str::uuid7(), 'provider' => $provider,
                 'provider_event_id' => $event->eventId, 'event_type' => $event->type,
                 'payload' => json_encode($event->payload), 'status' => 'received', 'received_at' => now(),
             ]);
             if ($inserted === 0) {
                 return 'duplicate';
             }
-            $row = PaymentWebhookEvent::query()->where('provider', $this->gateway->name())->where('provider_event_id', $event->eventId)->firstOrFail();
+            $row = PaymentWebhookEvent::query()->where('provider', $provider)->where('provider_event_id', $event->eventId)->firstOrFail();
 
             [$status, $error] = match ($event->type) {
-                WebhookEvent::PAYMENT_CAPTURED => $this->captured($event),
-                WebhookEvent::PAYMENT_FAILED => $this->failed($event),
+                WebhookEvent::PAYMENT_CAPTURED => $this->captured($event, $provider),
+                WebhookEvent::PAYMENT_FAILED => $this->failed($event, $provider),
                 WebhookEvent::REFUND_SUCCEEDED, WebhookEvent::REFUND_FAILED => $this->refundOutcome($event),
                 default => ['ignored', null],
             };
@@ -92,9 +117,9 @@ final class PaymentService
     }
 
     /** @return array{0: string, 1: string|null} */
-    private function captured(WebhookEvent $e): array
+    private function captured(WebhookEvent $e, string $provider): array
     {
-        $payment = $this->lockByReference($e->providerReference);
+        $payment = $this->lockByReference($provider, $e->providerReference);
         if ($payment === null) {
             return ['failed', 'Unknown payment reference.'];
         }
@@ -115,9 +140,9 @@ final class PaymentService
     }
 
     /** @return array{0: string, 1: string|null} */
-    private function failed(WebhookEvent $e): array
+    private function failed(WebhookEvent $e, string $provider): array
     {
-        $payment = $this->lockByReference($e->providerReference);
+        $payment = $this->lockByReference($provider, $e->providerReference);
         if ($payment === null) {
             return ['failed', 'Unknown payment reference.'];
         }
@@ -142,8 +167,8 @@ final class PaymentService
         return ['processed', null];
     }
 
-    private function lockByReference(string $reference): ?Payment
+    private function lockByReference(string $provider, string $reference): ?Payment
     {
-        return Payment::query()->where('provider', $this->gateway->name())->where('provider_reference', $reference)->lockForUpdate()->first();
+        return Payment::query()->where('provider', $provider)->where('provider_reference', $reference)->lockForUpdate()->first();
     }
 }

@@ -5,7 +5,6 @@ namespace App\Modules\Payments\Application;
 use App\Modules\Audit\Contracts\AuditLogger;
 use App\Modules\Orders\Contracts\OrderBook;
 use App\Modules\Orders\Contracts\OrderRefunder;
-use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Infrastructure\Models\Payment;
 use App\Modules\Payments\Infrastructure\Models\Refund;
 use App\Shared\Exceptions\ApiException;
@@ -26,7 +25,7 @@ use Throwable;
 final class RefundService implements OrderRefunder
 {
     public function __construct(
-        private readonly PaymentGateway $gateway,
+        private readonly GatewayRegistry $gateways,
         private readonly OrderBook $orders,
         private readonly AuditLogger $audit,
     ) {}
@@ -141,7 +140,7 @@ final class RefundService implements OrderRefunder
 
         $payment = Payment::query()->findOrFail($refund->payment_id);
         try {
-            $result = $this->gateway->refund((string) $payment->provider_reference, $refund->amount, $refund->currency, $refund->idempotency_key);
+            $result = $this->gateways->get($payment->provider)->refund((string) $payment->provider_reference, $refund->amount, $refund->currency, $refund->idempotency_key);
         } catch (Throwable $e) {
             Log::error('refunds.gateway_error', ['refund_id' => $refund->id, 'error' => $e->getMessage()]);
 

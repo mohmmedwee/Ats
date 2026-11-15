@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Payments\Application\Gateways\PaypalGateway;
 use App\Modules\Payments\Application\Gateways\TapGateway;
 use App\Modules\Suppliers\Application\Connectors\Cj\CjDropshippingConnector;
 
@@ -129,6 +130,17 @@ return [
         'provider' => env('PAYMENT_PROVIDER', 'sandbox'),
         'gateways' => [  // provider name => class implementing PaymentGateway
             'tap' => TapGateway::class,
+            'paypal' => PaypalGateway::class,
+        ],
+        // Every provider the customer can choose at checkout, in order (the default is always included).
+        'methods' => env('PAYMENT_METHODS', ''),
+        'paypal' => [
+            'mode' => env('PAYPAL_MODE', 'sandbox'), // sandbox | live
+            'client_id' => env('PAYPAL_CLIENT_ID'),
+            'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+            'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
+            // PayPal does not settle AED/SAR: charges are in USD at these fixed pegs.
+            'usd_pegs' => ['AED' => '3.6725', 'SAR' => '3.75'],
         ],
         'tap' => [
             'secret_key' => env('TAP_SECRET_KEY'),

@@ -14,6 +14,15 @@ const quote = ref<Quote | null>(null)
 const couponInput = ref('')
 const coupon = ref<string | null>(null)
 const couponError = ref('')
+// PayPal charges USD at the fixed peg (same rate as the API).
+// Wrapped in left-to-right isolates so "$39.48" reads correctly inside Arabic text.
+const usd = (amount: string, currency: string) => `⁦$${(Number(amount) / (currency === 'SAR' ? 3.75 : 3.6725)).toFixed(2)}⁩`
+const payMethods = ref<{ provider: string, currency_note: string | null }[]>([])
+const payWith = ref('')
+onMounted(async () => {
+  payMethods.value = (await request<Envelope<{ provider: string, currency_note: string | null }[]>>('/payments/methods').catch(() => null))?.data ?? []
+  payWith.value = payMethods.value[0]?.provider ?? ''
+})
 const error = ref('')
 const busy = ref(false)
 const showForm = ref(false)
@@ -98,7 +107,7 @@ async function placeOrder() {
     await csrf()
     const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: coupon.value || undefined } })).data
     const order = (await request<Envelope<{ id: string }>>('/orders', { method: 'POST', body: { checkout_session_id: session.id }, headers: { 'Idempotency-Key': idempotencyKey('order') } })).data
-    const payment = (await request<Envelope<Payment>>('/payments/intent', { method: 'POST', body: { order_id: order.id }, headers: { 'Idempotency-Key': idempotencyKey('pay') } })).data
+    const payment = (await request<Envelope<Payment>>('/payments/intent', { method: 'POST', body: { order_id: order.id, provider: payWith.value || undefined }, headers: { 'Idempotency-Key': idempotencyKey('pay') } })).data
     useCartStore().cart = null
     if (payment.redirect_url) window.location.href = payment.redirect_url
   }
@@ -193,6 +202,17 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
           </form>
           <p v-if="couponError" role="alert" class="mt-1 text-xs text-red-600">{{ couponError }}</p>
         </div>
+        <fieldset v-if="payMethods.length > 1" class="mt-4 space-y-2" data-test="pay-methods">
+          <legend class="mb-1 text-sm font-semibold">{{ $t('pay_method.title') }}</legend>
+          <label v-for="pm in payMethods" :key="pm.provider" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm" :class="payWith === pm.provider ? 'border-ink-900 bg-ink-100/50' : 'border-ink-300'">
+            <input v-model="payWith" type="radio" name="pay-with" :value="pm.provider" :data-test="`pay-${pm.provider}`">
+            <span class="flex-1">
+              <span class="block font-medium">{{ $t(`pay_method.${pm.provider}`, pm.provider) }}</span>
+              <span v-if="pm.currency_note && quote" class="block text-xs text-ink-500">{{ $t('pay_method.usd_note', { amount: usd(quote.total, quote.currency) }) }}</span>
+            </span>
+            <span v-if="pm.provider === 'paypal'" class="font-bold italic text-[#003087]" dir="ltr">Pay<span class="text-[#009cde]">Pal</span></span>
+          </label>
+        </fieldset>
         <button :disabled="busy" class="mt-4 w-full rounded bg-gray-900 py-2 text-white disabled:opacity-50" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
       </template>
     </aside>

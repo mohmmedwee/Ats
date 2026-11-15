@@ -4,6 +4,10 @@
 |---|---|---|
 | Sandbox | Development and staging: a fake payment page with "pay" and "fail" buttons | `PAYMENT_PROVIDER=sandbox` (refused in production) |
 | **Tap Payments** | Production in the UAE and Saudi Arabia: Visa/Mastercard, **mada**, **Apple Pay**, Google Pay | `PAYMENT_PROVIDER=tap` |
+| **PayPal** | Optional second choice at checkout, charged in **USD** | `PAYMENT_METHODS=tap,paypal` |
+
+When `PAYMENT_METHODS` lists more than one provider, the customer chooses at checkout. Each payment
+remembers its provider, so webhooks and refunds always go back to the gateway that took the money.
 
 ## How a payment works with Tap
 
@@ -44,6 +48,49 @@ response shapes, but has not run against a real Tap account yet:
 - [ ] The webhook `hashstring` matches for charges and for refunds.
 - [ ] The refund webhook arrives (refund IDs start with `re_`).
 - [ ] Apple Pay appears on iPhone Safari after domain verification.
+
+## PayPal
+
+**Currency.** PayPal does not settle in AED or SAR, so orders are charged in US dollars at the fixed
+pegs: 1 USD = 3.6725 AED = 3.75 SAR. Checkout shows the dollar amount before the customer pays.
+- The original AED/SAR total is stored with the PayPal order, and every capture is checked against it.
+- Refunds are converted the same way, rounded down so they never exceed what was captured.
+- PayPal's currency conversion fee is about 3–4% on top of its normal fee.
+- If most buyers use PayPal, raise `PAYMENT_FEE_PERCENT` so prices cover the fees.
+
+**Flow:**
+1. The customer approves on PayPal.
+2. The customer is sent back to `/payment/return`, and the store captures the payment.
+3. If the customer closes the browser first, the `CHECKOUT.ORDER.APPROVED` webhook captures it instead.
+4. Each capture is applied once, even though the return page and the webhook both report it.
+
+**Setup:**
+1. Open a PayPal **Business** account. PayPal Business is available to companies in the UAE and Saudi
+   Arabia; withdrawals go to a local bank account.
+2. At developer.paypal.com → Apps & Credentials, create an app. Copy the **Client ID** and **Secret**:
+   Sandbox first, Live later.
+3. In the same app, add a **webhook** with URL `https://API-DOMAIN/api/v1/webhooks/payments/paypal` and
+   these events:
+   - `CHECKOUT.ORDER.APPROVED`
+   - `PAYMENT.CAPTURE.COMPLETED`
+   - `PAYMENT.CAPTURE.DENIED`
+   - `PAYMENT.CAPTURE.REFUNDED`
+
+   Then copy the **Webhook ID**.
+4. Set on the API server:
+   ```env
+   PAYMENT_METHODS=tap,paypal
+   PAYPAL_MODE=sandbox            # live after testing
+   PAYPAL_CLIENT_ID=...
+   PAYPAL_CLIENT_SECRET=...
+   PAYPAL_WEBHOOK_ID=...
+   ```
+5. Test with a PayPal sandbox buyer account:
+   - one payment;
+   - one cancelled payment, which must leave the order unpaid;
+   - one partial refund.
+
+Not yet run against a real PayPal account; covered by tests against PayPal's documented API shapes.
 
 Tabby and Tamara (buy now, pay later) can be added as additional gateways later; their contracts are
 separate from Tap.

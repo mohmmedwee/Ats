@@ -23,6 +23,7 @@ provide. Each one names the setting it fills (in `deploy/api.env`) and the guide
 
 | Item | Setting / guide |
 |---|---|
+| PayPal Business account (optional second payment method, charged in USD) | `PAYMENT_METHODS`, `PAYPAL_*` · [PAYMENTS.md](PAYMENTS.md) |
 | WhatsApp Business (Meta) + approved message templates | `WHATSAPP_*` · [NOTIFICATIONS.md](NOTIFICATIONS.md) |
 | Support WhatsApp number and email | `SUPPORT_WHATSAPP`, `SUPPORT_EMAIL` |
 | Meta Pixel, TikTok Pixel, Snap Pixel, Google Analytics 4 IDs | `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, `SNAP_PIXEL_ID`, `GA4_MEASUREMENT_ID` |

@@ -3,9 +3,9 @@
 namespace App\Modules\Payments\Http\Controllers;
 
 use App\Modules\Orders\Contracts\OrderBook;
+use App\Modules\Payments\Application\GatewayRegistry;
 use App\Modules\Payments\Application\Gateways\SandboxGateway;
 use App\Modules\Payments\Application\PaymentService;
-use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Domain\InvalidWebhookSignature;
 use App\Modules\Payments\Infrastructure\Models\Payment;
 use App\Shared\Exceptions\ApiException;
@@ -20,8 +20,8 @@ final class PaymentController
 
     public function intent(Request $request): JsonResponse
     {
-        $data = $request->validate(['order_id' => ['required', 'uuid']]);
-        $payment = $this->payments->createIntent($this->userId($request), $data['order_id'], (string) $request->headers->get(EnsureIdempotency::HEADER));
+        $data = $request->validate(['order_id' => ['required', 'uuid'], 'provider' => ['nullable', 'string', 'max:30']]);
+        $payment = $this->payments->createIntent($this->userId($request), $data['order_id'], (string) $request->headers->get(EnsureIdempotency::HEADER), $data['provider'] ?? null);
 
         return ApiResponse::success($this->present($payment), 201);
     }
@@ -31,14 +31,31 @@ final class PaymentController
         return ApiResponse::success($this->present($this->owned($request, $id)));
     }
 
-    /** Provider webhook. Unauthenticated; trust comes only from the signature. */
-    public function webhook(Request $request, string $provider, PaymentGateway $gateway): JsonResponse
+    /** Payment methods the customer can choose at checkout, default first. */
+    public function methods(GatewayRegistry $gateways): JsonResponse
     {
-        if ($provider !== $gateway->name()) {
+        return ApiResponse::success(array_map(fn ($name) => [
+            'provider' => $name,
+            'currency_note' => $name === 'paypal' ? 'USD' : null,
+        ], $gateways->enabled()));
+    }
+
+    /** Called by the return page: finishes payments the merchant must capture (PayPal). */
+    public function confirm(Request $request, string $id): JsonResponse
+    {
+        $payment = $this->owned($request, $id);
+
+        return ApiResponse::success($this->present($this->payments->confirm($payment->id)));
+    }
+
+    /** Provider webhook. Unauthenticated; trust comes only from the signature. */
+    public function webhook(Request $request, string $provider, GatewayRegistry $gateways): JsonResponse
+    {
+        if (! in_array($provider, $gateways->enabled(), true)) {
             throw new ApiException('NOT_FOUND', 404);
         }
         try {
-            $result = $this->payments->handleWebhook($request);
+            $result = $this->payments->handleWebhook($request, $provider);
         } catch (InvalidWebhookSignature) {
             throw new ApiException('WEBHOOK_SIGNATURE_INVALID', 401);
         }
@@ -50,8 +67,9 @@ final class PaymentController
      * Sandbox only: simulates the customer completing (or failing) payment on the provider page,
      * which sends a signed webhook exactly like a real provider would.
      */
-    public function sandboxComplete(Request $request, string $id, PaymentGateway $gateway): JsonResponse
+    public function sandboxComplete(Request $request, string $id, GatewayRegistry $gateways): JsonResponse
     {
+        $gateway = in_array('sandbox', $gateways->enabled(), true) ? $gateways->get('sandbox') : null;
         if (! $gateway instanceof SandboxGateway || app()->environment('production')) {
             throw new ApiException('NOT_FOUND', 404);
         }
@@ -69,7 +87,7 @@ final class PaymentController
         $webhook = Request::create('/api/v1/webhooks/payments/sandbox', 'POST', [], [], [], [
             'CONTENT_TYPE' => 'application/json', 'HTTP_X_SANDBOX_SIGNATURE' => $signed['signature'],
         ], $signed['body']);
-        $this->payments->handleWebhook($webhook);
+        $this->payments->handleWebhook($webhook, 'sandbox');
 
         return ApiResponse::success($this->present($payment->refresh()));
     }

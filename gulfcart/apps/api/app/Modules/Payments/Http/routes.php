@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('payments/intent', [PaymentController::class, 'intent'])->middleware('idempotent');
+    Route::get('payments/methods', [PaymentController::class, 'methods']);
     Route::get('payments/{id}', [PaymentController::class, 'show'])->whereUuid('id');
+    Route::post('payments/{id}/confirm', [PaymentController::class, 'confirm'])->whereUuid('id')->middleware('throttle:20,1');
     Route::post('payments/{id}/sandbox-complete', [PaymentController::class, 'sandboxComplete'])->whereUuid('id');
 });
 
