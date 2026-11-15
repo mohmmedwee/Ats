@@ -4,7 +4,7 @@ Cross-border, multi-source e-commerce **reseller** platform for the UAE and Saud
 GulfCart is the seller of record to the customer: it buys from commercially authorized
 suppliers and ships directly to the customer.
 
-> **Status:** MVP software complete (Sprints 0–5 + follow-up round) plus a CJdropshipping connector and a full admin panel. 212 backend tests, storefront in Arabic and English,
+> **Status:** MVP software complete (Sprints 0–5 + follow-up round) plus CJdropshipping, Tap Payments, SMS sign-in, discount codes, reviews, wishlist, WhatsApp, SEO and a full admin panel. 227 backend tests, storefront in Arabic and English,
 > full purchase journey verified in a browser. Commercial launch still needs the business decisions in
 > [`docs/milestones/S4-S5-report.md`](docs/milestones/S4-S5-report.md#what-remains-before-commercial-launch)
 > (suppliers, payment provider, jurisdiction, customs).
@@ -66,6 +66,8 @@ and `npm run dev` in `apps/storefront` (see each app's README).
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Docker services, environments, production hardening |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Scheduled jobs, daily checks, procurement exception playbook, incidents, backups |
 | [`docs/SUPPLIER_IMPORT.md`](docs/SUPPLIER_IMPORT.md) | Supplier CSV feed format |
+| [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) | **What the owner must provide before launch** |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Deploying to one server with Docker and automatic HTTPS |
 | [`docs/PAYMENTS.md`](docs/PAYMENTS.md) | Tap Payments setup (cards, mada, Apple Pay), webhooks, refunds |
 | [`docs/NOTIFICATIONS.md`](docs/NOTIFICATIONS.md) | Email, WhatsApp and SMS messages; WhatsApp template setup |
 | [`docs/suppliers/CJ_DROPSHIPPING.md`](docs/suppliers/CJ_DROPSHIPPING.md) | Ready-made CJdropshipping supplier: setup, import, verification |

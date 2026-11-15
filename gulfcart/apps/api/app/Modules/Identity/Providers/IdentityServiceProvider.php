@@ -5,6 +5,7 @@ namespace App\Modules\Identity\Providers;
 use App\Modules\Identity\Application\EloquentUserDirectory;
 use App\Modules\Identity\Application\HttpSmsSender;
 use App\Modules\Identity\Application\LogSmsSender;
+use App\Modules\Identity\Console\CreateOwnerCommand;
 use App\Modules\Identity\Contracts\SmsSender;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Shared\Modules\ModuleServiceProvider;
@@ -35,6 +36,9 @@ final class IdentityServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         parent::boot();
+        if ($this->app->runningInConsole()) {
+            $this->commands([CreateOwnerCommand::class]);
+        }
 
         Password::defaults(function () {
             $rule = Password::min(10)->letters()->numbers()->max(255);

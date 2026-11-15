@@ -12,8 +12,10 @@ export function useApi() {
   const cartToken = useCookie<string | null>('gc_cart', { default: () => null, sameSite: 'lax', maxAge: 60 * 60 * 24 * 30 })
   const xsrf = useCookie('XSRF-TOKEN')
 
+  // Server-side rendering calls the API over the internal network (NUXT_API_INTERNAL); the browser
+  // uses the public same-origin path.
   const request = $fetch.create({
-    baseURL: config.public.apiBase,
+    baseURL: import.meta.server ? String(config.apiInternal || config.public.apiBase) : config.public.apiBase,
     credentials: 'include',
     onRequest({ options }) {
       const headers = new Headers(options.headers)

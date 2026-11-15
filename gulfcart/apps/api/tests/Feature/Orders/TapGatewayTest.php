@@ -8,6 +8,7 @@ use App\Modules\Payments\Infrastructure\Models\Payment;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\CatalogFixtures;
 use Tests\Support\OrderFlow;
 use Tests\TestCase;
@@ -44,7 +45,7 @@ final class TapGatewayTest extends TestCase
     }
 
     /** @param array<string, mixed> $charge */
-    private function tapWebhook(array $charge): \Illuminate\Testing\TestResponse
+    private function tapWebhook(array $charge): TestResponse
     {
         $amount = number_format((float) $charge['amount'], 2, '.', '');
         $hash = hash_hmac('sha256', 'x_id'.$charge['id'].'x_amount'.$amount.'x_currency'.$charge['currency'].'x_gateway_referencegw1x_payment_referencepr1x_status'.$charge['status'].'x_created1700000000000', 'sk_test_x');
