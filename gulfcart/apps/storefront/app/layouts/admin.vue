@@ -21,6 +21,7 @@ const all: { title: string, items: Item[] }[] = [
     { to: '/admin/cj', label: 'admin.cj.title', icon: 'download', perm: ['catalog.manage'] },
     { to: '/admin/imports', label: 'admin.imports', icon: 'file', perm: ['catalog.manage'] },
     { to: '/admin/categories', label: 'admin.categories.title', icon: 'layers', perm: ['catalog.manage'] },
+    { to: '/admin/brands', label: 'admin.brands.title', icon: 'tag', perm: ['catalog.manage'] },
     { to: '/admin/suppliers', label: 'admin.suppliers', icon: 'store', perm: ['suppliers.manage'] },
     { to: '/admin/reviews', label: 'admin.reviews.title', icon: 'heart', perm: ['catalog.manage'] },
     { to: '/admin/content', label: 'admin.content.title', icon: 'file', perm: ['catalog.manage'] },

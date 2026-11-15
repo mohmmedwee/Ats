@@ -14,9 +14,12 @@ final class ProductRequest extends FormRequest
 
         return Translations::rules('title', $creating, false, 255)
             + Translations::rules('description', false, false, 20000)
+            + Translations::rules('specifications', false, false, 10000)
+            + Translations::rules('warranty', false, false, 500)
             + [
                 'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
                 'brand' => ['nullable', 'string', 'max:150'],
+                'brand_id' => ['nullable', 'uuid', 'exists:brands,id'],
                 'attributes' => ['sometimes', 'array'],
                 'weight_grams' => ['nullable', 'integer', 'between:1,100000'],
                 'hs_code' => ['nullable', 'string', 'regex:/^\d{4,12}$/'],

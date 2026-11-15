@@ -9,6 +9,7 @@ const load = (query: Record<string, string | number>) => request<Envelope<Produc
 const { data: fresh, pending } = await useAsyncData('home-new', () => load({ limit: 10, sort: 'newest' }), { server: false, watch: [country], default: () => [] })
 const { data: under } = await useAsyncData('home-under', () => load({ limit: 10, sort: 'price_asc', price_max: 100 }), { server: false, watch: [country], default: () => [] })
 const { data: forYou } = await useAsyncData('home-all', () => load({ limit: 20, sort: 'price_desc' }), { server: false, watch: [country], default: () => [] })
+const { data: featuredBrands } = await useAsyncData('home-brands', () => request<Envelope<{ id: string, slug: string, name: string, logo_url: string | null }[]>>('/brands', { query: { featured: 1 } }).then(r => r.data), { server: false, default: () => [] })
 const { data: categories } = await useAsyncData('home-cats', () => request<Envelope<Category[]>>('/categories').then(r => r.data), { server: false, default: () => [] })
 
 const tones = ['from-brand-100 to-brand-200 text-brand-800', 'from-gold-100 to-gold-400 text-ink-900', 'from-ink-100 to-ink-300 text-ink-900', 'from-rose-100 to-orange-200 text-ink-900', 'from-sky-100 to-indigo-200 text-ink-900']
@@ -44,8 +45,22 @@ const tones = ['from-brand-100 to-brand-200 text-brand-800', 'from-gold-100 to-g
     <section class="card p-4">
       <div class="no-scrollbar flex gap-4 overflow-x-auto md:grid md:grid-cols-10 md:overflow-visible">
         <NuxtLink v-for="(c, i) in categories" :key="c.id" :to="localePath({ path: '/products', query: { category: c.slug } })" class="flex w-16 shrink-0 flex-col items-center gap-2 text-center md:w-auto">
-          <span class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br text-lg font-bold md:h-16 md:w-16" :class="tones[i % tones.length]">{{ c.name.slice(0, 1) }}</span>
+          <img v-if="c.image_url" :src="c.image_url" :alt="c.name" class="h-14 w-14 rounded-full object-cover md:h-16 md:w-16">
+          <span v-else class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br text-lg font-bold md:h-16 md:w-16" :class="tones[i % tones.length]">{{ c.name.slice(0, 1) }}</span>
           <span class="line-clamp-1 text-xs text-ink-700">{{ c.name }}</span>
+        </NuxtLink>
+      </div>
+    </section>
+
+    <section v-if="featuredBrands?.length" data-test="home-brands">
+      <div class="mb-3 flex items-end justify-between">
+        <h2 class="section-title">{{ $t('brands.featured') }}</h2>
+        <NuxtLink :to="localePath('/brands')" class="text-sm font-semibold text-brand-600">{{ $t('brands.all') }}</NuxtLink>
+      </div>
+      <div class="no-scrollbar flex gap-3 overflow-x-auto">
+        <NuxtLink v-for="b in featuredBrands" :key="b.id" :to="localePath({ path: '/products', query: { brand: b.slug } })" class="card flex h-20 w-32 shrink-0 items-center justify-center p-3 transition hover:shadow-md">
+          <img v-if="b.logo_url" :src="b.logo_url" :alt="b.name" class="max-h-full max-w-full object-contain">
+          <span v-else class="text-base font-bold tracking-tight text-ink-900">{{ b.name }}</span>
         </NuxtLink>
       </div>
     </section>

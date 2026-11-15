@@ -26,6 +26,9 @@ const qty = ref(1)
 const message = ref('')
 const imageIndex = ref(0)
 const sizeGuideOpen = ref(false)
+/** "Label: value" lines → table rows. */
+const specRows = computed(() => (product.value?.specifications ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+  .map(l => (l.includes(':') ? [l.slice(0, l.indexOf(':')).trim(), l.slice(l.indexOf(':') + 1).trim()] : ['', l])))
 const tracking = useTracking()
 const config = useRuntimeConfig()
 onMounted(() => {
@@ -109,7 +112,7 @@ async function addToCart() {
       <NuxtLink v-if="product.category" :to="localePath({ path: '/products', query: { category: product.category.slug } })">{{ product.category.name }}</NuxtLink>
     </nav>
 
-    <div class="grid gap-6 md:grid-cols-[1.1fr_1fr] md:gap-10">
+    <div class="grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-10">
       <div class="flex flex-col-reverse gap-3 md:flex-row">
         <div class="no-scrollbar flex gap-2 overflow-x-auto md:flex-col">
           <button v-for="(img, i) in product.images" :key="img.url" class="h-20 w-16 shrink-0 overflow-hidden rounded-lg border-2" :class="i === imageIndex ? 'border-ink-900' : 'border-transparent'" @click="imageIndex = i">
@@ -123,7 +126,11 @@ async function addToCart() {
 
       <div class="space-y-5">
         <div>
-          <p v-if="product.brand" class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ product.brand }}</p>
+          <NuxtLink v-if="product.brand_info" :to="localePath({ path: '/products', query: { brand: product.brand_info.slug } })" class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-500 hover:text-brand-600" data-test="product-brand">
+            <img v-if="product.brand_info.logo_url" :src="product.brand_info.logo_url" alt="" class="h-5 w-auto">{{ product.brand_info.name }}
+            <span v-if="product.brand_info.authorized" class="rounded-full bg-green-50 px-2 py-0.5 text-[10px] normal-case tracking-normal text-green-700">✓ {{ $t('brands.authorized_short') }}</span>
+          </NuxtLink>
+          <p v-else-if="product.brand" class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ product.brand }}</p>
           <div class="flex items-start justify-between gap-3">
             <h1 class="mt-1 text-xl font-semibold leading-snug md:text-2xl" data-test="product-title">{{ product.title }}</h1>
             <WishlistButton :product-id="product.id" />
@@ -164,6 +171,10 @@ async function addToCart() {
         </p>
 
         <ul class="card divide-y text-sm">
+          <li v-if="product.warranty" class="flex items-start gap-3 p-3" data-test="warranty">
+            <AppIcon name="shield" class="mt-0.5 shrink-0 text-brand-600" />
+            <div><p class="font-semibold">{{ $t('product.warranty') }}</p><p class="text-xs text-ink-500">{{ product.warranty }}</p></div>
+          </li>
           <li v-if="product.delivery_estimate" class="flex items-start gap-3 p-3">
             <AppIcon name="truck" class="mt-0.5 shrink-0 text-brand-600" />
             <div><p class="font-semibold">{{ $t('catalog.delivery', { min: product.delivery_estimate.min_days, max: product.delivery_estimate.max_days }) }}</p><p class="text-xs text-ink-500">{{ $t('product.ships_from') }}</p></div>
@@ -182,6 +193,17 @@ async function addToCart() {
           </li>
         </ul>
 
+        <div v-if="specRows.length" class="card overflow-hidden" data-test="specifications">
+          <p class="p-4 pb-2 text-sm font-bold">{{ $t('product.specifications') }}</p>
+          <table class="w-full text-sm">
+            <tbody>
+              <tr v-for="(r, i) in specRows" :key="i" class="border-t border-ink-100">
+                <th class="w-2/5 bg-ink-100/50 px-4 py-2 text-start font-medium text-ink-700">{{ r[0] }}</th>
+                <td class="px-4 py-2">{{ r[1] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div v-if="product.description" class="card p-4">
           <p class="mb-2 text-sm font-bold">{{ $t('product.description') }}</p>
           <p class="whitespace-pre-line text-sm leading-6 text-ink-700">{{ product.description }}</p>

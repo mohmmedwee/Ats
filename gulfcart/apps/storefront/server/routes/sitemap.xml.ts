@@ -21,6 +21,8 @@ export default defineCachedEventHandler(async (event) => {
   const body = [
     entry('/'),
     entry('/products'),
+    entry('/categories'),
+    entry('/brands'),
     ...urls.categories.map(c => entry(`/products?category=${encodeURIComponent(c)}`)),
     ...pages.map(p => entry(`/info/${p.slug}`)),
     ...urls.products.map(p => entry(`/products/${p.slug}`, p.updated_at)),

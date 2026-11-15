@@ -85,6 +85,8 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
         <div class="space-y-2">
           <p class="font-semibold text-ink-900">{{ $t('footer.shop') }}</p>
           <NuxtLink :to="localePath('/products')" class="block hover:text-brand-600">{{ $t('home.all') }}</NuxtLink>
+          <NuxtLink :to="localePath('/categories')" class="block hover:text-brand-600">{{ $t('categories.title') }}</NuxtLink>
+          <NuxtLink :to="localePath('/brands')" class="block hover:text-brand-600">{{ $t('brands.title') }}</NuxtLink>
           <NuxtLink :to="localePath('/products?sort=price_asc')" class="block hover:text-brand-600">{{ $t('home.best_value') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/orders')" class="block hover:text-brand-600">{{ $t('nav.orders') }}</NuxtLink>
           <NuxtLink :to="localePath('/account/wishlist')" class="block hover:text-brand-600">{{ $t('wishlist.title') }}</NuxtLink>
@@ -109,7 +111,7 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
     <!-- mobile app-style bottom navigation -->
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-white text-[11px] md:hidden">
       <NuxtLink :to="localePath('/')" class="flex flex-col items-center gap-0.5 py-2" exact-active-class="text-brand-600"><AppIcon name="home" /><span>{{ $t('nav.home') }}</span></NuxtLink>
-      <NuxtLink :to="localePath('/products')" class="flex flex-col items-center gap-0.5 py-2" active-class="text-brand-600"><AppIcon name="grid" /><span>{{ $t('nav.categories') }}</span></NuxtLink>
+      <NuxtLink :to="localePath('/categories')" class="flex flex-col items-center gap-0.5 py-2" active-class="text-brand-600"><AppIcon name="grid" /><span>{{ $t('nav.categories') }}</span></NuxtLink>
       <NuxtLink :to="localePath('/cart')" class="relative flex flex-col items-center gap-0.5 py-2" active-class="text-brand-600">
         <AppIcon name="cart" /><span>{{ $t('nav.cart') }}</span>
         <span v-if="cart.count" class="absolute end-1/4 top-1 min-w-4 rounded-full bg-brand-600 px-1 text-center text-[10px] font-bold leading-4 text-white">{{ cart.count }}</span>

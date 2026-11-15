@@ -9,6 +9,7 @@ export interface ProductCard {
   slug: string
   title: string
   brand: string | null
+  brand_slug?: string | null
   category: { slug: string, name: string } | null
   price: Money | null
   image: string | null
@@ -31,9 +32,12 @@ export interface ProductDetail extends ProductCard {
   variants: Variant[]
   prices_include_tax: true
   size_guide?: string | null
+  specifications?: string | null
+  warranty?: string | null
+  brand_info?: { slug: string, name: string, logo_url: string | null, authorized: boolean } | null
 }
 
-export interface Category { id: string, slug: string, name: string, children: Category[] }
+export interface Category { id: string, slug: string, name: string, image_url?: string | null, children: Category[] }
 
 export interface CartLine {
   id: string

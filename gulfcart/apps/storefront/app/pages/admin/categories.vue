@@ -1,12 +1,13 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'staff', layout: 'admin' })
-interface Category { id: string, slug: string, name: { en?: string, ar?: string }, size_guide: { en?: string | null, ar?: string | null } | null, parent_id: string | null, sort_order: number, is_active: boolean }
+interface Category { id: string, slug: string, image_url?: string | null, requires_authorized_brand?: boolean, name: { en?: string, ar?: string }, size_guide: { en?: string | null, ar?: string | null } | null, parent_id: string | null, sort_order: number, is_active: boolean }
 const { request, send, run, error, notice, tr } = useAdmin()
+const { csrf } = useApi()
 const { t, locale } = useI18n()
 const categories = ref<Category[]>([])
 const editing = ref<Category | null>(null)
 const open = ref(false)
-const form = reactive({ name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '' })
+const form = reactive({ name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '', requires_authorized_brand: false })
 
 const tree = computed(() => {
   const out: { c: Category, depth: number }[] = []
@@ -25,20 +26,31 @@ async function load() {
 function edit(c: Category | null) {
   editing.value = c
   Object.assign(form, c
-    ? { name_en: c.name.en ?? '', name_ar: c.name.ar ?? '', slug: c.slug, parent_id: c.parent_id ?? '', sort_order: c.sort_order, is_active: c.is_active, guide_en: c.size_guide?.en ?? '', guide_ar: c.size_guide?.ar ?? '' }
-    : { name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '' })
+    ? { name_en: c.name.en ?? '', name_ar: c.name.ar ?? '', slug: c.slug, parent_id: c.parent_id ?? '', sort_order: c.sort_order, is_active: c.is_active, guide_en: c.size_guide?.en ?? '', guide_ar: c.size_guide?.ar ?? '', requires_authorized_brand: !!c.requires_authorized_brand }
+    : { name_en: '', name_ar: '', slug: '', parent_id: '', sort_order: 0, is_active: true, guide_en: '', guide_ar: '', requires_authorized_brand: false })
   open.value = true
 }
 function autoSlug() {
   if (!editing.value) form.slug = form.name_en.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 async function save() {
-  const body = { name: { en: form.name_en, ar: form.name_ar }, size_guide: { en: form.guide_en || null, ar: form.guide_ar || null }, slug: form.slug, parent_id: form.parent_id || null, sort_order: Number(form.sort_order), is_active: form.is_active }
+  const body = { name: { en: form.name_en, ar: form.name_ar }, size_guide: { en: form.guide_en || null, ar: form.guide_ar || null }, slug: form.slug, parent_id: form.parent_id || null, sort_order: Number(form.sort_order), is_active: form.is_active, requires_authorized_brand: form.requires_authorized_brand }
   const ok = await run(() => editing.value ? send('PATCH', `/admin/categories/${editing.value.id}`, body) : send('POST', '/admin/categories', body), t('admin.common.saved'))
   if (ok !== undefined) {
     open.value = false
     await load()
   }
+}
+async function uploadImage(c: Category, e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const body = new FormData()
+  body.append('file', file)
+  await run(async () => {
+    await csrf()
+    await request(`/admin/categories/${c.id}/image`, { method: 'POST', body })
+  }, t('admin.common.saved'))
+  await load()
 }
 async function remove(c: Category) {
   if (!confirm(t('admin.common.confirm'))) return
@@ -59,7 +71,13 @@ onMounted(load)
         <thead><tr><th>{{ $t('admin.common.name') }}</th><th>Slug</th><th>{{ $t('admin.categories.order') }}</th><th>{{ $t('admin.status') }}</th><th /></tr></thead>
         <tbody>
           <tr v-for="{ c, depth } in tree" :key="c.id">
-            <td><span :style="{ paddingInlineStart: `${depth * 1.5}rem` }" class="inline-block">{{ depth ? '└ ' : '' }}<b>{{ tr(c.name as never) }}</b></span> <span class="text-xs text-ink-500">{{ locale === 'ar' ? c.name.en : c.name.ar }}</span></td>
+            <td>
+              <label class="me-2 inline-grid h-9 w-9 cursor-pointer place-items-center overflow-hidden rounded-lg border border-dashed border-ink-300 align-middle" :title="$t('admin.categories.upload_image')">
+                <img v-if="c.image_url" :src="c.image_url" alt="" class="h-full w-full object-cover">
+                <AppIcon v-else name="plus" :size="14" class="text-ink-300" />
+                <input type="file" accept="image/*" class="hidden" @change="uploadImage(c, $event)">
+              </label>
+              <span :style="{ paddingInlineStart: `${depth * 1.5}rem` }" class="inline-block">{{ depth ? '└ ' : '' }}<b>{{ tr(c.name as never) }}</b><span v-if="c.requires_authorized_brand" class="ms-1 text-xs text-green-700" :title="$t('admin.categories.requires_brand')">✓</span></span> <span class="text-xs text-ink-500">{{ locale === 'ar' ? c.name.en : c.name.ar }}</span></td>
             <td class="font-mono text-xs" dir="ltr">{{ c.slug }}</td>
             <td>{{ c.sort_order }}</td>
             <td><span :class="c.is_active ? 'text-green-700' : 'text-ink-500'">{{ c.is_active ? $t('admin.common.active') : $t('admin.common.inactive') }}</span></td>
@@ -83,6 +101,7 @@ onMounted(load)
         </label>
         <label class="block"><span class="label">{{ $t('admin.categories.order') }}</span><input v-model.number="form.sort_order" class="input" dir="ltr"></label>
         <label class="mt-6 flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox"> {{ $t('admin.common.active') }}</label>
+        <label class="flex items-start gap-2 text-sm sm:col-span-2"><input v-model="form.requires_authorized_brand" type="checkbox" class="mt-1"> <span><b>{{ $t('admin.categories.requires_brand') }}</b><span class="block text-xs text-ink-500">{{ $t('admin.categories.requires_brand_hint') }}</span></span></label>
         <label><span class="label">{{ $t('admin.categories.size_guide') }} (EN)</span><textarea v-model="form.guide_en" class="input font-mono text-xs" rows="5" dir="ltr" placeholder="## Size chart&#10;- S: chest 86–90 cm&#10;- M: chest 90–94 cm" /></label>
         <label><span class="label">{{ $t('admin.categories.size_guide') }} (AR)</span><textarea v-model="form.guide_ar" class="input font-mono text-xs" rows="5" dir="rtl" /></label>
         <p class="text-xs text-ink-500 sm:col-span-2">{{ $t('admin.categories.size_guide_hint') }}</p>

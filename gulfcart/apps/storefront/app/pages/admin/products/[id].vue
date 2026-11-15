@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'staff', layout: 'admin' })
 type T = { en?: string | null, ar?: string | null }
 interface Product {
-  id: string, slug: string, status: string, title: T, description: T | null, category_id: string | null, brand: string | null, weight_grams: number | null, hs_code: string | null
+  id: string, slug: string, status: string, title: T, description: T | null, category_id: string | null, brand: string | null, brand_id: string | null, specifications: T | null, warranty: T | null, weight_grams: number | null, hs_code: string | null
   variants: { id: string, sku: string, attributes: Record<string, string>, weight_grams: number | null, is_active: boolean, prices: Record<string, { amount: string, currency: string }> }[]
   images: { id: string, url: string | null, source_url: string | null, rights_status: string, rights_basis: string | null, downloaded: boolean }[]
   availability: { country: string, is_available: boolean, min_days: number | null, max_days: number | null, is_sellable: boolean, unsellable_reason: string | null, from_price: { amount: string, currency: string } | null }[]
@@ -14,7 +14,8 @@ const { locale, t } = useI18n()
 const { request, send, run, error, notice, tr } = useAdmin()
 const product = ref<Product | null>(null)
 const categories = ref<{ id: string, slug: string, name: T }[]>([])
-const form = reactive({ title_en: '', title_ar: '', description_en: '', description_ar: '', category_id: '', brand: '', weight_grams: '' as string | number, hs_code: '' })
+const form = reactive({ title_en: '', title_ar: '', description_en: '', description_ar: '', category_id: '', brand: '', brand_id: '', specs_en: '', specs_ar: '', warranty_en: '', warranty_ar: '', weight_grams: '' as string | number, hs_code: '' })
+const brands = ref<{ id: string, name: T }[]>([])
 const availability = ref<{ country: string, is_available: boolean, min_days: number | null, max_days: number | null }[]>([])
 
 async function load() {
@@ -23,7 +24,8 @@ async function load() {
     product.value = p
     Object.assign(form, {
       title_en: p.title.en ?? '', title_ar: p.title.ar ?? '', description_en: p.description?.en ?? '', description_ar: p.description?.ar ?? '',
-      category_id: p.category_id ?? '', brand: p.brand ?? '', weight_grams: p.weight_grams ?? '', hs_code: p.hs_code ?? '',
+      category_id: p.category_id ?? '', brand: p.brand ?? '', brand_id: p.brand_id ?? '', weight_grams: p.weight_grams ?? '', hs_code: p.hs_code ?? '',
+      specs_en: p.specifications?.en ?? '', specs_ar: p.specifications?.ar ?? '', warranty_en: p.warranty?.en ?? '', warranty_ar: p.warranty?.ar ?? '',
     })
     availability.value = ['AE', 'SA'].map((c) => {
       const a = p.availability.find(x => x.country === c)
@@ -37,7 +39,8 @@ async function save() {
     await send('PATCH', `/admin/products/${route.params.id}`, {
       title: { en: form.title_en, ar: form.title_ar || null },
       description: { en: form.description_en || null, ar: form.description_ar || null },
-      category_id: form.category_id || null, brand: form.brand || null,
+      category_id: form.category_id || null, brand_id: form.brand_id || null,
+      specifications: { en: form.specs_en || null, ar: form.specs_ar || null }, warranty: { en: form.warranty_en || null, ar: form.warranty_ar || null },
       weight_grams: form.weight_grams === '' ? null : Number(form.weight_grams), hs_code: form.hs_code || null,
     })
     await send('PUT', `/admin/products/${route.params.id}/availability`, { countries: availability.value })
@@ -54,7 +57,7 @@ async function transition(action: string) {
   }
   catch (e) {
     const data = (e as { data?: { error?: { details?: { problems?: string[] } } } }).data
-    error.value = data?.error?.details?.problems?.join(', ') ?? apiErrorMessage(e, t('errors.generic'))
+    error.value = data?.error?.details?.problems?.map(c => t(`admin.publish_problems.${c}`)).join(' · ') ?? apiErrorMessage(e, t('errors.generic'))
   }
 }
 async function imageRights(id: string, rights_status: 'approved' | 'rejected') {
@@ -89,6 +92,7 @@ async function toggleVariant(v: Product['variants'][number]) {
 onMounted(async () => {
   await load()
   categories.value = (await request<{ data: typeof categories.value }>('/admin/categories').catch(() => ({ data: [] }))).data
+  brands.value = (await request<{ data: typeof brands.value }>('/admin/brands').catch(() => ({ data: [] }))).data
 })
 const actions = computed(() => {
   const s = product.value?.status
@@ -123,9 +127,19 @@ const actions = computed(() => {
           <label class="block md:col-span-2"><span class="label">{{ $t('admin.categories.title') }}</span>
             <select v-model="form.category_id" class="input"><option value="">—</option><option v-for="c in categories" :key="c.id" :value="c.id">{{ tr(c.name as never) }}</option></select>
           </label>
-          <label class="block"><span class="label">{{ $t('admin.products_page.brand') }}</span><input v-model="form.brand" class="input"></label>
+          <label class="block"><span class="label">{{ $t('admin.products_page.brand_select') }}</span>
+            <select v-model="form.brand_id" class="input" data-test="brand-select"><option value="">—</option><option v-for="b in brands" :key="b.id" :value="b.id">{{ tr(b.name as never) }}</option></select>
+          </label>
           <label class="block"><span class="label">{{ $t('admin.products_page.weight') }}</span><input v-model="form.weight_grams" class="input" inputmode="numeric" dir="ltr"></label>
           <label class="block"><span class="label">{{ $t('admin.products_page.hs_code') }}</span><input v-model="form.hs_code" class="input" dir="ltr"></label>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="block"><span class="label">{{ $t('admin.products_page.specifications_en') }}</span><textarea v-model="form.specs_en" class="input font-mono text-xs" rows="5" dir="ltr" placeholder="Display: 6.5&quot; AMOLED&#10;Battery: 5000 mAh" /></label>
+          <label class="block"><span class="label">{{ $t('admin.products_page.specifications_ar') }}</span><textarea v-model="form.specs_ar" class="input font-mono text-xs" rows="5" dir="rtl" /></label>
+          <p class="-mt-2 text-xs text-ink-500 md:col-span-2">{{ $t('admin.products_page.specs_hint') }}</p>
+          <label class="block"><span class="label">{{ $t('admin.products_page.warranty_en') }}</span><input v-model="form.warranty_en" class="input" dir="ltr"></label>
+          <label class="block"><span class="label">{{ $t('admin.products_page.warranty_ar') }}</span><input v-model="form.warranty_ar" class="input" dir="rtl"></label>
         </div>
 
         <div>

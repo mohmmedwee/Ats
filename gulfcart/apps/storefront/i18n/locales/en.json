@@ -283,7 +283,13 @@
       },
       "variant_prices": "Price",
       "attributes_hint": "Options as name=value, one per line (e.g. color=Black, size=M). Prices come from each option's supplier cost.",
-      "save_options": "Save options"
+      "save_options": "Save options",
+      "brand_select": "Brand",
+      "specifications_en": "Specifications (English)",
+      "specifications_ar": "Specifications (Arabic)",
+      "specs_hint": "One per line: Label: value",
+      "warranty_en": "Warranty (English)",
+      "warranty_ar": "Warranty (Arabic)"
     },
     "cj": {
       "title": "CJ products",
@@ -320,7 +326,11 @@
       "parent": "Parent",
       "order": "Order",
       "size_guide": "Size guide",
-      "size_guide_hint": "Shown on every product in this category and its subcategories. Same formatting as pages: \"## \" heading, \"- \" bullet."
+      "size_guide_hint": "Shown on every product in this category and its subcategories. Same formatting as pages: \"## \" heading, \"- \" bullet.",
+      "image": "Picture",
+      "upload_image": "Upload picture",
+      "requires_brand": "Only authorized brands",
+      "requires_brand_hint": "Products in this section (and its sub-sections) can only be published when their brand is marked authorized. Use for electronics, perfume and cosmetics."
     },
     "suppliers_page": {
       "subtitle": "Where products come from. A supplier sells only after its agreement is recorded and it is activated.",
@@ -596,6 +606,27 @@
     "reviews": {
       "title": "Reviews",
       "subtitle": "Approve customer reviews before they appear on the product page."
+    },
+    "brands": {
+      "title": "Brands",
+      "subtitle": "Brand pages, logos and which brands you are authorized to sell.",
+      "add": "Add brand",
+      "edit": "Edit brand",
+      "authorized": "Authorized to sell",
+      "authorized_hint": "Required to publish products in categories that need an authorized brand (electronics, cosmetics…). Keep the distributor letter.",
+      "note": "Authorization reference",
+      "featured": "Show on home page",
+      "logo": "Logo",
+      "upload_logo": "Upload logo",
+      "products": "Products",
+      "description": "Description"
+    },
+    "publish_problems": {
+      "TITLE_TRANSLATION_MISSING": "Add the Arabic and English title",
+      "NO_ACTIVE_VARIANT": "Activate at least one option",
+      "NO_APPROVED_IMAGE": "Approve at least one image",
+      "NO_COUNTRY_AVAILABILITY": "Choose where it is sold",
+      "BRAND_NOT_AUTHORIZED": "This section only sells authorized brands: pick a brand marked authorized"
     }
   },
   "errors": {
@@ -764,7 +795,8 @@
   "filters": {
     "category": "Category",
     "price": "Price",
-    "results_for": "Results for “{q}”"
+    "results_for": "Results for “{q}”",
+    "title": "Filters"
   },
   "product": {
     "price_note": "Includes VAT · customs shown at checkout if any",
@@ -774,7 +806,10 @@
       "color": "Colour",
       "colour": "Colour",
       "material": "Material",
-      "style": "Style"
+      "style": "Style",
+      "storage": "Storage",
+      "capacity": "Capacity",
+      "model": "Model"
     },
     "ships_from": "Ships directly from our supplier, tracked to your door",
     "all_in": "All-in pricing",
@@ -785,7 +820,9 @@
     "size_guide": "Size guide",
     "recently_viewed": "Recently viewed",
     "from": "from",
-    "price_by_option": "Price depends on the option: {min} – {max}"
+    "price_by_option": "Price depends on the option: {min} – {max}",
+    "specifications": "Specifications",
+    "warranty": "Warranty"
   },
   "footer": {
     "shop": "Shop",
@@ -874,5 +911,17 @@
     "purple": "Purple",
     "gold": "Gold",
     "silver": "Silver"
+  },
+  "brands": {
+    "title": "Brands",
+    "featured": "Top brands",
+    "all": "All brands",
+    "authorized": "Authorized seller: genuine products",
+    "authorized_short": "Authorized",
+    "products": "products"
+  },
+  "categories": {
+    "title": "Categories",
+    "shop_all": "Shop all"
   }
 }

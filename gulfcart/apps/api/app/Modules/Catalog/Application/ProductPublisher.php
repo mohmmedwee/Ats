@@ -5,6 +5,8 @@ namespace App\Modules\Catalog\Application;
 use App\Modules\Audit\Contracts\AuditLogger;
 use App\Modules\Catalog\Domain\ProductStatus;
 use App\Modules\Catalog\Events\ProductStatusChanged;
+use App\Modules\Catalog\Infrastructure\Models\Brand;
+use App\Modules\Catalog\Infrastructure\Models\Category;
 use App\Modules\Catalog\Infrastructure\Models\Product;
 use App\Shared\Exceptions\ApiException;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +60,15 @@ final class ProductPublisher
         }
         if (! $product->availability->contains(fn ($a) => $a->is_available)) {
             $problems[] = 'NO_COUNTRY_AVAILABILITY';
+        }
+        // Electronics, cosmetics and similar categories only sell brands we are authorized for
+        // (counterfeits are seized by customs and expose the seller).
+        $category = $product->category_id ? Category::query()->find($product->category_id) : null;
+        if ($category?->requiresAuthorizedBrand()) {
+            $brand = $product->brand_id ? Brand::query()->find($product->brand_id) : null;
+            if ($brand === null || ! $brand->is_authorized) {
+                $problems[] = 'BRAND_NOT_AUTHORIZED';
+            }
         }
 
         return $problems;

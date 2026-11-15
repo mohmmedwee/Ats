@@ -35,7 +35,7 @@ async function transition(p: AdminProduct, action: 'submit' | 'publish' | 'unpub
   }
   catch (e) {
     const data = (e as { data?: { error?: { details?: { problems?: string[] } } } }).data
-    error.value = data?.error?.details?.problems?.join(', ') ?? apiErrorMessage(e, t('errors.generic'))
+    error.value = data?.error?.details?.problems?.map(c => t(`admin.publish_problems.${c}`)).join(' · ') ?? apiErrorMessage(e, t('errors.generic'))
   }
 }
 const thumb = (p: AdminProduct) => p.images.find(i => i.url)?.url ?? undefined

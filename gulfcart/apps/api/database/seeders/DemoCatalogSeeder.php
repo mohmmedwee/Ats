@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Modules\Catalog\Application\ListingRefresher;
+use App\Modules\Catalog\Infrastructure\Models\Brand;
 use App\Modules\Catalog\Infrastructure\Models\Category;
 use App\Modules\Catalog\Infrastructure\Models\Product;
 use App\Modules\Countries\Contracts\CountryDirectory;
@@ -125,7 +126,106 @@ final class DemoCatalogSeeder extends Seeder
             $listing->refresh($product->id);
         }
 
-        $this->command?->info('Demo catalog ready: 24 products, 10 categories, 2 mock suppliers.');
+        $this->brands($cats);
+        $this->electronics($countries, $repricer, $listing, $lifestyle);
+
+        $this->command?->info('Demo catalog ready: 30 products, 16 categories, 11 brands, 2 mock suppliers.');
+    }
+
+    /** Fictional demo brands for the fashion and lifestyle items (real trademarks are never used in demo data). */
+    private function brands(array $cats): void
+    {
+        $map = [
+            'luma' => ['Luma', 'لوما', ['dresses', 'tops', 'bags'], true],
+            'sahara' => ['Sahara', 'صحارى', ['shoes', 'men'], true],
+            'oudia' => ['Oudia', 'عودية', ['beauty'], true],
+            'dar-home' => ['Dar Home', 'دار هوم', ['home'], false],
+            'little-dune' => ['Little Dune', 'ليتل دون', ['kids', 'accessories'], false],
+        ];
+        foreach ($map as $slug => [$en, $ar, $categories, $featured]) {
+            $brand = Brand::query()->firstOrCreate(['slug' => $slug], ['name' => ['en' => $en, 'ar' => $ar], 'is_authorized' => true, 'is_featured' => $featured, 'authorization_note' => 'Demo']);
+            $ids = array_map(fn ($c) => $cats[$c]->id, $categories);
+            Product::query()->whereIn('category_id', $ids)->where('slug', 'like', 'demo-%')->update(['brand_id' => $brand->id, 'brand' => $en]);
+        }
+    }
+
+    /**
+     * Electronics: brand authorization required, options by colour and storage/size with their own costs,
+     * specifications and warranty text.
+     */
+    private function electronics(CountryDirectory $countries, Repricer $repricer, ListingRefresher $listing, Supplier $supplier): void
+    {
+        $root = Category::query()->firstOrCreate(['slug' => 'electronics'], ['name' => ['en' => 'Electronics', 'ar' => 'إلكترونيات'], 'sort_order' => 1, 'requires_authorized_brand' => true]);
+        $sub = [];
+        foreach (['mobiles' => ['Mobiles', 'جوالات'], 'laptops' => ['Laptops', 'لابتوبات'], 'audio' => ['Audio', 'سماعات وصوتيات'], 'smartwatches' => ['Smart watches', 'ساعات ذكية'], 'tech-accessories' => ['Tech accessories', 'ملحقات إلكترونية']] as $slug => [$en, $ar]) {
+            $sub[$slug] = Category::query()->firstOrCreate(['slug' => $slug], ['name' => ['en' => $en, 'ar' => $ar], 'parent_id' => $root->id, 'sort_order' => count($sub)]);
+        }
+        $brand = fn (string $slug, string $en, string $ar) => Brand::query()->firstOrCreate(['slug' => $slug], ['name' => ['en' => $en, 'ar' => $ar], 'is_authorized' => true, 'is_featured' => true, 'authorization_note' => 'Demo distributor agreement']);
+
+        $black = [[45, 45, 50], [15, 15, 20]];
+        $silver = [[225, 228, 232], [170, 175, 182]];
+        $white = [[248, 248, 248], [205, 208, 212]];
+        $items = [
+            ['mobiles', $brand('nova', 'Nova', 'نوفا'), 'Nova X5 Smartphone', 'جوال نوفا X5', '180', 'storage', ['128 GB' => '0', '256 GB' => '40'], ['Black' => $black, 'Silver' => $silver], '851713',
+                "Display: 6.5\" AMOLED, 120 Hz\nProcessor: Octa-core 2.8 GHz\nRAM: 8 GB\nCamera: 50 MP main + 12 MP ultra-wide\nBattery: 5000 mAh, 45 W fast charging\nSIM: Dual SIM (nano + eSIM)\nNetwork: 5G",
+                "الشاشة: 6.5 بوصة AMOLED بتردد 120 هرتز\nالمعالج: ثماني النواة 2.8 جيجاهرتز\nالذاكرة: 8 جيجابايت\nالكاميرا: 50 ميجابكسل رئيسية + 12 ميجابكسل واسعة\nالبطارية: 5000 مللي أمبير، شحن سريع 45 واط\nالشريحة: شريحتان (نانو + eSIM)\nالشبكة: 5G"],
+            ['laptops', $brand('volt', 'Volt', 'فولت'), 'Volt Book 14', 'لابتوب فولت بوك 14', '320', 'storage', ['8 GB / 256 GB' => '0', '16 GB / 512 GB' => '90'], ['Silver' => $silver], '847130',
+                "Display: 14\" FHD IPS\nProcessor: 8-core, up to 4.4 GHz\nGraphics: Integrated\nWeight: 1.3 kg\nBattery: up to 12 hours\nKeyboard: English/Arabic",
+                "الشاشة: 14 بوصة FHD IPS\nالمعالج: ثماني النواة حتى 4.4 جيجاهرتز\nكرت الشاشة: مدمج\nالوزن: 1.3 كغ\nالبطارية: حتى 12 ساعة\nلوحة المفاتيح: إنجليزي/عربي"],
+            ['audio', $brand('aurora', 'Aurora Audio', 'أورورا'), 'Aurora Buds Pro', 'سماعات أورورا بودز برو', '22', 'option', ['Standard' => '0'], ['Black' => $black, 'White' => $white], '851830',
+                "Noise cancelling: Active (ANC)\nBattery: 8 h + 24 h with case\nBluetooth: 5.3\nWater resistance: IPX4",
+                "عزل الضوضاء: نشط (ANC)\nالبطارية: 8 ساعات + 24 ساعة مع العلبة\nبلوتوث: 5.3\nمقاومة الماء: IPX4"],
+            ['smartwatches', $brand('pulse', 'Pulse', 'بلس'), 'Pulse Watch 2', 'ساعة بلس 2', '35', 'size', ['41 mm' => '0', '45 mm' => '5'], ['Black' => $black, 'Silver' => $silver], '910212',
+                "Display: AMOLED, always-on\nHealth: heart rate, SpO2, sleep\nGPS: Built-in\nBattery: up to 7 days\nWater resistance: 5 ATM",
+                "الشاشة: AMOLED تعمل دائماً\nالصحة: نبض القلب، الأكسجين، النوم\nGPS: مدمج\nالبطارية: حتى 7 أيام\nمقاومة الماء: 5 ATM"],
+            ['tech-accessories', $brand('volt', 'Volt', 'فولت'), 'Volt 65W USB-C Charger', 'شاحن فولت 65 واط USB-C', '9', 'option', ['UK plug (UAE/KSA)' => '0'], ['White' => $white], '850440',
+                "Output: 65 W USB-C PD\nPorts: 2 × USB-C, 1 × USB-A\nPlug: Type G (UAE and Saudi Arabia)",
+                "القدرة: 65 واط USB-C PD\nالمنافذ: 2 USB-C و1 USB-A\nالقابس: نوع G (الإمارات والسعودية)"],
+        ];
+
+        foreach ($items as $n => [$cat, $b, $en, $ar, $cost, $optionKey, $options, $colours, $hs, $specsEn, $specsAr]) {
+            $slug = 'demo-e'.($n + 1);
+            if (Product::query()->where('slug', $slug)->exists()) {
+                continue;
+            }
+            $product = Product::query()->create([
+                'category_id' => $sub[$cat]->id, 'brand_id' => $b->id, 'brand' => $b->name['en'],
+                'title' => ['en' => $en, 'ar' => $ar], 'slug' => $slug,
+                'description' => ['en' => "{$en}. Demo product for the GulfCart storefront.", 'ar' => "{$ar}. منتج تجريبي لمتجر غلف كارت."],
+                'specifications' => ['en' => $specsEn, 'ar' => $specsAr],
+                'warranty' => ['en' => '1-year warranty, replacement within 14 days for defects', 'ar' => 'ضمان سنة، واستبدال خلال 14 يوماً للعيوب المصنعية'],
+                'status' => 'published', 'attributes' => [], 'weight_grams' => 600, 'hs_code' => $hs, 'published_at' => now()->subMinutes(30 + $n),
+            ]);
+            $sp = $supplier->products()->create(['product_id' => $product->id, 'external_product_id' => strtoupper($slug), 'cost_price' => $cost, 'cost_currency' => 'USD', 'stock_status' => 'in_stock']);
+            $i = 0;
+            foreach ($colours as $colour => [$top, $bottom]) {
+                $path = "products/{$product->id}/".strtolower($colour).'.png';
+                Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->put($path, $this->png($top, $bottom));
+                $image = $product->images()->create(['storage_path' => $path, 'rights_status' => 'approved', 'rights_basis' => 'own_photo', 'sort_order' => $i]);
+                $first = true;
+                foreach ($options as $option => $extra) {
+                    $i++;
+                    $attributes = count($colours) > 1 || $optionKey !== 'option' ? ['color' => $colour, $optionKey => $option] : ['color' => $colour];
+                    if ($optionKey === 'option' && count($options) === 1) {
+                        $attributes = ['color' => $colour];
+                    }
+                    $variant = $product->variants()->create(['sku' => strtoupper($slug).'-'.$i, 'attributes' => $attributes]);
+                    $sp->mappings()->create([
+                        'variant_id' => $variant->id, 'external_variant_id' => strtoupper($slug).'-V'.$i,
+                        'cost_price' => $extra === '0' ? null : number_format((float) $cost + (float) $extra, 2, '.', ''),
+                    ]);
+                    if ($first) {
+                        $image->update(['variant_id' => $variant->id]);
+                        $first = false;
+                    }
+                }
+            }
+            foreach ($countries->active() as $country) {
+                $product->availability()->create(['country_id' => $country->id, 'is_available' => true, 'estimated_delivery_min_days' => 5, 'estimated_delivery_max_days' => 9]);
+            }
+            $repricer->reprice($product->id, notify: false);
+            $listing->refresh($product->id);
+        }
     }
 
     /** @param list<string> $countries */

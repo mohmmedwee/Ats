@@ -451,6 +451,7 @@ paths:
         - { name: category, in: query, schema: { type: string } }
         - { name: q, in: query, schema: { type: string, maxLength: 100 } }
         - { name: ids, in: query, description: 'Comma-separated product IDs (max 100), e.g. for the wishlist', schema: { type: string } }
+        - { name: brand, in: query, description: 'Brand slug(s), comma-separated', schema: { type: string } }
         - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc] } }
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
@@ -980,6 +981,82 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 24, default: 12 } }
       responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /brands:
+    get:
+      tags: [Catalog]
+      summary: Active brands with published products (A-Z), with product counts; ?featured=1 for the home page row
+      security: []
+      parameters: [{ name: featured, in: query, schema: { type: boolean } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /brands/{slug}:
+    get:
+      tags: [Catalog]
+      summary: Brand page header (name, logo, description, authorized seller)
+      security: []
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /products/facets:
+    get:
+      tags: [Catalog]
+      summary: Filters for a listing (brands with counts, price range) for the same category or search
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Country'
+        - { name: category, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/brands:
+    get:
+      tags: [Admin Catalog]
+      summary: All brands with product counts (catalog.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Catalog]
+      summary: Create a brand (slug from the English name when omitted)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { $ref: '#/components/schemas/Translatable' }
+                slug: { type: string }
+                description: { $ref: '#/components/schemas/Translatable' }
+                is_authorized: { type: boolean, description: 'We hold a distributor/brand authorization; required in sections that only sell authorized brands' }
+                authorization_note: { type: [string, 'null'] }
+                is_featured: { type: boolean }
+                is_active: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/brands/{brand}:
+    patch:
+      tags: [Admin Catalog]
+      summary: Update a brand (renaming updates the searchable brand name on its products)
+      parameters: [{ name: brand, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/brands/{brand}/logo:
+    post:
+      tags: [Admin Catalog]
+      summary: Upload the brand logo (png, jpg, webp or svg, max 2 MB)
+      parameters: [{ name: brand, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/categories/{category}/image:
+    post:
+      tags: [Admin Catalog]
+      summary: Upload the category picture shown on the categories page and home circles
+      parameters: [{ name: category, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /countries/{code}/address-format:
     get:
       tags: [Countries]

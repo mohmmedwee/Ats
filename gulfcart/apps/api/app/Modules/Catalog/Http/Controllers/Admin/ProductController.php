@@ -11,6 +11,7 @@ use App\Modules\Catalog\Domain\ProductStatus;
 use App\Modules\Catalog\Http\Requests\AvailabilityRequest;
 use App\Modules\Catalog\Http\Requests\ProductRequest;
 use App\Modules\Catalog\Http\Resources\AdminProductResource;
+use App\Modules\Catalog\Infrastructure\Models\Brand;
 use App\Modules\Catalog\Infrastructure\Models\Product;
 use App\Modules\Countries\Contracts\CountryDirectory;
 use App\Modules\Identity\Domain\Permissions;
@@ -49,7 +50,7 @@ final class ProductController
 
     public function store(ProductRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $data = $this->withBrandName($request->validated());
         $product = Product::query()->create($data + [
             'slug' => EloquentCatalogWriter::slugFor((string) ($data['title']['en'] ?? 'product')),
             'status' => ProductStatus::DRAFT,
@@ -84,7 +85,7 @@ final class ProductController
         if ($product->status === ProductStatus::ARCHIVED) {
             throw new ApiException('ILLEGAL_STATE_TRANSITION', 409, ['entity' => 'product', 'from' => 'archived', 'to' => 'edit']);
         }
-        $data = $request->validated();
+        $data = $this->withBrandName($request->validated());
         $old = $product->only(array_keys($data));
         $product->update($data);
         $this->audit->record('product.updated', 'product', $product->id, $old, $data);
@@ -143,5 +144,19 @@ final class ProductController
             $map[$c->id] = $c->code;
         }
         $request->attributes->set('country_codes_by_id', $map);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withBrandName(array $data): array
+    {
+        if (array_key_exists('brand_id', $data)) {
+            $brand = $data['brand_id'] ? Brand::query()->find($data['brand_id']) : null;
+            $data['brand'] = $brand?->name['en'] ?? null;
+        }
+
+        return $data;
     }
 }

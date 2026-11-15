@@ -19,6 +19,7 @@ final class CategoryRequest extends FormRequest
             'parent_id' => ['nullable', 'uuid', 'exists:categories,id', Rule::notIn(array_filter([$id]))],
             'sort_order' => ['sometimes', 'integer', 'between:0,100000'],
             'is_active' => ['sometimes', 'boolean'],
+            'requires_authorized_brand' => ['sometimes', 'boolean'],
         ];
     }
 }

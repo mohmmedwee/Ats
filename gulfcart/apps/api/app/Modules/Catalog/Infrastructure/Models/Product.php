@@ -34,10 +34,18 @@ class Product extends Model
         return [
             'title' => 'array',
             'description' => 'array',
+            'specifications' => 'array',
+            'warranty' => 'array',
             'attributes' => 'array',
             'weight_grams' => 'integer',
             'published_at' => 'datetime',
         ];
+    }
+
+    /** @return BelongsTo<Brand, $this> */
+    public function brandRecord(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
     }
 
     /** @return BelongsTo<Category, $this> */

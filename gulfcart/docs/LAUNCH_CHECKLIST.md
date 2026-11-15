@@ -19,6 +19,24 @@ provide. Each one names the setting it fills (in `deploy/api.env`) and the guide
 | 10 | **Customs and VAT rates confirmed** (duty %, duty-free threshold) | Customs broker / tax advisor | Admin → Tax and customs |
 | 11 | **One real test order** to Dubai and Riyadh: delivery time, packaging, no fees at the door | You | [CJ_DROPSHIPPING.md](suppliers/CJ_DROPSHIPPING.md) checklist |
 
+## A2. Selling electronics, perfume or cosmetics
+
+These sections are set to **only publish authorized brands** (Admin → Categories → "Only authorized brands").
+A brand is marked authorized in Admin → Brands only when you hold a written authorization: a distributor
+letter or the brand's reseller programme. Counterfeit or grey-market goods are seized at customs, and the
+seller is liable.
+
+| Product type | UAE | Saudi Arabia |
+|---|---|---|
+| Phones, routers, smart watches, Bluetooth/Wi-Fi devices | TDRA type approval (by the manufacturer or importer) | CST (formerly CITC) conformity + SASO/SABER certificate |
+| Chargers, power banks, electrical goods | ECAS / Emirates Conformity (MoIAT) | SASO IECEE RC / SABER |
+| Perfume, cosmetics | Municipality / MoIAT product registration | SFDA notification |
+| Lithium batteries (shipping) | Courier must accept dangerous goods (UN3480/3481); many standard lines refuse them | Same |
+
+Confirm with the supplier that their products already carry these approvals for the UAE and KSA, and ask
+your customs broker. CJ ships some electronics on dedicated battery lines; check the shipping option before
+listing. Add specifications and warranty text on each electronics product (Admin → Products).
+
 ## B. Strongly recommended at launch
 
 | Item | Setting / guide |

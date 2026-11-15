@@ -5,6 +5,7 @@ namespace App\Modules\Catalog\Http\Controllers;
 use App\Modules\Catalog\Contracts\CatalogPricing;
 use App\Modules\Catalog\Contracts\CatalogStock;
 use App\Modules\Catalog\Domain\ProductStatus;
+use App\Modules\Catalog\Infrastructure\Models\Brand;
 use App\Modules\Catalog\Infrastructure\Models\Category;
 use App\Modules\Catalog\Infrastructure\Models\Product;
 use App\Modules\Countries\Domain\CountryData;
@@ -14,6 +15,7 @@ use App\Shared\I18n\Translations;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -30,11 +32,36 @@ final class StorefrontCatalogController
         $byParent = $all->groupBy(fn ($c) => $c->parent_id ?? 'root');
         $build = function (string $parent) use (&$build, $byParent): array {
             return ($byParent[$parent] ?? collect())->map(fn ($c) => [
-                'id' => $c->id, 'slug' => $c->slug, 'name' => Translations::pick($c->name), 'children' => $build($c->id),
+                'id' => $c->id, 'slug' => $c->slug, 'name' => Translations::pick($c->name), 'image_url' => $c->imageUrl(), 'children' => $build($c->id),
             ])->values()->all();
         };
 
         return ApiResponse::success($build('root'));
+    }
+
+    /** Filters for the listing being shown: brands with counts and the price range. */
+    public function facets(Request $request): JsonResponse
+    {
+        $country = $this->country($request);
+        $query = $this->visible($country);
+        if (is_string($slug = $request->query('category')) && $slug !== '') {
+            $query->whereIn('products.category_id', $this->categoryWithDescendants($slug));
+        }
+        if (is_string($q = $request->query('q')) && trim($q) !== '') {
+            $term = '%'.str_replace(['%', '_'], ['\%', '\_'], trim($q)).'%';
+            $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
+        }
+        $ids = (clone $query)->pluck('products.id');
+        $counts = Product::query()->whereIn('id', $ids)->whereNotNull('brand_id')->groupBy('brand_id')->selectRaw('brand_id, count(*) as n')->pluck('n', 'brand_id');
+        $brands = Brand::query()->whereIn('id', $counts->keys())->where('is_active', true)->get()
+            ->map(fn (Brand $b) => ['slug' => $b->slug, 'name' => Translations::pick($b->name), 'count' => (int) $counts[$b->id]])
+            ->sortByDesc('count')->values()->all();
+        $range = DB::query()->fromSub((clone $query)->select('pca.from_price'), 't')->selectRaw('min(from_price) as min, max(from_price) as max')->first();
+
+        return ApiResponse::success([
+            'brands' => $brands,
+            'price' => ['min' => $range?->min !== null ? (string) $range->min : null, 'max' => $range?->max !== null ? (string) $range->max : null, 'currency' => $country->currency],
+        ]);
     }
 
     public function index(Request $request): JsonResponse
@@ -67,7 +94,7 @@ final class StorefrontCatalogController
     public function show(Request $request, string $slug): JsonResponse
     {
         $country = $this->country($request);
-        $product = $this->visible($country)->with(['images', 'variants', 'category'])->where('products.slug', $slug)
+        $product = $this->visible($country)->with(['images', 'variants', 'category', 'brandRecord'])->where('products.slug', $slug)
             ->firstOr(fn () => throw new ApiException('NOT_FOUND', 404));
 
         return ApiResponse::success($this->present($product, $country, true));
@@ -90,7 +117,7 @@ final class StorefrontCatalogController
             }
             $query->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
                 ->orderByRaw('abs(pca.from_price - ?)', [$price])->limit($limit - count($picked))
-                ->with(['images', 'category'])->get()->each(function (Product $p) use (&$picked) {
+                ->with(['images', 'category', 'brandRecord'])->get()->each(function (Product $p) use (&$picked) {
                     $picked[$p->id] = $p;
                 });
         };
@@ -107,7 +134,7 @@ final class StorefrontCatalogController
         }
         if (count($picked) < $limit) {
             $this->visible($country)->where('products.id', '<>', $id)->whereNotIn('products.id', array_keys($picked))
-                ->orderByDesc('products.published_at')->limit($limit - count($picked))->with(['images', 'category'])->get()
+                ->orderByDesc('products.published_at')->limit($limit - count($picked))->with(['images', 'category', 'brandRecord'])->get()
                 ->each(function (Product $p) use (&$picked) {
                     $picked[$p->id] = $p;
                 });
@@ -144,11 +171,14 @@ final class StorefrontCatalogController
     private function listing(Request $request, ?string $categorySlug, ?string $q): JsonResponse
     {
         $country = $this->country($request);
-        $query = $this->visible($country)->with(['images', 'category']);
+        $query = $this->visible($country)->with(['images', 'category', 'brandRecord']);
 
         if ($categorySlug !== null && $categorySlug !== '') {
             $ids = $this->categoryWithDescendants($categorySlug);
             $query->whereIn('products.category_id', $ids);
+        }
+        if (is_string($brand = $request->query('brand')) && $brand !== '') {
+            $query->whereIn('products.brand_id', Brand::query()->whereIn('slug', array_slice(explode(',', $brand), 0, 20))->pluck('id'));
         }
         if (is_string($ids = $request->query('ids')) && $ids !== '') {
             $list = array_slice(array_filter(explode(',', $ids), fn ($id) => Str::isUuid($id)), 0, 100);
@@ -209,7 +239,8 @@ final class StorefrontCatalogController
             'id' => $p->id,
             'slug' => $p->slug,
             'title' => Translations::pick($p->title),
-            'brand' => $p->brand,
+            'brand' => $p->brandRecord ? Translations::pick($p->brandRecord->name) : $p->brand,
+            'brand_slug' => $p->brandRecord?->slug,
             'category' => $p->category ? ['slug' => $p->category->slug, 'name' => Translations::pick($p->category->name)] : null,
             'price' => $p->getAttribute('from_price') !== null
                 ? ['amount' => (string) $p->getAttribute('from_price'), 'currency' => (string) $p->getAttribute('from_price_currency')]
@@ -228,6 +259,9 @@ final class StorefrontCatalogController
                 'variants' => $variants,
                 'prices_include_tax' => true,
                 'size_guide' => $this->sizeGuide($p->category),
+                'specifications' => Translations::pick($p->specifications),
+                'warranty' => Translations::pick($p->warranty),
+                'brand_info' => $p->brandRecord ? ['slug' => $p->brandRecord->slug, 'name' => Translations::pick($p->brandRecord->name), 'logo_url' => $p->brandRecord->logoUrl(), 'authorized' => $p->brandRecord->is_authorized] : null,
             ];
         }
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property string $id
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $slug
  * @property int $sort_order
  * @property bool $is_active
+ * @property string|null $image_path
+ * @property bool $requires_authorized_brand
  */
 class Category extends Model
 {
@@ -24,7 +27,7 @@ class Category extends Model
 
     protected function casts(): array
     {
-        return ['name' => 'array', 'size_guide' => 'array', 'is_active' => 'boolean', 'sort_order' => 'integer'];
+        return ['name' => 'array', 'size_guide' => 'array', 'is_active' => 'boolean', 'sort_order' => 'integer', 'requires_authorized_brand' => 'boolean'];
     }
 
     /** @return BelongsTo<Category, $this> */
@@ -37,5 +40,23 @@ class Category extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function imageUrl(): ?string
+    {
+        return $this->image_path ? Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->url($this->image_path) : null;
+    }
+
+    /** True when this category or any parent only sells authorized brands. */
+    public function requiresAuthorizedBrand(): bool
+    {
+        for ($c = $this, $guard = 0; $c !== null && $guard < 10; $guard++) {
+            if ($c->requires_authorized_brand) {
+                return true;
+            }
+            $c = $c->parent_id ? self::query()->find($c->parent_id) : null;
+        }
+
+        return false;
     }
 }

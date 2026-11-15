@@ -84,7 +84,7 @@ const colourImage = (key: string, value: string) => {
   <div class="space-y-4" data-test="variant-picker">
     <div v-for="key in keys" :key="key">
       <div class="mb-2 flex items-center justify-between">
-        <p class="text-sm font-semibold">{{ keyLabel(key) }}: <span class="font-normal text-ink-700" data-test="option-selected">{{ choice[key] ? valueLabel(key, choice[key]!) : '' }}</span></p>
+        <p class="text-sm font-semibold">{{ keyLabel(key) }}: <span class="font-normal text-ink-700" dir="auto" data-test="option-selected">{{ choice[key] ? valueLabel(key, choice[key]!) : '' }}</span></p>
         <slot :name="`after-${key}`" />
       </div>
 
@@ -110,7 +110,7 @@ const colourImage = (key: string, value: string) => {
           :disabled="!available(key, val)" :aria-pressed="choice[key] === val"
           @click="pick(key, val)"
         >
-          <span>{{ valueLabel(key, val) }}</span>
+          <span dir="auto">{{ valueLabel(key, val) }}</span>
           <span v-if="varies(key) && priceFor(key, val)" class="text-[10px] font-normal opacity-80">{{ formatMoney(priceFor(key, val), locale) }}</span>
         </button>
       </div>
