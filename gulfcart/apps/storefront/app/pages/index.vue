@@ -3,7 +3,7 @@ import type { Category, Envelope, ProductCard } from '~/types/api'
 
 const { request, country } = useApi()
 const localePath = useLocalePath()
-const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
+const currency = computed(() => currencyOf(country.value))
 
 const load = (query: Record<string, string | number | undefined>) => request<Envelope<ProductCard[]>>('/products', { query }).then(r => r.data)
 const { data: fresh } = await useAsyncData('home-new', () => load({ limit: 12, sort: 'newest' }), { server: false, watch: [country], default: () => [] })

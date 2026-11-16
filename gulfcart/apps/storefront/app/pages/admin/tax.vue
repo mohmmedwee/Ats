@@ -90,7 +90,7 @@ onMounted(load)
     </AdminModal>
     <AdminModal :open="customsOpen" :title="$t('admin.tax.add_customs')" @close="customsOpen = false">
       <form class="grid gap-3 sm:grid-cols-2" @submit.prevent="addCustoms">
-        <label><span class="label">{{ $t('admin.common.country') }}</span><select v-model="cf.country" class="input" @change="cf.de_minimis_currency = cf.country === 'SA' ? 'SAR' : 'AED'"><option>AE</option><option>SA</option></select></label>
+        <label><span class="label">{{ $t('admin.common.country') }}</span><select v-model="cf.country" class="input" @change="cf.de_minimis_currency = currencyOf(cf.country)"><option>AE</option><option>SA</option></select></label>
         <label><span class="label">{{ $t('admin.tax.hs') }}</span><input v-model="cf.hs_code_prefix" class="input" dir="ltr" :placeholder="$t('admin.tax.default')"></label>
         <label><span class="label">{{ $t('admin.tax.duty') }} %</span><input v-model="cf.duty_percent" class="input" dir="ltr" required></label>
         <label><span class="label">{{ $t('admin.tax.basis') }}</span><select v-model="cf.valuation_basis" class="input"><option>CIF</option><option>FOB</option></select></label>

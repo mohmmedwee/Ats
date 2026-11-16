@@ -38,6 +38,35 @@ final class StaticAddressRules implements AddressRules
             ['code' => 'BAH', 'en' => 'Al-Bahah', 'ar' => 'الباحة'],
             ['code' => 'JOF', 'en' => 'Al-Jawf', 'ar' => 'الجوف'],
         ],
+        'KW' => [
+            ['code' => 'CAP', 'en' => 'Al Asimah (Capital)', 'ar' => 'العاصمة'], ['code' => 'HAW', 'en' => 'Hawalli', 'ar' => 'حولي'],
+            ['code' => 'FAR', 'en' => 'Al Farwaniyah', 'ar' => 'الفروانية'], ['code' => 'AHM', 'en' => 'Al Ahmadi', 'ar' => 'الأحمدي'],
+            ['code' => 'JAH', 'en' => 'Al Jahra', 'ar' => 'الجهراء'], ['code' => 'MUB', 'en' => 'Mubarak Al-Kabeer', 'ar' => 'مبارك الكبير'],
+        ],
+        'QA' => [
+            ['code' => 'DOH', 'en' => 'Doha', 'ar' => 'الدوحة'], ['code' => 'RAY', 'en' => 'Al Rayyan', 'ar' => 'الريان'],
+            ['code' => 'WAK', 'en' => 'Al Wakrah', 'ar' => 'الوكرة'], ['code' => 'KHO', 'en' => 'Al Khor', 'ar' => 'الخور'],
+            ['code' => 'SHA', 'en' => 'Al Shamal', 'ar' => 'الشمال'], ['code' => 'DAA', 'en' => 'Al Daayen', 'ar' => 'الضعاين'],
+            ['code' => 'UMS', 'en' => 'Umm Salal', 'ar' => 'أم صلال'], ['code' => 'SHH', 'en' => 'Al Shahaniya', 'ar' => 'الشحانية'],
+        ],
+        'BH' => [
+            ['code' => 'CAP', 'en' => 'Capital', 'ar' => 'العاصمة'], ['code' => 'MUH', 'en' => 'Muharraq', 'ar' => 'المحرق'],
+            ['code' => 'NOR', 'en' => 'Northern', 'ar' => 'الشمالية'], ['code' => 'SOU', 'en' => 'Southern', 'ar' => 'الجنوبية'],
+        ],
+        'OM' => [
+            ['code' => 'MUS', 'en' => 'Muscat', 'ar' => 'مسقط'], ['code' => 'DHO', 'en' => 'Dhofar', 'ar' => 'ظفار'],
+            ['code' => 'BAN', 'en' => 'North Al Batinah', 'ar' => 'شمال الباطنة'], ['code' => 'BAS', 'en' => 'South Al Batinah', 'ar' => 'جنوب الباطنة'],
+            ['code' => 'DAK', 'en' => 'Ad Dakhiliyah', 'ar' => 'الداخلية'], ['code' => 'SHN', 'en' => 'North Ash Sharqiyah', 'ar' => 'شمال الشرقية'],
+            ['code' => 'SHS', 'en' => 'South Ash Sharqiyah', 'ar' => 'جنوب الشرقية'], ['code' => 'DHA', 'en' => 'Ad Dhahirah', 'ar' => 'الظاهرة'],
+            ['code' => 'BUR', 'en' => 'Al Buraimi', 'ar' => 'البريمي'], ['code' => 'WUS', 'en' => 'Al Wusta', 'ar' => 'الوسطى'],
+            ['code' => 'MSN', 'en' => 'Musandam', 'ar' => 'مسندم'],
+        ],
+    ];
+
+    /** Mobile number patterns and dialling prefixes. */
+    private const PHONES = [
+        'AE' => ['+971', '5\\d{8}'], 'SA' => ['+966', '5\\d{8}'], 'KW' => ['+965', '[569]\\d{7}'],
+        'QA' => ['+974', '[3567]\\d{7}'], 'BH' => ['+973', '3\\d{7}'], 'OM' => ['+968', '[79]\\d{7}'],
     ];
 
     public function rules(string $countryCode): array
@@ -65,6 +94,11 @@ final class StaticAddressRules implements AddressRules
                 'postal_code' => ['nullable', 'regex:/^\d{5}$/'],
                 'national_address_code' => ['nullable', 'regex:/^[A-Za-z]{4}\d{4}$/'],
             ],
+            default => [
+                'phone' => ['required', 'regex:/^(\\'.self::PHONES[$code][0].'|00'.ltrim(self::PHONES[$code][0], '+').')?'.self::PHONES[$code][1].'$/'],
+                'postal_code' => ['nullable', 'string', 'max:10'],
+                'national_address_code' => ['prohibited'],
+            ],
         };
     }
 
@@ -75,8 +109,9 @@ final class StaticAddressRules implements AddressRules
 
     public function normalizePhone(string $countryCode, string $phone): string
     {
-        $prefix = strtoupper($countryCode) === 'SA' ? '+966' : '+971';
-        $digits = preg_replace('/^(\+971|00971|\+966|00966|0)/', '', preg_replace('/\s+/', '', $phone) ?? '') ?? '';
+        $prefix = self::PHONES[strtoupper($countryCode)][0] ?? '+971';
+        $code = ltrim($prefix, '+');
+        $digits = preg_replace('/^(\+'.$code.'|00'.$code.'|0)/', '', preg_replace('/\s+/', '', $phone) ?? '') ?? '';
 
         return $prefix.$digits;
     }

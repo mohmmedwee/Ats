@@ -110,16 +110,17 @@ return [
         'http' => [
             'url' => env('FX_HTTP_URL', 'https://open.er-api.com/v6/latest/{base}'),
             'bases' => ['USD', 'EUR', 'GBP', 'CNY'],
-            'targets' => ['AED', 'SAR'],
+            'targets' => ['AED', 'SAR', 'KWD', 'QAR', 'BHD', 'OMR'],
             'max_change_percent' => env('FX_MAX_CHANGE_PERCENT', '10'),
         ],
         // Used by ConfiguredRateProvider. USD pegs are official; other pairs are placeholders
         // until a live provider is bound (docs/PRICING_ENGINE.md §6).
         'rates' => [
-            'USD' => ['AED' => '3.6725', 'SAR' => '3.7500'],
-            'EUR' => ['AED' => '4.0000', 'SAR' => '4.0800'],
-            'GBP' => ['AED' => '4.6500', 'SAR' => '4.7500'],
-            'CNY' => ['AED' => '0.5100', 'SAR' => '0.5200'],
+            // QAR, BHD and OMR are pegged to USD; KWD follows a basket (approximate here).
+            'USD' => ['AED' => '3.6725', 'SAR' => '3.7500', 'KWD' => '0.3070', 'QAR' => '3.6400', 'BHD' => '0.3760', 'OMR' => '0.3845'],
+            'EUR' => ['AED' => '4.0000', 'SAR' => '4.0800', 'KWD' => '0.3340', 'QAR' => '3.9600', 'BHD' => '0.4100', 'OMR' => '0.4190'],
+            'GBP' => ['AED' => '4.6500', 'SAR' => '4.7500', 'KWD' => '0.3890', 'QAR' => '4.6100', 'BHD' => '0.4760', 'OMR' => '0.4870'],
+            'CNY' => ['AED' => '0.5100', 'SAR' => '0.5200', 'KWD' => '0.0427', 'QAR' => '0.5060', 'BHD' => '0.0523', 'OMR' => '0.0535'],
             'AED' => ['SAR' => '1.0211'],
         ],
     ],
@@ -146,7 +147,7 @@ return [
             'client_secret' => env('PAYPAL_CLIENT_SECRET'),
             'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
             // PayPal does not settle AED/SAR: charges are in USD at these fixed pegs.
-            'usd_pegs' => ['AED' => '3.6725', 'SAR' => '3.75'],
+            'usd_pegs' => ['AED' => '3.6725', 'SAR' => '3.75', 'QAR' => '3.64', 'BHD' => '0.376', 'OMR' => '0.3845', 'KWD' => '0.307'],
         ],
         'tap' => [
             'secret_key' => env('TAP_SECRET_KEY'),

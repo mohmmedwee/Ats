@@ -8,7 +8,7 @@ import type { ProductCard } from '~/types/api'
 const props = defineProps<{ products: ProductCard[] }>()
 const localePath = useLocalePath()
 const { country } = useApi()
-const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
+const currency = computed(() => currencyOf(country.value))
 const index = ref(0)
 const track = ref<HTMLElement | null>(null)
 

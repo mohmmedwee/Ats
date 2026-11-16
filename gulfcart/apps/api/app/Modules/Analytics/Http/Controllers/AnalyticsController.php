@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /** Admin KPIs and finance reports (read-only, reporting views). */
 final class AnalyticsController
@@ -37,7 +38,7 @@ final class AnalyticsController
         $data = $request->validate([
             'from' => ['required', 'date'],
             'to' => ['required', 'date', 'after_or_equal:from'],
-            'country' => ['nullable', 'in:AE,SA'],
+            'country' => ['nullable', Rule::in((array) config('gulfcart.countries'))],
         ]);
         $from = Carbon::parse($data['from'])->startOfDay();
         $to = Carbon::parse($data['to'])->endOfDay();
@@ -84,12 +85,12 @@ final class AnalyticsController
         $data = $request->validate([
             'from' => ['required', 'date'],
             'to' => ['required', 'date', 'after_or_equal:from'],
-            'country' => ['required', 'in:AE,SA'],
+            'country' => ['required', Rule::in((array) config('gulfcart.countries'))],
         ]);
         $from = Carbon::parse($data['from'])->startOfDay();
         $to = Carbon::parse($data['to'])->endOfDay();
         $fee = (float) config('gulfcart.pricing.payment_fee_percent', '0') / 100;
-        $currency = $data['country'] === 'SA' ? 'SAR' : 'AED';
+        $currency = (string) DB::table('countries')->where('code', $data['country'])->value('currency_code');
 
         // Per line: share kept after refunds, revenue ex VAT after discount, cost of the kept units.
         $lines = DB::table('analytics_item_facts')->where('country', $data['country'])->whereBetween('paid_at', [$from, $to])->get();

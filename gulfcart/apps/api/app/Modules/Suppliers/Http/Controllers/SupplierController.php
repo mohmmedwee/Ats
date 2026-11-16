@@ -61,7 +61,7 @@ final class SupplierController
             'allows_direct_shipping' => ['required', 'boolean'],
             'allows_image_use' => ['required', 'boolean'],
             'countries' => ['required', 'array', 'min:1'],
-            'countries.*' => ['string', 'in:AE,SA', 'distinct'],
+            'countries.*' => ['string', Rule::in((array) config('gulfcart.countries')), 'distinct'],
             'valid_from' => ['required', 'date'],
             'valid_until' => ['nullable', 'date', 'after_or_equal:valid_from'],
             'document_path' => ['nullable', 'string', 'max:500'],

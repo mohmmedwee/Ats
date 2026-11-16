@@ -23,7 +23,7 @@ const message = ref('')
 const error = ref('')
 const friendCode = ref('')
 const copied = ref('')
-const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
+const currency = computed(() => currencyOf(country.value))
 
 async function load() {
   data.value = (await request<Envelope<Rewards>>('/loyalty')).data

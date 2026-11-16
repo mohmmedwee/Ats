@@ -71,3 +71,14 @@ listing. Add specifications and warranty text on each electronics product (Admin
 5. Admin → CJ products: import the first 20–50 products, review Arabic titles and images, publish.
 6. Admin → Discount codes: create a welcome code, e.g. WELCOME10.
 7. Admin → Team: invite staff with the right roles.
+
+## D. Opening another Gulf country later (Kuwait, Qatar, Bahrain, Oman)
+
+The four are prepared but switched off: regions, phone formats, currency (KWD, QAR, BHD, OMR), starting VAT
+(Kuwait and Qatar none today, Bahrain 10%, Oman 5%), customs placeholders and shipping placeholders.
+
+1. Confirm with a tax advisor whether you must register for VAT there and the customs threshold.
+2. Check your supplier and payment provider cover the country (Tap: yes for all four; Tabby: Kuwait;
+   PayPal is charged in USD).
+3. `SUPPORTED_COUNTRIES=AE,SA,QA` in `deploy/api.env`, restart, then `php artisan countries:enable QA`.
+4. Review Admin → Tax and Admin → Shipping, make products available there, then `php artisan pricing:reprice`.

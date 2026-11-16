@@ -29,7 +29,7 @@ async function onLogout() {
 
 const isAdmin = computed(() => route.path.includes('/admin'))
 const { country } = useApi()
-const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
+const currency = computed(() => currencyOf(country.value))
 </script>
 
 <template>

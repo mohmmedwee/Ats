@@ -5,6 +5,7 @@ namespace App\Modules\Engagement\Application;
 use App\Modules\Catalog\Contracts\CatalogPricing;
 use App\Modules\Catalog\Contracts\CatalogReader;
 use App\Modules\Catalog\Contracts\CatalogStock;
+use App\Modules\Countries\Contracts\CountryDirectory;
 use App\Modules\Engagement\Infrastructure\Models\ProductAlert;
 use App\Shared\Exceptions\ApiException;
 use App\Shared\Money\Decimal;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ProductAlerts
 {
-    public function __construct(private readonly CatalogReader $catalog, private readonly CatalogStock $stock, private readonly CatalogPricing $pricing) {}
+    public function __construct(private readonly CatalogReader $catalog, private readonly CatalogStock $stock, private readonly CatalogPricing $pricing, private readonly CountryDirectory $countries) {}
 
     public function subscribe(string $userId, string $productId, ?string $variantId, string $type, string $countryCode): ProductAlert
     {
@@ -75,7 +76,7 @@ final class ProductAlerts
                 'alert_id' => $alert->id, 'user_id' => $alert->user_id, 'type' => $alert->type, 'product_id' => $alert->product_id,
                 'product_slug' => $variant?->productSlug, 'product_title' => $variant !== null ? $variant->productTitle : [],
                 'price' => $price, 'old_price' => $alert->price_at_subscribe !== null ? (string) $alert->price_at_subscribe : null,
-                'currency' => $alert->country_code === 'SA' ? 'SAR' : 'AED', 'country' => $alert->country_code,
+                'currency' => $this->countries->find($alert->country_code)?->currency ?? '', 'country' => $alert->country_code,
             ]);
         });
     }

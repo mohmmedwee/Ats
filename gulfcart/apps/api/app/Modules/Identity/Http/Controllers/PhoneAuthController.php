@@ -78,7 +78,7 @@ final class PhoneAuthController
     private function phone(Request $request): string
     {
         $data = $request->validate([
-            'country' => ['required', 'in:AE,SA'],
+            'country' => ['required', Rule::in((array) config('gulfcart.countries'))],
             'phone' => ['required', 'string', 'max:30'],
         ]);
         $normalized = $this->addresses->normalizePhone($data['country'], (string) preg_replace('/[\s\-().]/', '', (string) $data['phone']));

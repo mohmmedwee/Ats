@@ -20,6 +20,11 @@ final class TaxSeeder extends Seeder
         $config = [
             'AE' => ['vat' => '5', 'vat_from' => '2018-01-01', 'de_minimis' => '1000.00', 'currency' => 'AED'],
             'SA' => ['vat' => '15', 'vat_from' => '2020-07-01', 'de_minimis' => '1000.00', 'currency' => 'SAR'],
+            // Expansion countries (seeded once they are switched on). Kuwait and Qatar have no VAT today.
+            'KW' => ['vat' => '0', 'vat_from' => '2026-01-01', 'de_minimis' => '100.000', 'currency' => 'KWD'],
+            'QA' => ['vat' => '0', 'vat_from' => '2026-01-01', 'de_minimis' => '1000.00', 'currency' => 'QAR'],
+            'BH' => ['vat' => '10', 'vat_from' => '2022-01-01', 'de_minimis' => '100.000', 'currency' => 'BHD'],
+            'OM' => ['vat' => '5', 'vat_from' => '2021-04-16', 'de_minimis' => '100.000', 'currency' => 'OMR'],
         ];
 
         foreach ($config as $code => $c) {

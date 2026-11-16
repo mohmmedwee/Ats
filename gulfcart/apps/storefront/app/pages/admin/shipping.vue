@@ -8,7 +8,7 @@ const methods = ref<Method[]>([])
 const open = ref(false)
 const editing = ref<Method | null>(null)
 const f = reactive({ country: 'AE', code: '', name_en: '', name_ar: '', carrier: '', pricing_model: 'flat' as 'flat' | 'weight_band', amount: '15', bands: [{ max_grams: 500, amount: '15' }] as Band[], above_amount: '', free_shipping_threshold: '200', extra_min_days: 0, extra_max_days: 0, sort_order: 0, is_active: true })
-const currency = (c: string) => (c === 'SA' ? 'SAR' : 'AED')
+const currency = (c: string) => currencyOf(c)
 
 async function load() {
   await run(async () => {
