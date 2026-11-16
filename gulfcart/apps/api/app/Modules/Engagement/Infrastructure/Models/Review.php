@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $body
  * @property string $locale
  * @property string $status
+ * @property list<string> $photos
  */
 class Review extends Model
 {
@@ -23,4 +24,12 @@ class Review extends Model
     protected $table = 'product_reviews';
 
     protected $guarded = [];
+
+    /** @var array<string, mixed> */
+    protected $attributes = ['photos' => '[]'];
+
+    protected function casts(): array
+    {
+        return ['photos' => 'array'];
+    }
 }

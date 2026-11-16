@@ -1,11 +1,16 @@
 <script setup lang="ts">
-interface Review { id: string, rating: number, title: string | null, body: string | null, author: string | null, verified: boolean, created_at: string }
+interface Review { id: string, rating: number, title: string | null, body: string | null, author: string | null, verified: boolean, created_at: string, photos?: string[] }
 interface Payload { average: number | null, count: number, distribution: Record<string, number>, reviews: Review[], mine: { can_review: boolean, status: string | null } | null }
 const props = defineProps<{ productId: string }>()
 const { request, csrf } = useApi()
 const { locale, t } = useI18n()
 const data = ref<Payload | null>(null)
 const form = reactive({ rating: 5, title: '', body: '' })
+const photos = ref<File[]>([])
+const zoom = ref<string | null>(null)
+function pick(e: Event) {
+  photos.value = Array.from((e.target as HTMLInputElement).files ?? []).slice(0, 3)
+}
 const open = ref(false)
 const msg = ref('')
 const error = ref('')
@@ -17,7 +22,14 @@ async function submit() {
   error.value = ''
   try {
     await csrf()
-    await request(`/products/${props.productId}/reviews`, { method: 'POST', body: { rating: form.rating, title: form.title || null, body: form.body || null } })
+    // multipart so photos can travel with the review
+    const fd = new FormData()
+    fd.append('rating', String(form.rating))
+    if (form.title) fd.append('title', form.title)
+    if (form.body) fd.append('body', form.body)
+    photos.value.forEach(f => fd.append('photos[]', f))
+    await request(`/products/${props.productId}/reviews`, { method: 'POST', body: fd })
+    photos.value = []
     open.value = false
     msg.value = t('reviews.thanks')
     await load()
@@ -53,6 +65,11 @@ watch(() => props.productId, load)
       </div>
       <input v-model="form.title" class="input" :placeholder="$t('reviews.title_ph')" maxlength="120">
       <textarea v-model="form.body" class="input" rows="3" :placeholder="$t('reviews.body_ph')" maxlength="2000" />
+      <label class="flex cursor-pointer items-center gap-2 text-sm" data-test="review-photos">
+        <AppIcon name="plus" :size="16" /> {{ $t('reviews.add_photos') }}
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="pick">
+        <span v-if="photos.length" class="text-xs text-ink-500">({{ photos.length }}/3)</span>
+      </label>
       <p v-if="error" role="alert" class="text-sm text-red-600">{{ error }}</p>
       <button class="btn-primary btn-sm">{{ $t('reviews.submit') }}</button>
     </form>
@@ -64,9 +81,13 @@ watch(() => props.productId, load)
           <b>{{ r.title }}</b>
         </div>
         <p v-if="r.body" class="mt-1 whitespace-pre-line text-sm text-ink-700">{{ r.body }}</p>
+        <div v-if="r.photos?.length" class="mt-2 flex gap-2">
+          <button v-for="ph in r.photos" :key="ph" type="button" class="h-20 w-16 overflow-hidden rounded-md bg-ink-100" @click="zoom = ph"><img :src="ph" alt="" class="h-full w-full object-cover" loading="lazy"></button>
+        </div>
         <p class="mt-1 text-xs text-ink-500">{{ r.author }} · {{ new Date(r.created_at).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-GB') }}<span v-if="r.verified" class="ms-2 text-green-700">✓ {{ $t('reviews.verified') }}</span></p>
       </article>
     </div>
     <p v-else-if="data" class="text-sm text-ink-500">{{ $t('reviews.none') }}</p>
+    <div v-if="zoom" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" @click="zoom = null"><img :src="zoom" alt="" class="max-h-full max-w-full rounded-md"></div>
   </section>
 </template>

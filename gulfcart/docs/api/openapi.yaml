@@ -1045,6 +1045,30 @@ paths:
       security: [{ sanctum: [] }]
       parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
       responses: { '204': { description: Removed }, '404': { $ref: '#/components/responses/NotFound' } }
+  /newsletter:
+    post:
+      tags: [Promotions]
+      summary: 'Newsletter sign-up (explicit consent). First sign-up returns the welcome code (NEWSLETTER_WELCOME_CODE) when that coupon is active. 5 per minute.'
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email }, source: { type: [string, 'null'], maxLength: 30 } } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /newsletter/unsubscribe:
+    post:
+      tags: [Promotions]
+      summary: One-click unsubscribe with the token from the email footer
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string, maxLength: 64 } } } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/newsletter:
+    get:
+      tags: [Admin Promotions]
+      summary: Subscriber counts; ?format=csv downloads active subscribers for the email tool (pricing.manage)
+      parameters: [{ name: format, in: query, schema: { type: string, enum: [csv] } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]

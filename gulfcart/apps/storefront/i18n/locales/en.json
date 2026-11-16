@@ -881,7 +881,8 @@
     "thanks": "Thank you! Your review will appear after a quick check.",
     "pending": "Your review is waiting for approval.",
     "verified": "Verified purchase",
-    "none": "No reviews yet."
+    "none": "No reviews yet.",
+    "add_photos": "Add photos (up to 3)"
   },
   "consent": {
     "title": "Cookies",
@@ -1122,5 +1123,13 @@
     "stock_done": "We'll tell you when it's back",
     "price": "Tell me if the price drops",
     "price_done": "We'll tell you if the price drops"
+  },
+  "newsletter": {
+    "title": "Get offers first",
+    "text": "New arrivals and offers, once or twice a month. Unsubscribe any time.",
+    "placeholder": "Your email",
+    "join": "Join",
+    "thanks": "You're in!",
+    "code": "Your welcome code:"
   }
 }

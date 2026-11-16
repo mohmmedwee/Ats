@@ -10,7 +10,9 @@ use App\Shared\Exceptions\ApiException;
 use App\Shared\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Verified-purchase reviews: only customers who received the product can review it, once.
@@ -51,7 +53,11 @@ final class ReviewController
             'rating' => ['required', 'integer', 'between:1,5'],
             'title' => ['nullable', 'string', 'max:120'],
             'body' => ['nullable', 'string', 'max:2000'],
+            'photos' => ['sometimes', 'array', 'max:3'],
+            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:6144', 'dimensions:min_width=200,min_height=200,max_width=8000,max_height=8000'],
         ]);
+        $photos = $request->file('photos', []);
+        unset($data['photos']);
         $userId = (string) $request->user()->getAuthIdentifier();
         $orderId = $this->purchases->deliveredOrderFor($userId, $productId) ?? throw new ApiException('REVIEW_NOT_ALLOWED', 403);
         if (Review::query()->where('product_id', $productId)->where('user_id', $userId)->exists()) {
@@ -60,6 +66,9 @@ final class ReviewController
         $review = Review::query()->create($data + [
             'product_id' => $productId, 'user_id' => $userId, 'order_id' => $orderId, 'locale' => app()->getLocale(), 'status' => 'pending',
         ]);
+        if ($photos !== []) {
+            $review->update(['photos' => $this->storePhotos($review->id, (array) $photos)]);
+        }
 
         return ApiResponse::success($this->present($review, false), 201);
     }
@@ -95,6 +104,39 @@ final class ReviewController
         return [
             'id' => $r->id, 'rating' => $r->rating, 'title' => $r->title, 'body' => $r->body, 'locale' => $r->locale,
             'author' => $short, 'verified' => $r->order_id !== null, 'created_at' => $r->created_at?->toIso8601String(),
+            'photos' => array_map(fn (string $p) => Storage::disk((string) config('gulfcart.catalog_disk', 'public'))->url($p), $r->photos ?? []),
         ] + ($admin ? ['status' => $r->status, 'product_id' => $r->product_id, 'order_id' => $r->order_id] : []);
+    }
+
+    /**
+     * Re-encodes each photo as JPEG (max 1600 px): drops EXIF data such as the GPS position phones
+     * embed, and anything that is not really an image.
+     *
+     * @param  list<UploadedFile>  $files
+     * @return list<string>
+     */
+    private function storePhotos(string $reviewId, array $files): array
+    {
+        $disk = Storage::disk((string) config('gulfcart.catalog_disk', 'public'));
+        $paths = [];
+        foreach (array_values($files) as $i => $file) {
+            $src = @imagecreatefromstring((string) file_get_contents($file->getRealPath()));
+            if ($src === false) {
+                continue;
+            }
+            $w = imagesx($src);
+            $h = imagesy($src);
+            $scale = min(1, 1600 / max($w, $h));
+            $dst = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
+            imagefill($dst, 0, 0, (int) imagecolorallocate($dst, 255, 255, 255));
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $h);
+            ob_start();
+            imagejpeg($dst, null, 82);
+            $path = "reviews/{$reviewId}/".($i + 1).'.jpg';
+            $disk->put($path, (string) ob_get_clean(), 'public');
+            $paths[] = $path;
+        }
+
+        return $paths;
     }
 }

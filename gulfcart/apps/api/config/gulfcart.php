@@ -220,6 +220,9 @@ return [
         'expire_days' => (int) env('ALERTS_EXPIRE_DAYS', 90),
     ],
 
+    // Newsletter: welcome code shown after sign-up (an active coupon you create in Admin → Coupons).
+    'newsletter' => ['welcome_code' => env('NEWSLETTER_WELCOME_CODE', '')],
+
     // Rewards: points on the items total of paid orders, converted into personal discount codes.
     'loyalty' => [
         'enabled' => (bool) env('LOYALTY_ENABLED', true),

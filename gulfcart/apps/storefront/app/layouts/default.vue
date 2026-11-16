@@ -95,6 +95,7 @@ const currency = computed(() => currencyOf(country.value))
           <NuxtLink v-for="p in site?.pages ?? []" :key="p.slug" :to="localePath(`/info/${p.slug}`)" class="block hover:text-brand-600">{{ p.title }}</NuxtLink>
         </div>
         <div class="col-span-2 space-y-2 md:col-span-1">
+          <NewsletterSignup class="mb-4" />
           <p class="font-semibold text-ink-900">{{ $t('footer.pay_safely') }}</p>
           <p class="flex items-center gap-2"><AppIcon name="shield" :size="18" /> {{ $t('footer.secure') }}</p>
           <p v-if="site?.support.email" class="text-ink-500" dir="ltr">{{ site.support.email }}</p>
