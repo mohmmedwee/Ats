@@ -51,4 +51,8 @@ return [
     'cod_code_invalid' => 'The code is not correct.',
     'cod_code_locked' => 'Too many wrong codes. Request a new code.',
     'bnpl_declined' => ':provider cannot be used for this order. Please choose another payment method.',
+    'gift_card_not_found' => 'This gift card code is not valid.',
+    'gift_card_expired' => 'This gift card has expired.',
+    'gift_card_currency' => 'This gift card is for another country.',
+    'gift_card_empty' => 'This gift card has no balance left.',
 ];

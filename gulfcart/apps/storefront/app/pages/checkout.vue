@@ -69,6 +69,22 @@ watch(quote, (q) => {
 })
 
 const isCod = computed(() => payWith.value === 'cod')
+// Gift card: checked here, charged right after the order is created; the rest is paid as usual.
+const giftCode = ref('')
+const gift = ref<{ code: string, balance: { amount: string, currency: string } } | null>(null)
+const giftError = ref('')
+async function applyGift() {
+  giftError.value = ''
+  try {
+    const res = await request<Envelope<{ balance: { amount: string, currency: string } }>>(`/gift-cards/${encodeURIComponent(giftCode.value.trim())}`)
+    if (quote.value && res.data.balance.currency !== quote.value.currency) throw new Error(t('gift.other_country'))
+    gift.value = { code: giftCode.value.trim().toUpperCase(), balance: res.data.balance }
+  }
+  catch (e) {
+    giftError.value = e instanceof Error && !('data' in e) ? e.message : apiErrorMessage(e, t('errors.generic'))
+  }
+}
+const giftUsed = computed(() => (gift.value && quote.value ? Math.min(Number(gift.value.balance.amount), Number(quote.value.total)) : 0))
 async function fetchQuote(code: string | null) {
   return (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: code || undefined, payment_method: isCod.value ? 'cod' : undefined } })).data
 }
@@ -159,6 +175,14 @@ async function placeOrder() {
     await csrf()
     const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: coupon.value || undefined, payment_method: isCod.value ? 'cod' : undefined } })).data
     const order = (await request<Envelope<{ id: string }>>('/orders', { method: 'POST', body: { checkout_session_id: session.id }, headers: { 'Idempotency-Key': idempotencyKey('order') } })).data
+    if (gift.value && !isCod.value) {
+      await request('/payments/gift-card', { method: 'POST', body: { order_id: order.id, code: gift.value.code }, headers: { 'Idempotency-Key': idempotencyKey('gift') } })
+      if (quote.value && giftUsed.value >= Number(quote.value.total)) {
+        useCartStore().cart = null
+        await navigateTo(localePath(`/account/orders/${order.id}`))
+        return
+      }
+    }
     const payment = (await request<Envelope<Payment>>('/payments/intent', { method: 'POST', body: { order_id: order.id, provider: payWith.value || undefined }, headers: { 'Idempotency-Key': idempotencyKey('pay') } })).data
     useCartStore().cart = null
     if (payment.provider === 'cod') {
@@ -282,6 +306,18 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <button class="btn-outline btn-sm bg-white" data-test="coupon-apply">{{ $t('coupon.apply') }}</button>
           </form>
           <p v-if="couponError" role="alert" class="mt-1 text-xs text-red-600">{{ couponError }}</p>
+          <div v-if="!isCod" class="mt-3" data-test="gift-box">
+            <div v-if="gift" class="flex items-center justify-between rounded-md bg-gold-100 px-3 py-2 text-sm">
+              <span>🎁 <b dir="ltr">{{ gift.code }}</b> · −{{ formatMoney({ amount: giftUsed.toFixed(2), currency: gift.balance.currency }, locale) }}</span>
+              <button type="button" class="font-semibold underline" @click="gift = null; giftCode = ''">{{ $t('common.remove') }}</button>
+            </div>
+            <form v-else class="flex gap-2" @submit.prevent="applyGift">
+              <input v-model="giftCode" class="input flex-1 bg-white uppercase" :placeholder="$t('gift.placeholder')" dir="ltr" data-test="gift-input">
+              <button class="btn-outline btn-sm bg-white">{{ $t('gift.apply') }}</button>
+            </form>
+            <p v-if="giftError" role="alert" class="mt-1 text-xs text-red-600">{{ giftError }}</p>
+            <p v-if="gift && quote && giftUsed < Number(quote.total)" class="mt-1 text-xs text-ink-500">{{ $t('gift.rest', { amount: formatMoney({ amount: (Number(quote.total) - giftUsed).toFixed(2), currency: quote.currency }, locale) }) }}</p>
+          </div>
           <NuxtLink v-if="!coupon && points && points.balance >= points.min_redeem" :to="localePath('/account/rewards')" class="mt-2 flex items-center gap-1.5 text-xs font-semibold text-brand-700 underline underline-offset-2" data-test="points-hint">
             <AppIcon name="coins" :size="14" />{{ $t('rewards.checkout_hint', { points: points.balance, amount: formatMoney(points.balance_value, locale) }) }}
           </NuxtLink>

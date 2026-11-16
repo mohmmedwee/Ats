@@ -1131,5 +1131,21 @@
     "join": "Join",
     "thanks": "You're in!",
     "code": "Your welcome code:"
+  },
+  "gift": {
+    "placeholder": "Gift card code",
+    "apply": "Use",
+    "other_country": "This gift card is for another country.",
+    "rest": "Pay the remaining {amount} below.",
+    "admin_title": "Gift cards",
+    "admin_subtitle": "Stored value: pays for orders; refunds go back onto the card.",
+    "issue": "Issue gift cards",
+    "balance": "Balance",
+    "note": "Note",
+    "empty": "No gift cards yet.",
+    "issued": "New codes (copy them now):",
+    "amount": "Amount",
+    "currency": "Currency",
+    "quantity": "How many"
   }
 }

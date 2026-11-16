@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Payments\Application\Gateways\CashOnDeliveryGateway;
+use App\Modules\Payments\Application\Gateways\GiftCardGateway;
 use App\Modules\Payments\Application\Gateways\PaypalGateway;
 use App\Modules\Payments\Application\Gateways\TabbyGateway;
 use App\Modules\Payments\Application\Gateways\TamaraGateway;
@@ -136,6 +137,7 @@ return [
             'tap' => TapGateway::class,
             'paypal' => PaypalGateway::class,
             'cod' => CashOnDeliveryGateway::class,
+            'giftcard' => GiftCardGateway::class,
             'tabby' => TabbyGateway::class,
             'tamara' => TamaraGateway::class,
         ],

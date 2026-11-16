@@ -1069,6 +1069,52 @@ paths:
       summary: Subscriber counts; ?format=csv downloads active subscribers for the email tool (pricing.manage)
       parameters: [{ name: format, in: query, schema: { type: string, enum: [csv] } }]
       responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /payments/gift-card:
+    post:
+      tags: [Payments]
+      summary: 'Pay (part of) an order from a gift card in the order currency: captured at once; pay the rest with POST /payments/intent. Refunds go back to the card first.'
+      security: [{ sanctum: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [order_id, code], properties: { order_id: { type: string, format: uuid }, code: { type: string, maxLength: 24 } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/Created' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { description: 'GIFT_CARD_INVALID (not_found, expired, currency, empty)', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /gift-cards/{code}:
+    get:
+      tags: [Payments]
+      summary: Gift card balance (signed-in customers, 10 per minute)
+      security: [{ sanctum: [] }]
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/gift-cards:
+    get:
+      tags: [Admin Orders]
+      summary: Issued gift cards with balances (pricing.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Orders]
+      summary: Issue 1-100 gift cards of an amount and currency (audited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties: { amount: { type: number, minimum: 1 }, currency: { type: string, enum: [AED, SAR, KWD, QAR, BHD, OMR] }, quantity: { type: integer, minimum: 1, maximum: 100 }, expires_at: { type: [string, 'null'], format: date }, note: { type: [string, 'null'] } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/gift-cards/{id}:
+    patch:
+      tags: [Admin Orders]
+      summary: Switch a gift card off or on
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [is_active], properties: { is_active: { type: boolean } } } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]

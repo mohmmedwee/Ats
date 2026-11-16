@@ -77,6 +77,54 @@ final class PaymentService
         return $payment->refresh();
     }
 
+    /**
+     * Pays (part of) an order from a gift card in the order currency. The card is debited and the payment
+     * captured at once; anything left is paid with another method. Same key twice = same payment.
+     */
+    public function payWithGiftCard(string $userId, string $orderId, string $code, string $idempotencyKey): Payment
+    {
+        $order = $this->orders->get($orderId);
+        if ($order === null || $order->userId !== $userId) {
+            throw new ApiException('NOT_FOUND', 404);
+        }
+        $existing = Payment::query()->where('idempotency_key', 'gc_'.$idempotencyKey)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+        $due = Decimal::sub($order->grandTotal, $order->paidTotal, 2);
+        if (! in_array($order->status, ['pending_payment', 'payment_failed'], true) || Decimal::cmp($due, '0') <= 0) {
+            throw new ApiException('ORDER_ALREADY_PAID', 409);
+        }
+
+        return DB::transaction(function () use ($order, $code, $due, $idempotencyKey) {
+            $card = DB::table('gift_cards')->where('code', strtoupper(trim($code)))->lockForUpdate()->first();
+            $invalid = fn (string $reason) => new ApiException('GIFT_CARD_INVALID', 422, ['reason' => $reason], (string) __("errors.gift_card_{$reason}"));
+            if ($card === null || ! $card->is_active) {
+                throw $invalid('not_found');
+            }
+            if ($card->expires_at !== null && now()->greaterThan($card->expires_at)) {
+                throw $invalid('expired');
+            }
+            if ($card->currency !== $order->currency) {
+                throw $invalid('currency');
+            }
+            if (Decimal::cmp((string) $card->balance, '0') <= 0) {
+                throw $invalid('empty');
+            }
+            $amount = Decimal::cmp((string) $card->balance, $due) < 0 ? Decimal::round((string) $card->balance, 2) : $due;
+            $payment = Payment::query()->create([
+                'order_id' => $order->id, 'provider' => 'giftcard', 'provider_reference' => $card->id, 'idempotency_key' => 'gc_'.$idempotencyKey,
+                'amount' => $amount, 'currency' => $order->currency, 'status' => 'captured', 'method' => 'gift_card', 'paid_at' => now(),
+            ]);
+            DB::table('gift_cards')->where('id', $card->id)->update(['balance' => Decimal::sub((string) $card->balance, $amount, 2), 'updated_at' => now()]);
+            DB::table('gift_card_transactions')->insert(['id' => (string) Str::uuid7(), 'gift_card_id' => $card->id, 'type' => 'redeem', 'amount' => '-'.$amount, 'payment_id' => $payment->id, 'order_id' => $order->id, 'created_at' => now()]);
+            $this->orders->recordPayment($order->id, $payment->id, $amount);
+            Outbox::record('payment', $payment->id, 'payment.captured', ['payment_id' => $payment->id, 'order_id' => $order->id, 'amount' => $amount, 'currency' => $order->currency]);
+
+            return $payment;
+        });
+    }
+
     /** Customer types the SMS code: the order is confirmed and goes to fulfilment. */
     public function confirmCashOnDelivery(Payment $payment, string $code): Payment
     {
