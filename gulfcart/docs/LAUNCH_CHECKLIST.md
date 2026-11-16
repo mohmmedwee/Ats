@@ -41,6 +41,7 @@ listing. Add specifications and warranty text on each electronics product (Admin
 
 | Item | Setting / guide |
 |---|---|
+| Tabby and/or Tamara merchant account (pay in instalments; very popular in UAE/KSA) | `PAYMENT_METHODS`, `TABBY_*`, `TAMARA_*` · [PAYMENTS.md](PAYMENTS.md#tabby-and-tamara-pay-in-instalments) |
 | PayPal Business account (optional second payment method, charged in USD) | `PAYMENT_METHODS`, `PAYPAL_*` · [PAYMENTS.md](PAYMENTS.md) |
 | WhatsApp Business (Meta) + approved message templates | `WHATSAPP_*` · [NOTIFICATIONS.md](NOTIFICATIONS.md) |
 | Support WhatsApp number and email | `SUPPORT_WHATSAPP`, `SUPPORT_EMAIL` |

@@ -53,7 +53,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 async function poll() {
   await load().catch(() => undefined)
   // PayPal: the buyer approved, so we capture now (once). Cancelled on PayPal: nothing to capture.
-  if (payment.value?.provider === 'paypal' && payment.value.status === 'requires_action' && !confirmed && !route.query.cancelled) {
+  if (['paypal', 'tabby', 'tamara'].includes(payment.value?.provider ?? '') && payment.value?.status === 'requires_action' && !confirmed && !route.query.cancelled && !route.query.failed) {
     confirmed = true
     await csrf()
     payment.value = (await request<Envelope<Payment>>(`/payments/${id.value}/confirm`, { method: 'POST' }).catch(() => ({ data: payment.value! }))).data

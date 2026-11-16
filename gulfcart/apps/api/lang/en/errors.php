@@ -50,4 +50,5 @@ return [
     'cod_not_quoted' => 'Choose cash on delivery at checkout so its fee is included, then place the order again.',
     'cod_code_invalid' => 'The code is not correct.',
     'cod_code_locked' => 'Too many wrong codes. Request a new code.',
+    'bnpl_declined' => ':provider cannot be used for this order. Please choose another payment method.',
 ];

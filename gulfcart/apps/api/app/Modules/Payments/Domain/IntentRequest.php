@@ -13,5 +13,9 @@ final class IntentRequest
         public readonly ?string $customerName = null,
         public readonly ?string $customerEmail = null,
         public readonly ?string $customerPhone = null,
+        public readonly ?string $countryCode = null,
+        /** @var array<string, string|null> delivery address (for instalment providers' risk checks) */
+        public readonly array $address = [],
+        public readonly string $locale = 'en',
     ) {}
 }

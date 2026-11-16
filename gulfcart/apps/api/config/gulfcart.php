@@ -2,6 +2,8 @@
 
 use App\Modules\Payments\Application\Gateways\CashOnDeliveryGateway;
 use App\Modules\Payments\Application\Gateways\PaypalGateway;
+use App\Modules\Payments\Application\Gateways\TabbyGateway;
+use App\Modules\Payments\Application\Gateways\TamaraGateway;
 use App\Modules\Payments\Application\Gateways\TapGateway;
 use App\Modules\Suppliers\Application\Connectors\Cj\CjDropshippingConnector;
 
@@ -133,6 +135,8 @@ return [
             'tap' => TapGateway::class,
             'paypal' => PaypalGateway::class,
             'cod' => CashOnDeliveryGateway::class,
+            'tabby' => TabbyGateway::class,
+            'tamara' => TamaraGateway::class,
         ],
         // Every provider the customer can choose at checkout, in order (the default is always included).
         'methods' => env('PAYMENT_METHODS', ''),
@@ -148,6 +152,23 @@ return [
             'secret_key' => env('TAP_SECRET_KEY'),
             // Public API origin Tap can reach for webhooks (defaults to APP_URL).
             'webhook_base_url' => env('TAP_WEBHOOK_BASE_URL'),
+        ],
+        // Tabby (split in 4). Add "tabby" to PAYMENT_METHODS. Merchant codes come from the Tabby dashboard, per country.
+        'tabby' => [
+            'secret_key' => env('TABBY_SECRET_KEY'),
+            'merchant_codes' => ['AE' => env('TABBY_MERCHANT_CODE_AE'), 'SA' => env('TABBY_MERCHANT_CODE_SA')],
+            'base_urls' => ['AE' => 'https://api.tabby.ai', 'KW' => 'https://api.tabby.ai', 'SA' => 'https://api.tabby.sa'],
+            'webhook_secret' => env('TABBY_WEBHOOK_SECRET'),          // any long random string; registered with payments:tabby-webhook
+            'webhook_header' => 'X-GulfCart-Webhook',
+            'webhook_base_url' => env('TABBY_WEBHOOK_BASE_URL'),
+            'test_mode' => (bool) env('TABBY_TEST_MODE', true),
+        ],
+        // Tamara (pay in instalments). Add "tamara" to PAYMENT_METHODS.
+        'tamara' => [
+            'mode' => env('TAMARA_MODE', 'sandbox'),                  // sandbox | live
+            'api_token' => env('TAMARA_API_TOKEN'),
+            'notification_token' => env('TAMARA_NOTIFICATION_TOKEN'),
+            'webhook_base_url' => env('TAMARA_WEBHOOK_BASE_URL'),
         ],
         'sandbox' => ['secret' => env('PAYMENT_SANDBOX_SECRET', 'sandbox-dev-secret-change-me')],
         'allow_sandbox_in_production' => (bool) env('ALLOW_SANDBOX_PAYMENTS_IN_PRODUCTION', false),

@@ -122,3 +122,37 @@ How it works:
 
 Refunds after collection are paid back manually (bank transfer or store credit); the online refund button
 does not apply to cash.
+
+## Tabby and Tamara (pay in instalments)
+
+Both need a merchant account (trade licence and bank account). Turn them on by adding them to
+`PAYMENT_METHODS`, e.g. `PAYMENT_METHODS=tabby,tamara,paypal`.
+
+**Tabby** (split in 4, UAE and KSA; Saudi payments go to `api.tabby.sa`, UAE to `api.tabby.ai`):
+
+```
+TABBY_SECRET_KEY=sk_...            # from the Tabby dashboard (test key first)
+TABBY_MERCHANT_CODE_AE=...         # merchant code per country
+TABBY_MERCHANT_CODE_SA=...
+TABBY_WEBHOOK_SECRET=<long random string>
+TABBY_TEST_MODE=true               # false when live
+```
+
+Then run once: `php artisan payments:tabby-webhook` (registers the webhook with the secret header).
+The customer is sent to Tabby; when they are approved we capture the full amount and the order is paid.
+
+**Tamara** (UAE and KSA):
+
+```
+TAMARA_MODE=sandbox                # live when approved
+TAMARA_API_TOKEN=...               # API token (for our calls)
+TAMARA_NOTIFICATION_TOKEN=...      # notification token (to verify Tamara's calls to us)
+```
+
+The notification URL is sent with each checkout (`/api/v1/webhooks/payments/tamara`). On approval we
+authorise and capture straight away, because GulfCart buys from the supplier once the order is paid.
+
+**Before going live:** both integrations were built from the providers' public API documentation and tested
+against simulated APIs. Run a full test order in each sandbox (approve, decline, refund) and compare the
+request fields with the current docs: docs.tabby.ai and docs.tamara.co. Both providers also review your
+checkout before going live (they usually ask for their promo widgets and logos on product and checkout pages).

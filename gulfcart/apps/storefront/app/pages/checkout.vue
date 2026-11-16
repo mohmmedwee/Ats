@@ -244,6 +244,7 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <span v-if="pm.currency_note" class="block text-xs text-ink-500">{{ $t('pay_method.usd_note', { amount: usd(quote.total, quote.currency) }) }}</span>
           </span>
           <span v-if="pm.provider === 'paypal'" class="font-bold italic text-[#003087]" dir="ltr">Pay<span class="text-[#009cde]">Pal</span></span>
+          <span v-else-if="(pm.provider === 'tabby' || pm.provider === 'tamara') && quote" class="rounded bg-ink-100 px-2 py-1 text-[11px] font-bold" dir="ltr">4 × {{ formatMoney({ amount: (Number(quote.total) / 4).toFixed(2), currency: quote.currency }, locale) }}</span>
         </label>
       </fieldset>
     </div>

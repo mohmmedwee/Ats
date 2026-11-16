@@ -6,6 +6,7 @@ use App\Modules\Orders\Contracts\OrderRefunder;
 use App\Modules\Payments\Application\GatewayRegistry;
 use App\Modules\Payments\Application\PaymentService;
 use App\Modules\Payments\Application\RefundService;
+use App\Modules\Payments\Console\TabbyWebhookCommand;
 use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Shared\Modules\ModuleServiceProvider;
 
@@ -24,5 +25,13 @@ final class PaymentsServiceProvider extends ModuleServiceProvider
         $this->app->singleton(RefundService::class);
         $this->app->alias(RefundService::class, OrderRefunder::class);
         $this->app->singleton(PaymentService::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+        if ($this->app->runningInConsole()) {
+            $this->commands([TabbyWebhookCommand::class]);
+        }
     }
 }
