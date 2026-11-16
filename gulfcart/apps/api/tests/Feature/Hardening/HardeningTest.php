@@ -84,7 +84,10 @@ final class HardeningTest extends TestCase
         $this->patchJson('/api/v1/admin/countries/SA', ['settings' => ['returns' => ['window_days' => 10], 'seller' => ['vat_number' => '300000000000003']]], $this->asStaff(['admin']))
             ->assertOk()->assertJsonPath('data.settings.returns.window_days', 10)->assertJsonPath('data.settings.phone_prefix', '+966');
         $this->assertDatabaseHas('audit_logs', ['action' => 'country.updated']);
-        $this->getJson('/api/v1/admin/countries', $this->asStaff(['admin']))->assertOk()->assertJsonCount(2, 'data');
+        // Launch countries are active; the prepared GCC countries are listed but switched off.
+        $rows = collect($this->getJson('/api/v1/admin/countries', $this->asStaff(['admin']))->assertOk()->json('data'));
+        $this->assertSame(['AE', 'SA'], $rows->where('is_active', true)->pluck('code')->sort()->values()->all());
+        $this->assertSame(['BH', 'KW', 'OM', 'QA'], $rows->where('is_active', false)->pluck('code')->sort()->values()->all());
     }
 
     public function test_audit_log_cannot_be_edited_or_deleted(): void
