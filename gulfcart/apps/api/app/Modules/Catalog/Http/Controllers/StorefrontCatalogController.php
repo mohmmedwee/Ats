@@ -52,8 +52,7 @@ final class StorefrontCatalogController
             $query->whereIn('products.category_id', $this->categoryWithDescendants($slug));
         }
         if (is_string($q = $request->query('q')) && trim($q) !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\%', '\_'], trim($q)).'%';
-            $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
+            self::matchSearch($query, $q);
         }
         $ids = (clone $query)->pluck('products.id');
         $counts = Product::query()->whereIn('id', $ids)->whereNotNull('brand_id')->groupBy('brand_id')->selectRaw('brand_id, count(*) as n')->pluck('n', 'brand_id');
@@ -190,8 +189,7 @@ final class StorefrontCatalogController
             $query->whereIn('products.id', $list === [] ? ['00000000-0000-0000-0000-000000000000'] : $list);
         }
         if ($q !== null && trim($q) !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\%', '\_'], trim($q)).'%';
-            $query->whereRaw("(coalesce(products.title->>'en','') || ' ' || coalesce(products.title->>'ar','') || ' ' || coalesce(products.brand,'')) ILIKE ?", [$term]);
+            self::matchSearch($query, $q);
         }
 
         if ($request->boolean('sale')) {
@@ -405,6 +403,26 @@ final class StorefrontCatalogController
         }
         $query->where(fn ($q) => $q->whereIn('products.id', $scope['product_ids'] === [] ? ['00000000-0000-0000-0000-000000000000'] : $scope['product_ids'])
             ->orWhereIn('products.category_id', $scope['category_ids'] === [] ? ['00000000-0000-0000-0000-000000000000'] : $scope['category_ids']));
+    }
+
+    /**
+     * Every word must match the product's normalized search text, exactly (substring) or closely
+     * (trigram word similarity, for typos such as "snekers" or "فستن"). Arabic letter variants,
+     * diacritics and digits are normalized on both sides by gc_search_normalize().
+     *
+     * @param  Builder<Product>  $query
+     */
+    private static function matchSearch(Builder $query, string $q): void
+    {
+        $words = array_slice(array_values(array_filter(preg_split('/\s+/u', trim($q)) ?: [], fn ($w) => mb_strlen($w) >= 2)), 0, 6);
+        $threshold = (float) config('gulfcart.search.similarity', 0.5);
+        foreach ($words === [] ? [trim($q)] : $words as $word) {
+            $like = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $word);
+            $query->whereRaw(
+                "(products.search_text LIKE '%' || gc_search_normalize(?) || '%' OR (char_length(?) >= 4 AND word_similarity(gc_search_normalize(?), products.search_text) >= ?))",
+                [$like, $word, $word, $threshold],
+            );
+        }
     }
 
     /** @return list<string> */

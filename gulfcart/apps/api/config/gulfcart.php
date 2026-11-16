@@ -210,6 +210,9 @@ return [
         'block_after_refusals' => (int) env('COD_BLOCK_AFTER_REFUSALS', 1),                         // 0 = never block
     ],
 
+    // Search: how close a word must be to count as a match with a typo (0-1, higher = stricter).
+    'search' => ['similarity' => (float) env('SEARCH_SIMILARITY', 0.5)],
+
     // Back-in-stock / price-drop alerts: minimum drop before a price alert fires, and how long alerts stay open.
     'alerts' => [
         'price_drop_min_percent' => env('ALERTS_PRICE_DROP_MIN_PERCENT', '5'),
