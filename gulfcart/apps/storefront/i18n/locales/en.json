@@ -1047,5 +1047,30 @@
       "shipped": "Packing and handing to the carrier",
       "delivered": "On its way to you"
     }
+  },
+  "profit": {
+    "title": "Profit",
+    "subtitle": "What you actually made: sales without VAT, after discounts and refunds, minus product + shipping cost and payment fees.",
+    "country": "Country",
+    "last_days": "Last {n} days",
+    "profit": "Profit",
+    "margin": "Margin {n}%",
+    "revenue": "Sales (ex VAT)",
+    "orders_units": "{o} orders · {u} items",
+    "costs": "Costs",
+    "cost_split": "Goods {goods} · fees {fees}",
+    "per_order": "Profit per order",
+    "discounts": "Discounts given {amount}",
+    "daily": "Profit per day",
+    "table": "Show as table",
+    "date": "Date",
+    "orders": "orders",
+    "top_products": "Most profitable products",
+    "losing_products": "Products losing money",
+    "product": "Product",
+    "units": "Items",
+    "no_losses": "No product is losing money in this period.",
+    "no_sales": "No paid orders in this period.",
+    "note": "Estimates. Product cost uses the exchange rate locked at sale; payment fees use the configured rate; customs is passed to the customer and not counted."
   }
 }

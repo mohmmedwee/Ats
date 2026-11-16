@@ -1746,6 +1746,15 @@ paths:
         and failed outbox events.
       responses:
         '200': { $ref: '#/components/responses/Ok' }
+  /admin/finance/profit:
+    get:
+      tags: [Admin Reports]
+      summary: 'Profit for one country and period: totals, daily series, top and loss-making products (revenue ex VAT after discounts and refunds, minus landed cost at locked FX, minus estimated payment fees)'
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: country, in: query, required: true, schema: { type: string, enum: [AE, SA] } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /admin/finance/reports:
     get:
       tags: [Admin Reports]

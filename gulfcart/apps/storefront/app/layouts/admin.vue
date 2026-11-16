@@ -27,6 +27,7 @@ const all: { title: string, items: Item[] }[] = [
     { to: '/admin/content', label: 'admin.content.title', icon: 'file', perm: ['catalog.manage'] },
   ] },
   { title: 'admin.nav.settings', items: [
+    { to: '/admin/profit', label: 'profit.title', icon: 'chart', perm: ['pricing.manage', 'audit.view'] },
     { to: '/admin/pricing', label: 'admin.pricing.title', icon: 'percent', perm: ['pricing.manage'] },
     { to: '/admin/coupons', label: 'admin.coupons.title', icon: 'tag', perm: ['pricing.manage'] },
     { to: '/admin/flash-sales', label: 'flash.admin_title', icon: 'clock', perm: ['pricing.manage'] },
