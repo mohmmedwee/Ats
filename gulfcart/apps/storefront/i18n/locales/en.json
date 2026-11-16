@@ -651,7 +651,8 @@
     "load_more": "Load more",
     "search": "Search",
     "days": "{min}–{max} days",
-    "prices_include_vat": "Prices include VAT"
+    "prices_include_vat": "Prices include VAT",
+    "close": "Close"
   },
   "catalog": {
     "title": "Shop",
@@ -1072,5 +1073,11 @@
     "no_losses": "No product is losing money in this period.",
     "no_sales": "No paid orders in this period.",
     "note": "Estimates. Product cost uses the exchange rate locked at sale; payment fees use the configured rate; customs is passed to the customer and not counted."
+  },
+  "pwa": {
+    "title": "Get the GulfCart app",
+    "text": "Faster shopping, right from your home screen.",
+    "ios": "Tap Share, then “Add to Home Screen”.",
+    "install": "Install"
   }
 }

@@ -49,6 +49,17 @@ listing. Add specifications and warranty text on each electronics product (Admin
 | Google Search Console + Merchant Center, Meta Commerce Manager (product feeds) | [DEPLOY.md](DEPLOY.md) §6 |
 | Off-site backup storage (S3/Backblaze) | [DEPLOY.md](DEPLOY.md) §5 |
 
+## B2. Growth features (ready, adjust if you want)
+
+- **Flash sales**: Admin → Flash sales. Schedule a % off for the whole store, a section or one product, with a countdown on the site. A sale never takes a product below its cost; if the discount is too deep the product gets the lowest price that still covers its cost (so it sells at about zero profit: check Admin → Profit).
+- **Rewards and invites**: on by default. Server settings (optional):
+  `LOYALTY_ENABLED=true`, `LOYALTY_POINTS_PER_UNIT=1` (points per 1 AED/SAR), `LOYALTY_POINT_VALUE=0.05` (100 points = 5 AED/SAR),
+  `LOYALTY_MIN_REDEEM=100`, `LOYALTY_REFERRER_POINTS=500`, `LOYALTY_FRIEND_PERCENT=10`, `LOYALTY_FRIEND_MAX=50`.
+  Unused points are a liability: Admin → Rewards shows their value.
+- **Order tracking**: customers use /track with the order number and phone; signed-in customers see the timeline on the order page.
+- **Profit**: Admin → Profit shows daily profit and products losing money. Set `PAYMENT_FEE_PERCENT` to your real gateway fee.
+- **App on the home screen (PWA)**: works automatically on HTTPS. Phones see an "Install" banner.
+
 ## C. In the admin panel after deploying
 
 1. Admin → Countries: seller legal name, VAT number, payment methods.

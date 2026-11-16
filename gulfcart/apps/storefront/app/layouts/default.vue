@@ -106,6 +106,7 @@ const currency = computed(() => (country.value === 'SA' ? 'SAR' : 'AED'))
     </footer>
     <WhatsAppButton />
     <ConsentBanner />
+    <InstallAppBanner />
 
     <!-- mobile app-style bottom navigation -->
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-ink-100 bg-white text-[11px] text-ink-500 md:hidden">

@@ -1,0 +1,23 @@
+{
+  "name": "GulfCart",
+  "short_name": "GulfCart",
+  "description": "Fashion, beauty and electronics delivered to the UAE and Saudi Arabia.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "ar",
+  "dir": "auto",
+  "categories": ["shopping"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Cart / السلة", "url": "/cart", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Track order / تتبّع طلبك", "url": "/track", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -6,11 +6,18 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap' },
       ],
-      meta: [{ name: 'theme-color', content: '#E0245E' }],
+      meta: [
+        { name: 'theme-color', content: '#ffffff' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: 'GulfCart' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+      ],
     },
   },
   devtools: { enabled: process.env.NUXT_DEVTOOLS === 'true' },

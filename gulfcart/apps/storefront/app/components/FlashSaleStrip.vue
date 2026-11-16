@@ -35,7 +35,7 @@ watch(country, load)
         </div>
       </div>
       <div class="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 md:mx-0 md:grid md:grid-cols-6 md:gap-3 md:px-0">
-        <div v-for="p in products" :key="p.id" class="w-[132px] shrink-0 rounded-md bg-white p-1.5 text-ink-900 md:w-auto"><ProductCardItem :product="p" /></div>
+        <div v-for="(p, i) in products" :key="p.id" class="w-[132px] shrink-0 rounded-md bg-white p-1.5 text-ink-900 md:w-auto" :class="i >= 6 ? 'md:hidden' : ''"><ProductCardItem :product="p" /></div>
       </div>
     </div>
   </section>
