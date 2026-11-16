@@ -90,6 +90,7 @@ export interface Address {
 export interface ShippingOption { code: string, name: string, price: Money, free: boolean }
 
 export interface Quote {
+  offer?: { name: string | null, discount: string } | null
   cod_fee?: string
   payment_method?: string | null
   currency: string

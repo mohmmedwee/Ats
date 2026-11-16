@@ -8,6 +8,7 @@ use App\Modules\Checkout\Infrastructure\Models\CustomerAddress;
 use App\Modules\Countries\Domain\CountryData;
 use App\Modules\Pricing\Contracts\PriceBook;
 use App\Modules\Promotions\Contracts\Coupons;
+use App\Modules\Promotions\Contracts\Offers;
 use App\Modules\Shipping\Contracts\ShippingQuoter;
 use App\Modules\Shipping\Domain\ShippingOption;
 use App\Modules\Suppliers\Contracts\ConnectorResolver;
@@ -34,6 +35,7 @@ final class QuoteBuilder
         private readonly TaxRules $tax,
         private readonly ShippingQuoter $shipping,
         private readonly Coupons $coupons,
+        private readonly Offers $offers,
     ) {}
 
     /** @return list<ShippingOption> */
@@ -73,13 +75,24 @@ final class QuoteBuilder
             ];
         }
 
+        // Automatic offer first (buy X get Y), on the exact units it covers; a coupon then applies to what is left.
+        $offer = $this->offers->best(array_map(fn ($l) => ['product_id' => $l['product_id'], 'category_ids' => $l['category_ids'], 'unit_gross' => $l['unit_gross'], 'quantity' => $l['quantity']], $lines), $country->code);
+        $offerDiscount = '0.00';
+        if ($offer !== null) {
+            foreach ($offer['line_discounts'] as $i => $amount) {
+                $lines[$i]['line_discount'] = Decimal::add((string) $lines[$i]['line_discount'], $amount, 2);
+                $lines[$i]['line_vat'] = $this->contained(Decimal::sub((string) $lines[$i]['line_total'], (string) $lines[$i]['line_discount'], 2), (string) $lines[$i]['vat_rate']);
+            }
+            $offerDiscount = $offer['discount'];
+        }
+
         $coupon = null;
-        $discount = '0.00';
+        $discount = $offerDiscount;
         $shippingAmount = $method->amount;
         if ($couponCode !== null && trim($couponCode) !== '' && $userId !== null) {
-            $coupon = $this->coupons->evaluate($couponCode, $userId, $country->code, $subtotal);
-            $discount = $coupon->discount;
-            $lines = $this->allocateDiscount($lines, $discount);
+            $coupon = $this->coupons->evaluate($couponCode, $userId, $country->code, Decimal::sub($subtotal, $offerDiscount, 2));
+            $discount = Decimal::add($offerDiscount, $coupon->discount, 2);
+            $lines = $this->allocateDiscount($lines, $coupon->discount);
             if ($coupon->freeShipping) {
                 $shippingAmount = '0.00';
             }
@@ -106,7 +119,8 @@ final class QuoteBuilder
             'address_id' => $address->id,
             'shipping_address' => $address->snapshot($country->code),
             'shipping_method' => ['id' => $method->methodId, 'code' => $method->code, 'name' => $method->name, 'amount' => $shippingAmount, 'free' => $method->free || Decimal::isZero($shippingAmount), 'vat' => $shippingVat],
-            'coupon' => $coupon === null ? null : ['code' => $coupon->code, 'type' => $coupon->type, 'discount' => $discount, 'free_shipping' => $coupon->freeShipping],
+            'coupon' => $coupon === null ? null : ['code' => $coupon->code, 'type' => $coupon->type, 'discount' => $coupon->discount, 'free_shipping' => $coupon->freeShipping],
+            'offer' => $offer === null ? null : ['id' => $offer['offer_id'], 'name' => $offer['name'], 'discount' => $offerDiscount],
             'lines' => $lines,
             'shipments' => $shipments,
             'totals' => [
@@ -181,6 +195,7 @@ final class QuoteBuilder
             'total' => $quote['totals']['total'],
             'payment_method' => $quote['payment_method'] ?? null,
             'cod_fee' => $quote['cod_fee'] ?? '0.00',
+            'offer' => isset($quote['offer']) ? ['name' => Translations::pick($quote['offer']['name']), 'discount' => $quote['offer']['discount']] : null,
             'prices_include_tax' => true,
         ];
     }
@@ -195,7 +210,8 @@ final class QuoteBuilder
      */
     private function allocateDiscount(array $lines, string $discount): array
     {
-        $subtotal = $this->subtotal($lines);
+        // Spread over what is left after any offer discount already on the lines.
+        $subtotal = Decimal::sum(array_map(fn ($l) => Decimal::sub((string) $l['line_total'], (string) $l['line_discount'], 2), $lines), 2);
         if (Decimal::isZero($discount) || Decimal::isZero($subtotal)) {
             return $lines;
         }
@@ -204,13 +220,14 @@ final class QuoteBuilder
         foreach ($lines as $i => $line) {
             $share = $i === $last
                 ? $left
-                : Decimal::round(Decimal::div(Decimal::mul($discount, (string) $line['line_total'], 8), $subtotal, 8), 2);
-            if (Decimal::cmp($share, (string) $line['line_total']) > 0) {
-                $share = (string) $line['line_total'];
+                : Decimal::round(Decimal::div(Decimal::mul($discount, Decimal::sub((string) $line['line_total'], (string) $line['line_discount'], 2), 8), $subtotal, 8), 2);
+            $room = Decimal::sub((string) $line['line_total'], (string) $line['line_discount'], 2);
+            if (Decimal::cmp($share, $room) > 0) {
+                $share = $room;
             }
             $left = Decimal::sub($left, $share, 2);
-            $lines[$i]['line_discount'] = $share;
-            $lines[$i]['line_vat'] = $this->contained(Decimal::sub((string) $line['line_total'], $share, 2), (string) $line['vat_rate']);
+            $lines[$i]['line_discount'] = Decimal::add((string) $line['line_discount'], $share, 2);
+            $lines[$i]['line_vat'] = $this->contained(Decimal::sub((string) $line['line_total'], (string) $lines[$i]['line_discount'], 2), (string) $line['vat_rate']);
         }
 
         return $lines;
@@ -259,6 +276,7 @@ final class QuoteBuilder
             $lines[] = [
                 'variant_id' => $variant->id,
                 'product_id' => $variant->productId,
+                'category_ids' => $this->catalog->categoryLineage($variant->categoryId),
                 'quantity' => $cartLine->quantity,
                 'unit_gross' => $price->gross,
                 'unit_net' => $price->net,

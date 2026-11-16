@@ -4,7 +4,9 @@ namespace App\Modules\Promotions\Providers;
 
 use App\Modules\Promotions\Application\CouponService;
 use App\Modules\Promotions\Application\LoyaltyService;
+use App\Modules\Promotions\Application\OfferService;
 use App\Modules\Promotions\Contracts\Coupons;
+use App\Modules\Promotions\Contracts\Offers;
 use App\Modules\Promotions\Listeners\PromotionsOutboxListener;
 use App\Shared\Modules\ModuleServiceProvider;
 use App\Shared\Outbox\OutboxMessagePublished;
@@ -22,6 +24,7 @@ final class PromotionsServiceProvider extends ModuleServiceProvider
         $this->app->singleton(CouponService::class);
         $this->app->alias(CouponService::class, Coupons::class);
         $this->app->singleton(LoyaltyService::class);
+        $this->app->singleton(Offers::class, OfferService::class);
     }
 
     public function boot(): void

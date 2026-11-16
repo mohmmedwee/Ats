@@ -1115,6 +1115,49 @@ paths:
         required: true
         content: { application/json: { schema: { type: object, required: [is_active], properties: { is_active: { type: boolean } } } } }
       responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /products/{productId}/offers:
+    get:
+      tags: [Promotions]
+      summary: Buy-X-get-Y offers running for a product in the request country (for the product page badge)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Country'
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /admin/offers:
+    get:
+      tags: [Admin Promotions]
+      summary: Automatic quantity offers (pricing.manage)
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+    post:
+      tags: [Admin Promotions]
+      summary: 'Create a buy X get Y offer: the cheapest eligible units in each full group get get_percent off (100 = free). Best offer only; coupons apply on top.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, buy_qty, get_qty, get_percent, scope]
+              properties:
+                name: { type: object, properties: { en: { type: string }, ar: { type: [string, 'null'] } } }
+                buy_qty: { type: integer, minimum: 1, maximum: 20 }
+                get_qty: { type: integer, minimum: 1, maximum: 20 }
+                get_percent: { type: number, exclusiveMinimum: 0, maximum: 100 }
+                scope: { type: string, enum: [all, category, product] }
+                category_id: { type: [string, 'null'], format: uuid }
+                product_id: { type: [string, 'null'], format: uuid }
+                countries: { type: array, items: { type: string } }
+                starts_at: { type: [string, 'null'], format: date-time }
+                ends_at: { type: [string, 'null'], format: date-time }
+                is_active: { type: boolean }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /admin/offers/{offer}:
+    patch:
+      tags: [Admin Promotions]
+      summary: Update or switch off an offer
+      parameters: [{ name: offer, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]

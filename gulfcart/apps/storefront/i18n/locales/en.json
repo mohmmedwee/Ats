@@ -1147,5 +1147,18 @@
     "amount": "Amount",
     "currency": "Currency",
     "quantity": "How many"
+  },
+  "offers": {
+    "free": "Buy {buy}, get {get} free",
+    "percent": "Buy {buy}, get {get} at {n}% off",
+    "admin_title": "Offers (buy X get Y)",
+    "admin_subtitle": "Automatic at checkout, no code needed. The cheapest qualifying items get the discount.",
+    "add": "New offer",
+    "rule": "Rule",
+    "empty": "No offers yet.",
+    "buy": "Buy (items)",
+    "get": "Get (items)",
+    "get_percent": "Discount on those items (%), 100 = free",
+    "hint": "Only the best offer applies to a basket; coupons still work on top. Watch your margin: a free item is sold at a loss, check Admin → Profit."
   }
 }

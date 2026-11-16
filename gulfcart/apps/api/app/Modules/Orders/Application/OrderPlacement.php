@@ -87,7 +87,7 @@ final class OrderPlacement
             }
             if (isset($q['coupon']['code'])) {
                 // Re-checks usage limits under a lock: the code may have been used up since the quote.
-                $this->coupons->redeem($q['coupon']['code'], $userId, $order->id, (string) $q['totals']['discount'], $session->currency);
+                $this->coupons->redeem($q['coupon']['code'], $userId, $order->id, (string) ($q['coupon']['discount'] ?? $q['totals']['discount']), $session->currency);
             }
 
             $this->sessions->markCompleted($session->id);

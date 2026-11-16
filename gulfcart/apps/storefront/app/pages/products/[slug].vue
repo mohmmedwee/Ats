@@ -18,6 +18,11 @@ const { data: related } = await useAsyncData(
   async () => product.value ? (await request<Envelope<ProductCard[]>>(`/products/${product.value.id}/related`, { query: { limit: 12 } })).data : [],
   { server: false, watch: [product] },
 )
+const { data: offers } = await useAsyncData(
+  () => `offers-${route.params.slug}-${country.value}`,
+  async () => product.value ? (await request<Envelope<{ id: string, label: string, buy_qty: number, get_qty: number, get_percent: string }[]>>(`/products/${product.value.id}/offers`)).data : [],
+  { server: false, watch: [product], default: () => [] },
+)
 const recent = useRecentlyViewed()
 const recentOthers = computed(() => recent.items.value.filter(p => p.id !== product.value?.id))
 
@@ -175,6 +180,9 @@ async function addToCart() {
           <p class="text-xs text-ink-500">{{ $t('product.price_note') }}</p>
         </div>
 
+        <p v-for="o in offers" :key="o.id" class="flex items-center gap-2 rounded-md bg-gold-100 px-3 py-2 text-sm font-semibold" data-test="offer-badge">
+          🎁 {{ o.label }} <span class="text-xs font-normal text-ink-700">· {{ Number(o.get_percent) >= 100 ? $t('offers.free', { buy: o.buy_qty, get: o.get_qty }) : $t('offers.percent', { buy: o.buy_qty, get: o.get_qty, n: Number(o.get_percent) }) }}</span>
+        </p>
         <div v-if="hasOptions" class="border-t border-ink-100 pt-5" data-test="variant-options">
           <VariantPicker v-model="selected" :variants="product.variants" :images="product.images" @image="showImage">
             <template v-for="k in ['size', 'option']" :key="k" #[`after-${k}`]>

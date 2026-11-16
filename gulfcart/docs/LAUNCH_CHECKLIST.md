@@ -82,3 +82,14 @@ The four are prepared but switched off: regions, phone formats, currency (KWD, Q
    PayPal is charged in USD).
 3. `SUPPORTED_COUNTRIES=AE,SA,QA` in `deploy/api.env`, restart, then `php artisan countries:enable QA`.
 4. Review Admin → Tax and Admin → Shipping, make products available there, then `php artisan pricing:reprice`.
+
+## E. Saudi e-invoicing (ZATCA / Fatoora)
+
+- **Phase 1 (generation): done.** KSA invoices carry the seller VAT number and a scannable QR (TLV: seller,
+  VAT number, time, total, VAT). Set the legal name and VAT number in Admin → Countries → Saudi Arabia.
+- **Phase 2 (integration): not built yet, on purpose.** It means connecting to ZATCA's Fatoora platform:
+  onboarding with a compliance CSID (certificate) per invoicing unit, signing each invoice (UBL 2.1 XML,
+  cryptographic stamp, hash chain) and reporting simplified invoices within 24 hours. ZATCA calls taxpayers
+  in waves by revenue and gives about six months' notice. When your notice arrives (or if you pass the
+  threshold), plan it then: it needs your production certificate from the Fatoora portal, which only you can
+  obtain. Many companies use an accredited e-invoicing provider for this step.

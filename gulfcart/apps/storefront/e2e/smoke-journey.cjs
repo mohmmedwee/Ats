@@ -73,7 +73,7 @@ function totp(secret) {
   await f.locator('[name=address_line_1]').fill('Villa 12, Street 5');
   await f.locator('[name=city]').fill('Dubai');
   await f.locator('[name=state]').selectOption('DXB');
-  await f.locator('button').click();
+  await f.locator('[data-test=address-save]').click();
   await page.waitForSelector('[data-test=quote-total]');
   log('quote total', (await page.textContent('[data-test=quote-total]')).trim());
   await page.screenshot({ path: `${out}/checkout-en.png` });

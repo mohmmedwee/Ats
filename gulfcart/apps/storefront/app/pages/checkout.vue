@@ -242,7 +242,7 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <span class="label">{{ $t('map.title') }}</span>
             <ClientOnly><MapPin v-model="pin" :country="country" /></ClientOnly>
           </div>
-          <div class="md:col-span-2"><button class="btn-primary">{{ $t('common.save') }}</button></div>
+          <div class="md:col-span-2"><button class="btn-primary" data-test="address-save">{{ $t('common.save') }}</button></div>
         </form>
       </fieldset>
 
@@ -292,7 +292,8 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
           <div class="flex justify-between"><dt>{{ $t('checkout.shipping_fee') }}</dt><dd :class="quote.shipping_method.free ? 'font-semibold text-green-700' : ''">{{ quote.shipping_method.free ? $t('checkout.free') : m(quote.shipping) }}</dd></div>
           <div v-if="Number(quote.cod_fee ?? 0) > 0" class="flex justify-between text-xs text-ink-500" data-test="cod-fee"><dt>{{ $t('cod.fee_included') }}</dt><dd>{{ m(quote.cod_fee!) }}</dd></div>
           <div v-if="Number(quote.customs) > 0" class="flex justify-between"><dt>{{ $t('checkout.customs') }}</dt><dd>{{ m(quote.customs) }}</dd></div>
-          <div v-if="Number(quote.discount) > 0" class="flex justify-between text-brand-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m(quote.discount) }}</dd></div>
+          <div v-if="quote.offer" class="flex justify-between text-brand-700" data-test="quote-offer"><dt>🎁 {{ quote.offer.name }}</dt><dd>−{{ m(quote.offer.discount) }}</dd></div>
+          <div v-if="Number(quote.discount) - Number(quote.offer?.discount ?? 0) > 0.001" class="flex justify-between text-brand-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m((Number(quote.discount) - Number(quote.offer?.discount ?? 0)).toFixed(2)) }}</dd></div>
           <div class="flex justify-between border-t border-ink-300/60 pt-2 text-lg font-extrabold"><dt>{{ $t('common.total') }}</dt><dd data-test="quote-total">{{ m(quote.total) }}</dd></div>
           <div class="flex justify-between text-xs text-ink-500"><dt>{{ $t('checkout.vat_included') }}</dt><dd>{{ m(quote.tax) }}</dd></div>
         </dl>

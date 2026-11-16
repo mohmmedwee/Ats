@@ -33,6 +33,7 @@ const all: { title: string, items: Item[] }[] = [
     { to: '/admin/flash-sales', label: 'flash.admin_title', icon: 'clock', perm: ['pricing.manage'] },
     { to: '/admin/loyalty', label: 'rewards.admin_title', icon: 'coins', perm: ['pricing.manage'] },
     { to: '/admin/gift-cards', label: 'gift.admin_title', icon: 'tag', perm: ['pricing.manage'] },
+    { to: '/admin/offers', label: 'offers.admin_title', icon: 'percent', perm: ['pricing.manage'] },
     { to: '/admin/shipping', label: 'admin.shipping.title', icon: 'truck', perm: ['countries.manage'] },
     { to: '/admin/tax', label: 'admin.tax.title', icon: 'receipt', perm: ['countries.manage'] },
     { to: '/admin/countries', label: 'admin.countries.title', icon: 'globe', perm: ['countries.manage'] },
