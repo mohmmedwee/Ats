@@ -10,6 +10,8 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $order_id
  * @property string $provider
+ * @property string|null $confirmation_code_hash
+ * @property int $confirmation_attempts
  * @property string|null $provider_reference
  * @property string $idempotency_key
  * @property string $amount
@@ -29,6 +31,6 @@ class Payment extends Model
 
     protected function casts(): array
     {
-        return ['paid_at' => 'datetime'];
+        return ['paid_at' => 'datetime', 'confirmation_attempts' => 'integer'];
     }
 }

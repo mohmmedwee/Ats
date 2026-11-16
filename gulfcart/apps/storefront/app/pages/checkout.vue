@@ -18,11 +18,12 @@ const couponError = ref('')
 // PayPal charges USD at the fixed peg (same rate as the API).
 // Wrapped in left-to-right isolates so "$39.48" reads correctly inside Arabic text.
 const usd = (amount: string, currency: string) => `⁦$${(Number(amount) / (currency === 'SAR' ? 3.75 : 3.6725)).toFixed(2)}⁩`
-const payMethods = ref<{ provider: string, currency_note: string | null }[]>([])
+interface PayMethod { provider: string, currency_note: string | null, fee?: { amount: string, currency: string }, max_amount?: { amount: string, currency: string } | null, available?: boolean, reason?: string | null, requires_code?: boolean }
+const payMethods = ref<PayMethod[]>([])
 const payWith = ref('')
 onMounted(async () => {
-  payMethods.value = (await request<Envelope<{ provider: string, currency_note: string | null }[]>>('/payments/methods').catch(() => null))?.data ?? []
-  payWith.value = payMethods.value[0]?.provider ?? ''
+  payMethods.value = (await request<Envelope<PayMethod[]>>('/payments/methods').catch(() => null))?.data ?? []
+  payWith.value = payMethods.value.find(m => m.available !== false)?.provider ?? ''
 })
 const error = ref('')
 const busy = ref(false)
@@ -66,8 +67,53 @@ watch(quote, (q) => {
   }
 })
 
+const isCod = computed(() => payWith.value === 'cod')
 async function fetchQuote(code: string | null) {
-  return (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: code || undefined } })).data
+  return (await request<Envelope<Quote>>('/checkout/quote', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: code || undefined, payment_method: isCod.value ? 'cod' : undefined } })).data
+}
+/** Cash on delivery adds its fee: re-quote when switching. Over the limit, fall back to online payment. */
+watch(payWith, async () => {
+  if (!addressId.value) return
+  try {
+    quote.value = await fetchQuote(coupon.value)
+  }
+  catch (e) {
+    error.value = apiErrorMessage(e, t('errors.generic'))
+    if (isCod.value) payWith.value = payMethods.value.find(m => m.provider !== 'cod')?.provider ?? ''
+  }
+})
+const codMethod = computed(() => payMethods.value.find(m => m.provider === 'cod'))
+const codTooHigh = computed(() => !!(codMethod.value?.max_amount && quote.value && !isCod.value && Number(quote.value.total) + Number(codMethod.value.fee?.amount ?? 0) > Number(codMethod.value.max_amount.amount)))
+
+// SMS confirmation step for cash on delivery
+const codPayment = ref<Payment | null>(null)
+const codCode = ref('')
+const codMsg = ref('')
+async function confirmCod() {
+  if (!codPayment.value) return
+  busy.value = true
+  error.value = ''
+  try {
+    await csrf()
+    const p = (await request<Envelope<Payment>>(`/payments/${codPayment.value.id}/cod-confirm`, { method: 'POST', body: { code: codCode.value } })).data
+    await navigateTo(localePath(`/account/orders/${p.order_id}?placed=cod`))
+  }
+  catch (e) {
+    error.value = apiErrorMessage(e, t('errors.generic'))
+  }
+  finally {
+    busy.value = false
+  }
+}
+async function resendCod() {
+  if (!codPayment.value) return
+  try {
+    await request(`/payments/${codPayment.value.id}/cod-resend`, { method: 'POST' })
+    codMsg.value = t('cod.resent')
+  }
+  catch (e) {
+    error.value = apiErrorMessage(e, t('errors.generic'))
+  }
 }
 
 async function applyCoupon() {
@@ -110,10 +156,15 @@ async function placeOrder() {
   error.value = ''
   try {
     await csrf()
-    const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: coupon.value || undefined } })).data
+    const session = (await request<Envelope<CheckoutSession>>('/checkout', { method: 'POST', body: { address_id: addressId.value, shipping_method: method.value, coupon_code: coupon.value || undefined, payment_method: isCod.value ? 'cod' : undefined } })).data
     const order = (await request<Envelope<{ id: string }>>('/orders', { method: 'POST', body: { checkout_session_id: session.id }, headers: { 'Idempotency-Key': idempotencyKey('order') } })).data
     const payment = (await request<Envelope<Payment>>('/payments/intent', { method: 'POST', body: { order_id: order.id, provider: payWith.value || undefined }, headers: { 'Idempotency-Key': idempotencyKey('pay') } })).data
     useCartStore().cart = null
+    if (payment.provider === 'cod') {
+      if (payment.status === 'requires_action') codPayment.value = payment
+      else await navigateTo(localePath(`/account/orders/${payment.order_id}?placed=cod`))
+      return
+    }
     if (payment.redirect_url) window.location.href = payment.redirect_url
   }
   catch (e) {
@@ -177,9 +228,14 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
       <fieldset v-if="payMethods.length > 1 && quote" class="space-y-2 rounded-md border border-ink-100 p-4 md:p-5" data-test="pay-methods">
         <legend class="flex items-center gap-2 px-1 text-sm font-extrabold uppercase tracking-wide"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-xs text-white">3</span>{{ $t('pay_method.title') }}</legend>
         <label v-for="pm in payMethods" :key="pm.provider" class="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm transition" :class="payWith === pm.provider ? 'border-ink-900 bg-ink-100/50' : 'border-ink-100 hover:border-ink-300'">
-          <input v-model="payWith" type="radio" name="pay-with" :value="pm.provider" class="accent-ink-900" :data-test="`pay-${pm.provider}`">
+          <input v-model="payWith" type="radio" name="pay-with" :value="pm.provider" class="accent-ink-900" :disabled="pm.available === false || (pm.provider === 'cod' && codTooHigh)" :data-test="`pay-${pm.provider}`">
           <span class="flex-1">
             <span class="block font-semibold">{{ $t(`pay_method.${pm.provider}`, pm.provider) }}</span>
+            <span v-if="pm.provider === 'cod'" class="block text-xs text-ink-500" data-test="cod-note">
+              <template v-if="pm.available === false">{{ $t(`cod.unavailable.${pm.reason ?? 'not_offered'}`) }}</template>
+              <template v-else-if="codTooHigh">{{ $t('cod.too_high', { amount: formatMoney(pm.max_amount, locale) }) }}</template>
+              <template v-else>{{ $t('cod.note', { fee: formatMoney(pm.fee, locale) }) }}</template>
+            </span>
             <span v-if="pm.currency_note" class="block text-xs text-ink-500">{{ $t('pay_method.usd_note', { amount: usd(quote.total, quote.currency) }) }}</span>
           </span>
           <span v-if="pm.provider === 'paypal'" class="font-bold italic text-[#003087]" dir="ltr">Pay<span class="text-[#009cde]">Pal</span></span>
@@ -204,6 +260,7 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
         <dl class="space-y-1.5 border-t border-ink-300/60 pt-3 text-sm">
           <div class="flex justify-between"><dt>{{ $t('cart.subtotal') }}</dt><dd>{{ m(quote.subtotal) }}</dd></div>
           <div class="flex justify-between"><dt>{{ $t('checkout.shipping_fee') }}</dt><dd :class="quote.shipping_method.free ? 'font-semibold text-green-700' : ''">{{ quote.shipping_method.free ? $t('checkout.free') : m(quote.shipping) }}</dd></div>
+          <div v-if="Number(quote.cod_fee ?? 0) > 0" class="flex justify-between text-xs text-ink-500" data-test="cod-fee"><dt>{{ $t('cod.fee_included') }}</dt><dd>{{ m(quote.cod_fee!) }}</dd></div>
           <div v-if="Number(quote.customs) > 0" class="flex justify-between"><dt>{{ $t('checkout.customs') }}</dt><dd>{{ m(quote.customs) }}</dd></div>
           <div v-if="Number(quote.discount) > 0" class="flex justify-between text-brand-700"><dt>{{ $t('coupon.discount') }} <span dir="ltr">({{ quote.coupon?.code }})</span></dt><dd data-test="quote-discount">−{{ m(quote.discount) }}</dd></div>
           <div class="flex justify-between border-t border-ink-300/60 pt-2 text-lg font-extrabold"><dt>{{ $t('common.total') }}</dt><dd data-test="quote-total">{{ m(quote.total) }}</dd></div>
@@ -223,7 +280,15 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <AppIcon name="coins" :size="14" />{{ $t('rewards.checkout_hint', { points: points.balance, amount: formatMoney(points.balance_value, locale) }) }}
           </NuxtLink>
         </div>
-        <button :disabled="busy" class="btn-primary mt-5 h-12 w-full text-base font-bold uppercase tracking-wide" data-test="place-order" @click="placeOrder">{{ $t('checkout.place_order') }}</button>
+        <form v-if="codPayment" class="mt-5 space-y-2 rounded-md bg-white p-4" data-test="cod-confirm" @submit.prevent="confirmCod">
+          <p class="text-sm font-bold">{{ $t('cod.enter_code') }}</p>
+          <p class="text-xs text-ink-500">{{ $t('cod.code_sent') }}</p>
+          <input v-model="codCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="input text-center font-mono text-lg tracking-[0.4em]" dir="ltr" required data-test="cod-code">
+          <button :disabled="busy" class="btn-primary h-11 w-full font-bold">{{ $t('cod.confirm') }}</button>
+          <button type="button" class="w-full text-xs underline" @click="resendCod">{{ $t('cod.resend') }}</button>
+          <p v-if="codMsg" class="text-xs text-green-700">{{ codMsg }}</p>
+        </form>
+        <button v-else :disabled="busy" class="btn-primary mt-5 h-12 w-full text-base font-bold uppercase tracking-wide" data-test="place-order" @click="placeOrder">{{ isCod ? $t('cod.place') : $t('checkout.place_order') }}</button>
         <p class="mt-3 flex items-center justify-center gap-2 text-xs text-ink-500"><AppIcon name="shield" :size="15" /> {{ $t('footer.secure') }}</p>
       </template>
     </aside>

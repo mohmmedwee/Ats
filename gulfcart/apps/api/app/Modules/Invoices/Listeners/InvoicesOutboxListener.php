@@ -12,7 +12,7 @@ final class InvoicesOutboxListener
     public function handle(OutboxMessagePublished $e): void
     {
         match ($e->eventType) {
-            'order.paid' => $this->invoices->issueInvoice((string) $e->payload['order_id']),
+            'order.paid', 'order.cod_collected' => $this->invoices->issueInvoice((string) $e->payload['order_id']),
             'refund.succeeded' => $this->invoices->issueCreditNote((string) $e->payload['order_id'], (string) $e->payload['refund_id'], (string) $e->payload['amount'], (array) ($e->payload['item_quantities'] ?? [])),
             default => null,
         };

@@ -90,6 +90,8 @@ export interface Address {
 export interface ShippingOption { code: string, name: string, price: Money, free: boolean }
 
 export interface Quote {
+  cod_fee?: string
+  payment_method?: string | null
   currency: string
   items: { variant_id: string, title: string, sku: string, attributes: Record<string, string>, image: string | null, quantity: number, unit_price: Money, line_total: Money, shipment: number }[]
   shipments: { number: number, item_count: number, customs: Money, estimate: { min_days: number, max_days: number } }[]
@@ -132,6 +134,7 @@ export interface PackageProgress {
 }
 
 export interface OrderDetail extends OrderSummary {
+  payment_method?: 'online' | 'cod'
   shipping_address: Record<string, string | null>
   shipping_method: { code: string | null, name: string | null }
   packages: (PackageProgress & {

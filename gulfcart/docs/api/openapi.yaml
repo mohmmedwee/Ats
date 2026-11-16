@@ -983,6 +983,43 @@ paths:
               required: [user_id, points, note]
               properties: { user_id: { type: string, format: uuid }, points: { type: integer, description: Signed, not zero }, note: { type: string, maxLength: 255 } }
       responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { $ref: '#/components/responses/ValidationFailed' } }
+  /payments/{id}/cod-confirm:
+    post:
+      tags: [Payments]
+      summary: 'Cash on delivery: confirm the order with the SMS code sent to the delivery phone. The order is confirmed and fulfilled; the courier collects the cash.'
+      security: [{ sanctum: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string, maxLength: 10 } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '409': { description: COD_NOT_PENDING, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+        '422': { description: COD_CODE_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+        '429': { description: COD_CODE_LOCKED after 5 wrong codes, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
+  /payments/{id}/cod-resend:
+    post:
+      tags: [Payments]
+      summary: Send a new cash-on-delivery confirmation code (3 per minute)
+      security: [{ sanctum: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' } }
+  /admin/orders/{orderId}/cod/collected:
+    post:
+      tags: [Admin Orders]
+      summary: 'Cash on delivery: the courier collected and remitted the cash. Records the payment, issues the invoice (refunds.request)'
+      parameters: [{ name: orderId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { note: { type: [string, 'null'], maxLength: 255 } } } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' } }
+  /admin/orders/{orderId}/cod/refused:
+    post:
+      tags: [Admin Orders]
+      summary: 'Cash on delivery: the customer refused the parcel. Cancels the order and counts the refusal (COD_BLOCK_AFTER_REFUSALS)'
+      parameters: [{ name: orderId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { note: { type: [string, 'null'], maxLength: 255 } } } } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]

@@ -16,7 +16,7 @@ final class NotificationsOutboxListener
         $p = $e->payload;
 
         match ($e->eventType) {
-            'order.paid' => $this->order($p['order_id'], 'order_confirmed', "order_confirmed:{$p['order_id']}"),
+            'order.paid', 'order.cod_confirmed' => $this->order($p['order_id'], 'order_confirmed', "order_confirmed:{$p['order_id']}"),
             'shipment.updated' => ($p['new'] ?? false) ? $this->order($p['order_id'], 'order_shipped', "order_shipped:{$p['shipment_id']}", [
                 'carrier' => (string) ($p['carrier'] ?? ''), 'tracking' => (string) ($p['tracking_number'] ?? ''),
             ]) : null,

@@ -56,6 +56,7 @@ listing. Add specifications and warranty text on each electronics product (Admin
   `LOYALTY_ENABLED=true`, `LOYALTY_POINTS_PER_UNIT=1` (points per 1 AED/SAR), `LOYALTY_POINT_VALUE=0.05` (100 points = 5 AED/SAR),
   `LOYALTY_MIN_REDEEM=100`, `LOYALTY_REFERRER_POINTS=500`, `LOYALTY_FRIEND_PERCENT=10`, `LOYALTY_FRIEND_MAX=50`.
   Unused points are a liability: Admin → Rewards shows their value.
+- **Cash on delivery** (off by default): `COD_ENABLED=true` plus fee, limit and SMS confirmation settings, see [PAYMENTS.md](PAYMENTS.md#cash-on-delivery-optional-off-by-default). Start with a low limit: you pay the supplier before the customer pays.
 - **Order tracking**: customers use /track with the order number and phone; signed-in customers see the timeline on the order page.
 - **Profit**: Admin → Profit shows daily profit and products losing money. Set `PAYMENT_FEE_PERCENT` to your real gateway fee.
 - **App on the home screen (PWA)**: works automatically on HTTPS. Phones see an "Install" banner.

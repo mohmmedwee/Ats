@@ -31,7 +31,12 @@ final class GatewayRegistry
         $default = (string) config('gulfcart.payments.provider', 'sandbox');
         $listed = array_filter(array_map('trim', explode(',', (string) config('gulfcart.payments.methods', ''))));
 
-        return array_values(array_unique([$default, ...$listed]));
+        $all = array_values(array_unique([$default, ...$listed]));
+        if (config('gulfcart.cod.enabled') && ! in_array('cod', $all, true)) {
+            $all[] = 'cod';
+        }
+
+        return $all;
     }
 
     public function forCustomer(?string $name): PaymentGateway

@@ -11,7 +11,7 @@ final class ProcurementOutboxListener
 
     public function handle(OutboxMessagePublished $event): void
     {
-        if ($event->eventType === 'order.paid') {
+        if (in_array($event->eventType, ['order.paid', 'order.cod_confirmed'], true)) {
             $this->splitter->split((string) $event->payload['order_id']);
         }
     }

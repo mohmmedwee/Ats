@@ -25,6 +25,8 @@ final class OrderData
         public readonly string $customsTotal = '0',
         public readonly string $taxTotal = '0',
         public readonly ?string $paidAt = null,
+        /** null = online, 'cod' = cash on delivery */
+        public readonly ?string $paymentMethod = null,
     ) {}
 
     public function item(string $id): ?OrderItemData

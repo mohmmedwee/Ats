@@ -94,3 +94,31 @@ Not yet run against a real PayPal account; covered by tests against PayPal's doc
 
 Tabby and Tamara (buy now, pay later) can be added as additional gateways later; their contracts are
 separate from Tap.
+
+## Cash on delivery (optional, off by default)
+
+Turn it on in `deploy/api.env`:
+
+```
+COD_ENABLED=true
+COD_COUNTRIES=AE,SA          # where it is offered
+COD_FEE_AE=10                # VAT-inclusive fee added to the order (like delivery)
+COD_FEE_SA=10
+COD_MAX_AE=500               # order total limit; above it customers pay online
+COD_MAX_SA=500
+COD_REQUIRE_OTP=true         # SMS code to the delivery phone before the order is confirmed (needs SMS set up)
+COD_BLOCK_AFTER_REFUSALS=1   # refusals before the option disappears for that customer (0 = never)
+```
+
+How it works:
+
+1. At checkout the customer picks *Cash on delivery*; the quote adds the fee and checks the limit.
+2. After placing the order they enter the SMS code. The order becomes **Confirmed · pay on delivery** and is
+   bought from the supplier straight away (you pay the supplier before the customer pays: keep the limit low).
+3. When the courier remits the cash, open the order in Admin → **Cash received**: the payment is recorded,
+   the invoice is issued and loyalty points are earned.
+4. If the customer refuses the parcel, press **Refused at the door**: the order is cancelled and the refusal
+   counted. Ask the carrier for return-to-sender; you still owe the supplier and the shipping.
+
+Refunds after collection are paid back manually (bank transfer or store credit); the online refund button
+does not apply to cash.

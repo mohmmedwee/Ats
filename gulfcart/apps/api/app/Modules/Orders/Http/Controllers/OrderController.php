@@ -95,7 +95,7 @@ final class OrderController
             $order = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (in_array($order->status, [OrderStatus::PENDING_PAYMENT, OrderStatus::PAYMENT_FAILED], true)) {
                 $order->update(['status' => OrderStatus::CANCELLED]);
-            } elseif (in_array($order->status, [OrderStatus::PAID, OrderStatus::PROCESSING], true) && $this->cancellation->cancelBeforePurchase($order->id)) {
+            } elseif (in_array($order->status, [OrderStatus::PAID, OrderStatus::COD_CONFIRMED, OrderStatus::PROCESSING], true) && $this->cancellation->cancelBeforePurchase($order->id)) {
                 $order->update(['status' => OrderStatus::CANCELLED]);
                 $remaining = number_format((float) $order->paid_total - (float) $order->refunded_total, 2, '.', '');
                 if ((float) $remaining > 0) {
@@ -121,6 +121,7 @@ final class OrderController
             'order_number' => $o->order_number,
             'status' => $o->status,
             'refund_state' => $o->refund_state,
+            'payment_method' => $o->payment_method ?? 'online',
             'total' => ['amount' => (string) $o->grand_total, 'currency' => $o->currency],
             'item_count' => (int) $o->items->sum('quantity'),
             'image' => $first?->product_snapshot['image_url'] ?? null,
@@ -162,7 +163,7 @@ final class OrderController
             ],
             'prices_include_tax' => true,
             'payment_due_at' => $o->status === OrderStatus::PENDING_PAYMENT ? $o->payment_due_at->toIso8601String() : null,
-            'can_cancel' => in_array($o->status, [OrderStatus::PENDING_PAYMENT, OrderStatus::PAYMENT_FAILED, OrderStatus::PAID, OrderStatus::PROCESSING], true)
+            'can_cancel' => in_array($o->status, [OrderStatus::PENDING_PAYMENT, OrderStatus::PAYMENT_FAILED, OrderStatus::PAID, OrderStatus::COD_CONFIRMED, OrderStatus::PROCESSING], true)
                 && ! $o->items->contains(fn ($i) => in_array($i->fulfillment_status, ['purchased', 'shipped', 'delivered'], true)),
         ];
     }
@@ -179,7 +180,8 @@ final class OrderController
     {
         $status = $this->packageStatus($statuses);
         $rank = ['pending' => 1, 'preparing' => 2, 'shipped' => 3, 'delivered' => 4][$status] ?? 0;
-        $paid = $o->paid_at !== null;
+        // Confirmed = paid online, or cash on delivery confirmed (paid to the courier later).
+        $paid = $o->paid_at !== null || ($o->payment_method === 'cod' && ! in_array($o->status, [OrderStatus::PENDING_PAYMENT, OrderStatus::PAYMENT_FAILED, OrderStatus::EXPIRED], true));
         $first = fn (string $key) => collect($tracking)->pluck($key)->filter()->sort()->first();
         $steps = [
             ['key' => 'placed', 'done' => true, 'at' => $o->placed_at->toIso8601String()],

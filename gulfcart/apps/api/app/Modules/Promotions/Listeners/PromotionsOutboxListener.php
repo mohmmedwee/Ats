@@ -17,7 +17,7 @@ final class PromotionsOutboxListener
             $this->coupons->release((string) $event->payload['order_id']);
         }
         match ($event->eventType) {
-            'order.paid' => $this->loyalty->earnFor((string) $event->payload['order_id']),
+            'order.paid', 'order.cod_collected' => $this->loyalty->earnFor((string) $event->payload['order_id']),
             'order.refunded' => $this->loyalty->reverseFor((string) $event->payload['order_id']),
             default => null,
         };

@@ -44,4 +44,10 @@ return [
     'referral_own_code' => 'You cannot use your own invite code.',
     'referral_already_used' => 'You have already used an invite code.',
     'referral_not_new' => 'Invite codes are for new customers before their first order.',
+    'cod_not_offered' => 'Cash on delivery is not available here.',
+    'cod_max_amount' => 'Cash on delivery is available for orders up to :amount. Please pay online.',
+    'cod_refused_before' => 'Cash on delivery is not available on your account because a previous parcel was refused. Please pay online.',
+    'cod_not_quoted' => 'Choose cash on delivery at checkout so its fee is included, then place the order again.',
+    'cod_code_invalid' => 'The code is not correct.',
+    'cod_code_locked' => 'Too many wrong codes. Request a new code.',
 ];

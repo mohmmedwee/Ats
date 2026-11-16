@@ -48,6 +48,7 @@ final class OrderPlacement
                 'shipping_method_snapshot' => $q['shipping_method'] + ['estimates' => collect($q['shipments'] ?? [])
                     ->mapWithKeys(fn ($sh) => [(string) $sh['number'] => $sh['estimate'] ?? null])->filter()->all()],
                 'currency' => $session->currency,
+                'payment_method' => ($q['payment_method'] ?? null) === 'cod' ? 'cod' : null,
                 'locale' => $locale,
                 'status' => OrderStatus::PENDING_PAYMENT,
                 'subtotal' => $q['totals']['subtotal'],

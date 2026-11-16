@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payments\Http\Controllers;
 
+use App\Modules\Countries\Domain\CountryData;
 use App\Modules\Orders\Contracts\OrderBook;
 use App\Modules\Payments\Application\GatewayRegistry;
 use App\Modules\Payments\Application\Gateways\SandboxGateway;
@@ -32,12 +33,46 @@ final class PaymentController
     }
 
     /** Payment methods the customer can choose at checkout, default first. */
-    public function methods(GatewayRegistry $gateways): JsonResponse
+    public function methods(Request $request, GatewayRegistry $gateways): JsonResponse
     {
-        return ApiResponse::success(array_map(fn ($name) => [
-            'provider' => $name,
-            'currency_note' => $name === 'paypal' ? 'USD' : null,
-        ], $gateways->enabled()));
+        /** @var CountryData $country */
+        $country = $request->attributes->get('country');
+        $codCountries = array_filter(array_map('trim', explode(',', (string) config('gulfcart.cod.countries', ''))));
+        $methods = [];
+        foreach ($gateways->enabled() as $name) {
+            $row = ['provider' => $name, 'currency_note' => $name === 'paypal' ? 'USD' : null];
+            if ($name === 'cod') {
+                $check = $this->payments->codEligibility($this->userId($request));
+                if (! in_array($country->code, $codCountries, true)) {
+                    continue;
+                }
+                $max = config("gulfcart.cod.max_amount.{$country->code}");
+                $row += [
+                    'fee' => ['amount' => number_format((float) config("gulfcart.cod.fee.{$country->code}", 0), 2, '.', ''), 'currency' => $country->currency],
+                    'max_amount' => $max !== null && $max !== '' ? ['amount' => number_format((float) $max, 2, '.', ''), 'currency' => $country->currency] : null,
+                    'available' => $check['eligible'], 'reason' => $check['reason'],
+                    'requires_code' => (bool) config('gulfcart.cod.require_otp', true),
+                ];
+            }
+            $methods[] = $row;
+        }
+
+        return ApiResponse::success($methods);
+    }
+
+    /** Cash on delivery: the customer enters the SMS code to confirm the order. */
+    public function confirmCashOnDelivery(Request $request, string $id): JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:10']]);
+
+        return ApiResponse::success($this->present($this->payments->confirmCashOnDelivery($this->owned($request, $id), $data['code'])));
+    }
+
+    public function resendCashOnDeliveryCode(Request $request, string $id): JsonResponse
+    {
+        $this->payments->resendCashOnDeliveryCode($this->owned($request, $id));
+
+        return ApiResponse::success(['sent' => true]);
     }
 
     /** Called by the return page: finishes payments the merchant must capture (PayPal). */

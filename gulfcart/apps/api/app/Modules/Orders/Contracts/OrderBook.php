@@ -23,6 +23,15 @@ interface OrderBook
 
     public function recordPaymentFailure(string $orderId): void;
 
+    /** Cash on delivery confirmed by the customer: fulfil now (outbox: order.cod_confirmed). */
+    public function confirmCashOnDelivery(string $orderId): void;
+
+    /** The courier collected the cash (outbox: order.cod_collected). */
+    public function recordCashCollected(string $orderId, string $paymentId, string $amount): void;
+
+    /** The customer refused the parcel: the order is cancelled (outbox: order.cancelled). */
+    public function recordCashRefused(string $orderId): void;
+
     /**
      * Applies a succeeded refund to the order totals.
      *

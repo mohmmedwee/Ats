@@ -27,7 +27,7 @@ final class EloquentOrderBook implements OrderBook
     public function lockForFulfillment(string $orderId): ?OrderData
     {
         $order = Order::query()->whereKey($orderId)->lockForUpdate()->first();
-        if ($order === null || ! in_array($order->status, [OrderStatus::PAID, OrderStatus::PROCESSING, OrderStatus::PARTIALLY_SHIPPED], true)) {
+        if ($order === null || ! in_array($order->status, [OrderStatus::PAID, OrderStatus::COD_CONFIRMED, OrderStatus::PROCESSING, OrderStatus::PARTIALLY_SHIPPED], true)) {
             return null;
         }
 
@@ -50,6 +50,37 @@ final class EloquentOrderBook implements OrderBook
             return;
         }
         $order->save();
+    }
+
+    public function confirmCashOnDelivery(string $orderId): void
+    {
+        $order = $this->lock($orderId);
+        if ($order->status === OrderStatus::COD_CONFIRMED) {
+            return;
+        }
+        OrderStatus::assertTransition($order->status, OrderStatus::COD_CONFIRMED);
+        $order->update(['status' => OrderStatus::COD_CONFIRMED, 'payment_method' => 'cod']);
+        Outbox::record('order', $order->id, 'order.cod_confirmed', ['order_id' => $order->id, 'order_number' => $order->order_number]);
+    }
+
+    public function recordCashCollected(string $orderId, string $paymentId, string $amount): void
+    {
+        $order = $this->lock($orderId);
+        if ($order->payment_method !== 'cod' || $order->paid_at !== null) {
+            throw new ApiException('COD_NOT_COLLECTABLE', 409);
+        }
+        $order->update(['paid_total' => Decimal::add($order->paid_total, $amount, 2), 'paid_at' => now()]);
+        Outbox::record('order', $order->id, 'order.cod_collected', ['order_id' => $order->id, 'order_number' => $order->order_number, 'payment_id' => $paymentId]);
+    }
+
+    public function recordCashRefused(string $orderId): void
+    {
+        $order = $this->lock($orderId);
+        if ($order->payment_method !== 'cod' || $order->paid_at !== null || ! OrderStatus::canTransition($order->status, OrderStatus::CANCELLED)) {
+            throw new ApiException('COD_NOT_COLLECTABLE', 409);
+        }
+        $order->update(['status' => OrderStatus::CANCELLED]);
+        Outbox::record('order', $order->id, 'order.cancelled', ['order_id' => $order->id, 'reason' => 'cod_refused']);
     }
 
     public function recordPaymentFailure(string $orderId): void
@@ -104,6 +135,7 @@ final class EloquentOrderBook implements OrderBook
                 (string) $i->unit_net_price, (string) $i->unit_tax, (string) $i->vat_rate, (string) $i->line_discount,
             ))->all(),
             (string) $o->shipping_total, (string) $o->customs_total, (string) $o->tax_total, $o->paid_at?->toIso8601String(),
+            $o->payment_method,
         );
     }
 }

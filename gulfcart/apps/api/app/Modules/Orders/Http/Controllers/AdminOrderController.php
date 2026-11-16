@@ -64,6 +64,7 @@ final class AdminOrderController
             'id' => $o->id, 'order_number' => $o->order_number, 'user_id' => $o->user_id, 'status' => $o->status, 'country_code' => $this->codes[$o->country_id] ?? null,
             'items_count' => (int) $o->items->sum('quantity'),
             'refund_state' => $o->refund_state, 'currency' => $o->currency, 'coupon_code' => $o->coupon_code,
+            'payment_method' => $o->payment_method ?? 'online', 'paid_at' => $o->paid_at?->toIso8601String(),
             'grand_total' => (string) $o->grand_total, 'paid_total' => (string) $o->paid_total, 'refunded_total' => (string) $o->refunded_total,
             'estimated_landed_cost' => Decimal::round($cost, 2),
             'estimated_contribution_before_fees' => Decimal::sub(Decimal::sub($net, (string) $o->customs_total, 2), Decimal::round($cost, 2), 2),

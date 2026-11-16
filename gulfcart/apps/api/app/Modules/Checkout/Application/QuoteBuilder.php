@@ -45,7 +45,7 @@ final class QuoteBuilder
     }
 
     /** @return array<string, mixed> internal quote (contains cost data; never send as-is to customers) */
-    public function build(CartData $cart, CountryData $country, CustomerAddress $address, string $methodCode, bool $liveCheck, ?string $couponCode = null, ?string $userId = null): array
+    public function build(CartData $cart, CountryData $country, CustomerAddress $address, string $methodCode, bool $liveCheck, ?string $couponCode = null, ?string $userId = null, ?string $paymentMethod = null): array
     {
         if ($address->country_id !== $country->id) {
             throw new ApiException('ADDRESS_COUNTRY_MISMATCH', 422);
@@ -85,10 +85,20 @@ final class QuoteBuilder
             }
         }
 
+        // Cash on delivery: a handling fee charged like delivery (same VAT treatment), within the configured limits.
+        $codFee = '0.00';
+        if ($paymentMethod === 'cod') {
+            $codFee = self::codFee($country->code);
+            $shippingAmount = Decimal::add($shippingAmount, $codFee, 2);
+        }
+
         $shippingVatRate = $this->tax->shippingVatRate($country->code);
         $shippingVat = $this->contained($shippingAmount, $shippingVatRate);
         $tax = Decimal::add(Decimal::sum(array_column($lines, 'line_vat'), 2), $shippingVat, 2);
         $total = Decimal::sub(Decimal::add(Decimal::add($subtotal, $shippingAmount, 2), $customsTotal, 2), $discount, 2);
+        if ($paymentMethod === 'cod') {
+            self::assertCodAllowed($country->code, $total);
+        }
 
         return [
             'country' => $country->code,
@@ -107,8 +117,28 @@ final class QuoteBuilder
                 'tax' => $tax,
                 'total' => $total,
             ],
+            'payment_method' => $paymentMethod,
+            'cod_fee' => $codFee,
             'prices_include_tax' => true,
         ];
+    }
+
+    public static function codFee(string $countryCode): string
+    {
+        return Decimal::round((string) config("gulfcart.cod.fee.{$countryCode}", '0'), 2);
+    }
+
+    /** Cash on delivery must be switched on, offered in the country and the order within the limit. */
+    public static function assertCodAllowed(string $countryCode, string $total): void
+    {
+        $countries = array_filter(array_map('trim', explode(',', (string) config('gulfcart.cod.countries', ''))));
+        if (! config('gulfcart.cod.enabled') || ! in_array($countryCode, $countries, true)) {
+            throw new ApiException('COD_NOT_AVAILABLE', 422, ['reason' => 'not_offered'], (string) __('errors.cod_not_offered'));
+        }
+        $max = config("gulfcart.cod.max_amount.{$countryCode}");
+        if ($max !== null && $max !== '' && Decimal::cmp($total, (string) $max) > 0) {
+            throw new ApiException('COD_NOT_AVAILABLE', 422, ['reason' => 'max_amount', 'max_amount' => (string) $max], (string) __('errors.cod_max_amount', ['amount' => $max]));
+        }
     }
 
     /**
@@ -149,6 +179,8 @@ final class QuoteBuilder
             'coupon' => isset($quote['coupon']) ? ['code' => $quote['coupon']['code'], 'free_shipping' => $quote['coupon']['free_shipping']] : null,
             'tax' => $quote['totals']['tax'],
             'total' => $quote['totals']['total'],
+            'payment_method' => $quote['payment_method'] ?? null,
+            'cod_fee' => $quote['cod_fee'] ?? '0.00',
             'prices_include_tax' => true,
         ];
     }

@@ -750,7 +750,8 @@
       "shipped": "Shipped",
       "delivered": "Delivered",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "cod_confirmed": "Confirmed · pay on delivery"
     },
     "package_status": {
       "pending": "Pending",
@@ -895,7 +896,8 @@
     "sandbox": "Card (test)",
     "paypal": "PayPal",
     "usd_note": "Charged in US dollars: about {amount}. Your bank may add a currency fee.",
-    "cancelled": "You cancelled the payment. Your order is saved: you can pay any time."
+    "cancelled": "You cancelled the payment. Your order is saved: you can pay any time.",
+    "cod": "Cash on delivery"
   },
   "colors": {
     "black": "Black",
@@ -1079,5 +1081,28 @@
     "text": "Faster shopping, right from your home screen.",
     "ios": "Tap Share, then “Add to Home Screen”.",
     "install": "Install"
+  },
+  "cod": {
+    "note": "Pay the courier in cash when it arrives. Fee {fee}.",
+    "too_high": "Available for orders up to {amount}.",
+    "unavailable": {
+      "not_offered": "Not available in your country.",
+      "refused_before": "Not available on your account (a previous parcel was refused)."
+    },
+    "fee_included": "includes cash on delivery fee",
+    "place": "Confirm order (pay on delivery)",
+    "enter_code": "Confirm your order",
+    "code_sent": "We sent a 6-digit code by SMS to the phone on your delivery address.",
+    "confirm": "Confirm",
+    "resend": "Send a new code",
+    "resent": "A new code is on its way.",
+    "order_banner": "Cash on delivery: please have {amount} ready for the courier.",
+    "badge": "Cash on delivery",
+    "collected_short": "cash received",
+    "collected": "Cash received",
+    "refused": "Refused at the door",
+    "collected_done": "Cash recorded; the invoice is issued.",
+    "refused_done": "Order cancelled and the refusal recorded.",
+    "refused_confirm": "The customer refused the parcel? The order will be cancelled and cash on delivery blocked for this customer."
   }
 }

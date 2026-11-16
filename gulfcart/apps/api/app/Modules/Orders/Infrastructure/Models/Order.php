@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property string $order_number
+ * @property string|null $payment_method null (online) or 'cod'
  * @property string $user_id
  * @property string $checkout_session_id
  * @property string $country_id

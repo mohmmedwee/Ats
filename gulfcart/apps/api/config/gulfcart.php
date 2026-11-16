@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Payments\Application\Gateways\CashOnDeliveryGateway;
 use App\Modules\Payments\Application\Gateways\PaypalGateway;
 use App\Modules\Payments\Application\Gateways\TapGateway;
 use App\Modules\Suppliers\Application\Connectors\Cj\CjDropshippingConnector;
@@ -131,6 +132,7 @@ return [
         'gateways' => [  // provider name => class implementing PaymentGateway
             'tap' => TapGateway::class,
             'paypal' => PaypalGateway::class,
+            'cod' => CashOnDeliveryGateway::class,
         ],
         // Every provider the customer can choose at checkout, in order (the default is always included).
         'methods' => env('PAYMENT_METHODS', ''),
@@ -174,6 +176,17 @@ return [
         'max_cost_increase_percent' => env('PROCUREMENT_MAX_COST_INCREASE_PERCENT', '5'),
         'retry_backoff_minutes' => [1, 5, 15, 60, 240],
         'stale_lock_minutes' => 10,
+    ],
+
+    // Cash on delivery. Off by default: you pay the supplier before the customer pays the courier,
+    // so keep the limit low and the SMS confirmation on. Customers who refuse a parcel lose the option.
+    'cod' => [
+        'enabled' => (bool) env('COD_ENABLED', false),
+        'countries' => env('COD_COUNTRIES', 'AE,SA'),
+        'fee' => ['AE' => env('COD_FEE_AE', '10'), 'SA' => env('COD_FEE_SA', '10')],               // VAT-inclusive, like delivery
+        'max_amount' => ['AE' => env('COD_MAX_AE', '500'), 'SA' => env('COD_MAX_SA', '500')],      // order total limit
+        'require_otp' => (bool) env('COD_REQUIRE_OTP', true),                                       // SMS code to the delivery phone
+        'block_after_refusals' => (int) env('COD_BLOCK_AFTER_REFUSALS', 1),                         // 0 = never block
     ],
 
     // Rewards: points on the items total of paid orders, converted into personal discount codes.

@@ -3,6 +3,7 @@ definePageMeta({ middleware: 'staff', layout: 'admin' })
 interface Item { id: string, title: Record<string, string> | string | null, sku: string | null, quantity: number, unit_gross_price: string, line_total: string, unit_supplier_cost: string, unit_supplier_shipping: string, supplier_currency: string, fulfillment_status: string, refunded_quantity: number }
 interface Detail {
   id: string, order_number: string, status: string, refund_state: string, country_code: string | null, currency: string
+  payment_method?: string
   grand_total: string, paid_total: string, refunded_total: string, estimated_landed_cost: string, estimated_contribution_before_fees: string
   placed_at: string, paid_at: string | null
   customer: { name: string, email: string | null, phone: string | null } | null
@@ -47,6 +48,13 @@ async function load() {
   })
 }
 
+const codOpen = computed(() => order.value?.payment_method === 'cod' && !order.value.paid_at && order.value.status !== 'cancelled')
+async function cod(action: 'collected' | 'refused') {
+  if (action === 'refused' && !confirm(String(nuxtApp.$i18n.t('cod.refused_confirm')))) return
+  const ok = await run(() => send('POST', `/admin/orders/${order.value!.id}/cod/${action}`, {}), String(nuxtApp.$i18n.t(`cod.${action}_done`)))
+  if (ok !== undefined) await load()
+}
+
 async function submitRefund() {
   if (!order.value) return
   const ok = await run(() => send('POST', '/admin/refunds', { order_id: order.value!.id, ...refundForm, reason: refundForm.reason || undefined }, 'refund'), String(nuxtApp.$i18n.t('admin.orders_page.refund_requested')))
@@ -64,6 +72,11 @@ onMounted(load)
     <NuxtLink :to="localePath('/admin/orders')" class="mb-2 inline-block text-sm text-ink-500 hover:text-ink-900">← {{ $t('admin.orders') }}</NuxtLink>
     <AdminHeader :title="order.order_number" :subtitle="formatDateTime(order.placed_at, locale)">
       <StatusBadge :status="order.status" scope="orders.status" />
+      <span v-if="order.payment_method === 'cod'" class="rounded-full bg-gold-100 px-2 py-0.5 text-xs font-semibold text-ink-900" data-test="cod-badge">{{ $t('cod.badge') }}{{ order.paid_at ? ` · ${$t('cod.collected_short')}` : '' }}</span>
+      <template v-if="codOpen && auth.can('refunds.request')">
+        <button class="btn-primary btn-sm" data-test="cod-collected" @click="cod('collected')">{{ $t('cod.collected') }}</button>
+        <button class="btn-outline btn-sm" data-test="cod-refused" @click="cod('refused')">{{ $t('cod.refused') }}</button>
+      </template>
       <button v-if="auth.can('refunds.request') && Number(refundable) > 0" class="btn-outline btn-sm" @click="refundForm.amount = refundable; refundOpen = true">{{ $t('admin.refund') }}</button>
     </AdminHeader>
     <AdminAlerts :error="error" :notice="notice" />

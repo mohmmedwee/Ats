@@ -63,6 +63,7 @@ onMounted(load)
       <span v-if="order.refund_state !== 'none'" class="text-sm text-gray-600">{{ $t(`orders.refund_state.${order.refund_state}`) }}</span>
     </div>
     <p v-if="error" role="alert" class="text-red-600">{{ error }}</p>
+    <p v-if="order.payment_method === 'cod' && order.status !== 'cancelled'" class="rounded-md bg-green-50 p-3 text-sm text-green-800" data-test="cod-banner">{{ $t('cod.order_banner', { amount: formatMoney(order.totals.total, locale) }) }}</p>
     <p v-if="notice" role="status" class="text-green-700">{{ notice }}</p>
 
     <div class="flex flex-wrap gap-2">
