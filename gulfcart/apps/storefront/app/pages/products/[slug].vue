@@ -197,6 +197,7 @@ async function addToCart() {
           </button>
           <span class="flex w-12 items-center justify-center rounded-md border border-ink-300"><WishlistButton :product-id="product.id" /></span>
         </div>
+        <ProductAlertButtons :product-id="product.id" :variant-id="variant?.id ?? null" :out-of-stock="!!variant && variant.availability === 'out_of_stock'" />
         <p v-if="message" role="status" class="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800" data-test="cart-message">
           <AppIcon name="check" :size="16" /> {{ message }}
           <NuxtLink :to="localePath('/cart')" class="ms-auto font-bold underline">{{ $t('cart.title') }}</NuxtLink>

@@ -13,4 +13,6 @@ return [
     'ops_manual_procurement' => ['subject' => 'Manual purchase required', 'lines' => ['Supplier order :supplier_order must be placed manually and recorded in the procurement dashboard.']],
     'customer' => 'there',
     'cart_reminder' => ['subject' => 'You left something in your cart', 'lines' => ['You still have :count item(s) waiting in your cart.', 'Prices include VAT, duties and delivery shown at checkout. Popular items can sell out.'], 'action' => 'Back to my cart', 'sms' => 'GulfCart: you have :count item(s) waiting in your cart. :url'],
+    'back_in_stock' => ['subject' => 'Back in stock: :product_en', 'lines' => [':product_en is available again at :price.', 'Popular items sell out fast, so order soon if you want it.'], 'action' => 'Shop now', 'sms' => 'GulfCart: :product_en is back in stock (:price). :url'],
+    'price_drop' => ['subject' => 'Price drop: :product_en', 'lines' => ['Good news: :product_en is now :price (was :old_price).', 'Prices can change again, so order soon if you want it.'], 'action' => 'See the new price', 'sms' => 'GulfCart: :product_en is now :price (was :old_price). :url'],
 ];

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Hardening;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\CatalogFixtures;
 use Tests\Support\OrderFlow;
@@ -84,5 +85,25 @@ final class HardeningTest extends TestCase
             ->assertOk()->assertJsonPath('data.settings.returns.window_days', 10)->assertJsonPath('data.settings.phone_prefix', '+966');
         $this->assertDatabaseHas('audit_logs', ['action' => 'country.updated']);
         $this->getJson('/api/v1/admin/countries', $this->asStaff(['admin']))->assertOk()->assertJsonCount(2, 'data');
+    }
+
+    public function test_audit_log_cannot_be_edited_or_deleted(): void
+    {
+        $this->patchJson('/api/v1/admin/countries/AE', ['settings' => ['support' => ['email' => 'help@example.com']]], $this->asStaff(['admin']));
+        $id = DB::table('audit_logs')->value('id');
+        $this->assertNotNull($id);
+        foreach ([
+            fn () => DB::table('audit_logs')->where('id', $id)->update(['action' => 'tampered']),
+            fn () => DB::table('audit_logs')->where('id', $id)->delete(),
+        ] as $attempt) {
+            try {
+                DB::transaction($attempt);
+                $this->fail('The audit log accepted a change.');
+            } catch (QueryException $e) {
+                $this->assertStringContainsString('append-only', $e->getMessage());
+            }
+        }
+        $this->assertDatabaseHas('audit_logs', ['id' => $id]);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'tampered']);
     }
 }

@@ -12,6 +12,7 @@ Schedule::command('suppliers:sync')->everyThirtyMinutes()->withoutOverlapping();
 Schedule::command('procurement:run')->everyMinute()->withoutOverlapping();
 Schedule::command('procurement:reconcile')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('procurement:track')->everyThirtyMinutes()->withoutOverlapping();
+Schedule::command('alerts:check')->hourly()->withoutOverlapping();
 Schedule::command('orders:expire-unpaid')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('notifications:cart-reminders')->hourly()->withoutOverlapping()->onOneServer();

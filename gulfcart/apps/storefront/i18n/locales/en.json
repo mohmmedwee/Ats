@@ -1116,5 +1116,11 @@
     "hint": "Tap the map where the courier should come.",
     "failed": "Could not get your location. Tap the map instead.",
     "open": "Open in Google Maps"
+  },
+  "alerts": {
+    "stock": "Tell me when it's back",
+    "stock_done": "We'll tell you when it's back",
+    "price": "Tell me if the price drops",
+    "price_done": "We'll tell you if the price drops"
   }
 }

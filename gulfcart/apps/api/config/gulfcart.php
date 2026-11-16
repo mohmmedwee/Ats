@@ -210,6 +210,12 @@ return [
         'block_after_refusals' => (int) env('COD_BLOCK_AFTER_REFUSALS', 1),                         // 0 = never block
     ],
 
+    // Back-in-stock / price-drop alerts: minimum drop before a price alert fires, and how long alerts stay open.
+    'alerts' => [
+        'price_drop_min_percent' => env('ALERTS_PRICE_DROP_MIN_PERCENT', '5'),
+        'expire_days' => (int) env('ALERTS_EXPIRE_DAYS', 90),
+    ],
+
     // Rewards: points on the items total of paid orders, converted into personal discount codes.
     'loyalty' => [
         'enabled' => (bool) env('LOYALTY_ENABLED', true),

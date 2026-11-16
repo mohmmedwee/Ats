@@ -1020,6 +1020,31 @@ paths:
       requestBody:
         content: { application/json: { schema: { type: object, properties: { note: { type: [string, 'null'], maxLength: 255 } } } } }
       responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' } }
+  /products/{productId}/alerts:
+    post:
+      tags: [Engagement]
+      summary: 'Tell me when it is back in stock, or when the price drops (by at least ALERTS_PRICE_DROP_MIN_PERCENT). One open alert per product, option and type; fires once by email/WhatsApp/SMS.'
+      security: [{ sanctum: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Country'
+        - { name: productId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [type], properties: { type: { type: string, enum: [back_in_stock, price_drop] }, variant_id: { type: [string, 'null'], format: uuid } } } } }
+      responses: { '201': { $ref: '#/components/responses/Created' }, '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /alerts:
+    get:
+      tags: [Engagement]
+      summary: The customer's open stock and price alerts
+      security: [{ sanctum: [] }]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /alerts/{id}:
+    delete:
+      tags: [Engagement]
+      summary: Cancel an alert
+      security: [{ sanctum: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '204': { description: Removed }, '404': { $ref: '#/components/responses/NotFound' } }
   /products/{productId}/reviews:
     get:
       tags: [Engagement]

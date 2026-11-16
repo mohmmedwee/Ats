@@ -33,6 +33,11 @@ final class NotificationsOutboxListener
             'procurement.manual_required' => $this->notifier->toOperations('ops_manual_procurement', [
                 'supplier_order' => (string) $p['supplier_order_id'],
             ], "ops_manual:{$p['supplier_order_id']}", 'supplier_order', (string) $p['supplier_order_id']),
+            'engagement.product_alert' => $this->notifier->toCustomer((string) $p['user_id'], (string) $p['type'], [
+                'product_ar' => (string) ($p['product_title']['ar'] ?? $p['product_title']['en'] ?? ''),
+                'product_en' => (string) ($p['product_title']['en'] ?? $p['product_title']['ar'] ?? ''),
+                'price' => $p['price'].' '.$p['currency'], 'old_price' => $p['old_price'] !== null ? $p['old_price'].' '.$p['currency'] : '',
+            ], "alert:{$p['alert_id']}", 'product', (string) $p['product_id'], '/products/'.($p['product_slug'] ?? '')),
             default => null,
         };
     }

@@ -13,4 +13,6 @@ return [
     'ops_manual_procurement' => ['subject' => 'Manual purchase required', 'lines' => ['Supplier order :supplier_order must be placed manually.']],
     'customer' => 'عميلنا العزيز',
     'cart_reminder' => ['subject' => 'نسيت شيئاً في سلتك', 'lines' => ['لديك :count منتج بانتظارك في السلة.', 'الأسعار تشمل الضريبة والجمارك والتوصيل الظاهرة عند الدفع. المنتجات المطلوبة قد تنفد.'], 'action' => 'العودة إلى السلة', 'sms' => 'جلف كارت: لديك :count منتج بانتظارك في السلة. :url'],
+    'back_in_stock' => ['subject' => 'عاد للمخزون: :product_ar', 'lines' => [':product_ar متوفر من جديد بسعر :price.', 'المنتجات المطلوبة تنفد بسرعة، اطلبه قريباً إذا أعجبك.'], 'action' => 'تسوّق الآن', 'sms' => 'GulfCart: :product_ar عاد للمخزون (:price). :url'],
+    'price_drop' => ['subject' => 'نزل السعر: :product_ar', 'lines' => ['خبر حلو: :product_ar صار بسعر :price (كان :old_price).', 'الأسعار قد تتغير، اطلبه قريباً إذا أعجبك.'], 'action' => 'شاهد السعر الجديد', 'sms' => 'GulfCart: :product_ar صار بسعر :price (كان :old_price). :url'],
 ];
