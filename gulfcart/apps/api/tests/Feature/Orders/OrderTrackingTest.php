@@ -38,4 +38,20 @@ final class OrderTrackingTest extends TestCase
         $this->assertErrorCode($this->postJson('/api/v1/orders/track', ['order_number' => $order->order_number, 'phone' => '0509999999']), 404, 'NOT_FOUND');
         $this->assertErrorCode($this->postJson('/api/v1/orders/track', ['order_number' => 'GC-0', 'phone' => '0501234567']), 404, 'NOT_FOUND');
     }
+
+    public function test_address_map_pin_is_validated_and_kept_on_the_order(): void
+    {
+        ['variant' => $variant] = $this->sellableProduct(['AE']);
+        $h = $this->customerAuth() + ['X-Country' => 'AE'];
+        $base = ['country' => 'AE', 'full_name' => 'Sara', 'phone' => '0501234567', 'address_line_1' => 'Villa 1', 'city' => 'Dubai', 'state' => 'DXB'];
+        $this->postJson('/api/v1/addresses', $base + ['latitude' => 95, 'longitude' => 55.27], $h)->assertUnprocessable();
+        $this->postJson('/api/v1/addresses', $base + ['latitude' => 25.2048], $h)->assertUnprocessable();
+        $id = $this->postJson('/api/v1/addresses', $base + ['latitude' => 25.204849, 'longitude' => 55.270783], $h)->assertCreated()
+            ->assertJsonPath('data.latitude', 25.204849)->json('data.id');
+
+        $this->postJson('/api/v1/cart/items', ['variant_id' => $variant->id, 'quantity' => 1], $h)->assertCreated();
+        $session = $this->postJson('/api/v1/checkout', ['address_id' => $id, 'shipping_method' => 'standard'], $h)->assertCreated()->json('data.id');
+        $orderId = $this->postJson('/api/v1/orders', ['checkout_session_id' => $session], $h + ['Idempotency-Key' => 'order-pin-'.str_repeat('x', 12)])->assertCreated()->json('data.id');
+        $this->getJson("/api/v1/orders/{$orderId}", $h)->assertJsonPath('data.shipping_address.latitude', '25.204849')->assertJsonPath('data.shipping_address.longitude', '55.270783');
+    }
 }

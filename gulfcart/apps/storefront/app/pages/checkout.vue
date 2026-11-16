@@ -33,6 +33,7 @@ onMounted(async () => {
 })
 const showForm = ref(false)
 const form = reactive({ full_name: '', phone: '', address_line_1: '', address_line_2: '', district: '', city: '', state: '', postal_code: '', national_address_code: '' })
+const pin = ref<{ lat: number, lng: number } | null>(null)
 
 const m = (amount: string) => formatMoney({ amount, currency: quote.value?.currency ?? 'AED' }, locale.value)
 
@@ -139,7 +140,7 @@ async function saveAddress() {
   error.value = ''
   try {
     await csrf()
-    const body = Object.fromEntries(Object.entries({ ...form, country: country.value }).filter(([, v]) => v !== ''))
+    const body = { ...Object.fromEntries(Object.entries({ ...form, country: country.value }).filter(([, v]) => v !== '')), ...(pin.value ? { latitude: pin.value.lat, longitude: pin.value.lng } : {}) }
     const res = await request<Envelope<Address>>('/addresses', { method: 'POST', body })
     await loadAddresses()
     addressId.value = res.data.id
@@ -213,6 +214,10 @@ const fieldNames = ['full_name', 'phone', 'address_line_1', 'address_line_2', 'd
             <label class="block"><span class="label">{{ $t('checkout.fields.postal_code') }}</span><input v-model="form.postal_code" class="input" dir="ltr"></label>
             <label class="block"><span class="label">{{ $t('checkout.fields.national_address_code') }}</span><input v-model="form.national_address_code" class="input" dir="ltr"></label>
           </template>
+          <div class="md:col-span-2">
+            <span class="label">{{ $t('map.title') }}</span>
+            <ClientOnly><MapPin v-model="pin" :country="country" /></ClientOnly>
+          </div>
           <div class="md:col-span-2"><button class="btn-primary">{{ $t('common.save') }}</button></div>
         </form>
       </fieldset>

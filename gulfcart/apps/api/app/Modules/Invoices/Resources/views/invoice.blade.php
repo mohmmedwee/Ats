@@ -35,7 +35,10 @@
     <tr><td class="num"><strong>{{ $locale === 'ar' ? 'الإجمالي شامل الضريبة' : 'Total incl. VAT' }}</strong></td><td class="num"><strong>{{ $invoice->gross_total }} {{ $invoice->currency }}</strong></td></tr>
   </table>
   @if ($invoice->qr_payload)
-    <p class="muted">ZATCA QR (TLV, base64): <code style="word-break:break-all">{{ $invoice->qr_payload }}</code></p>
+    <div class="qr" style="margin-top:16px;display:flex;gap:12px;align-items:center" data-test="zatca-qr">
+      <div style="width:140px;height:140px">{!! \App\Modules\Invoices\Domain\ZatcaQr::svg($invoice->qr_payload, 140) !!}</div>
+      <p class="muted" style="font-size:11px">{{ $locale === 'ar' ? 'رمز الفاتورة الضريبية المبسطة (هيئة الزكاة والضريبة والجمارك)' : 'Simplified tax invoice QR (ZATCA)' }}</p>
+    </div>
   @endif
 </body>
 </html>

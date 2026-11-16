@@ -146,6 +146,7 @@ onMounted(load)
           <h3 class="mb-1 mt-4 font-semibold">{{ $t('admin.orders_page.ship_to') }}</h3>
           <p>{{ order.shipping_address.address_line_1 }}<span v-if="order.shipping_address.address_line_2">, {{ order.shipping_address.address_line_2 }}</span></p>
           <p>{{ [order.shipping_address.district, order.shipping_address.city, order.shipping_address.state].filter(Boolean).join(', ') }}</p>
+          <a v-if="order.shipping_address.latitude" :href="`https://www.google.com/maps?q=${order.shipping_address.latitude},${order.shipping_address.longitude}`" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold underline" data-test="map-link">📍 {{ $t('map.open') }}</a>
           <p>{{ order.country_code ? $t(`country.${order.country_code}`) : '' }}</p>
           <p v-if="order.shipping_method" class="mt-3 text-ink-500">{{ tr(order.shipping_method.name as never) || order.shipping_method.code }}</p>
         </div>

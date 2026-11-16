@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
+ * @property string|null $latitude
+ * @property string|null $longitude
  * @property string $id
  * @property string $user_id
  * @property string $country_id
@@ -43,6 +45,7 @@ class CustomerAddress extends Model
     public function snapshot(string $countryCode): array
     {
         return $this->only(['full_name', 'phone', 'address_line_1', 'address_line_2', 'district', 'city', 'state', 'postal_code', 'national_address_code'])
-            + ['country' => $countryCode];
+            + ['country' => $countryCode]
+            + ($this->latitude !== null && $this->longitude !== null ? ['latitude' => (string) $this->latitude, 'longitude' => (string) $this->longitude] : []);
     }
 }

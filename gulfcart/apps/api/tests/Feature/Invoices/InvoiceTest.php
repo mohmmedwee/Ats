@@ -50,6 +50,11 @@ final class InvoiceTest extends TestCase
         $this->assertSame('310122393500003', $fields[2]);
         $this->assertSame((string) $invoice->gross_total, $fields[4]);
         $this->assertSame((string) $invoice->vat_total, $fields[5]);
+
+        // The printable invoice shows a scannable QR image of the same payload.
+        $html = $this->get("/api/v1/invoices/{$invoice->id}/html", $auth)->assertOk()->getContent();
+        $this->assertStringContainsString('data-test="zatca-qr"', (string) $html);
+        $this->assertStringContainsString('<svg', (string) $html);
     }
 
     public function test_refunds_produce_credit_notes_and_invoices_are_immutable(): void

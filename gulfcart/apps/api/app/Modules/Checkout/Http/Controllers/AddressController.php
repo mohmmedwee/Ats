@@ -28,7 +28,7 @@ final class AddressController
         $code = strtoupper((string) $request->validate(['country' => ['required', 'string', 'size:2']])['country']);
         $country = $this->countries->find($code) ?? throw new ApiException('COUNTRY_NOT_SUPPORTED', 422, ['country' => $code]);
         $this->cleanPhone($request);
-        $data = $request->validate($this->rules->rules($code) + ['is_default' => ['sometimes', 'boolean']]);
+        $data = $request->validate($this->rules->rules($code) + ['is_default' => ['sometimes', 'boolean']] + ['latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'], 'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude']]);
         $data['phone'] = $this->rules->normalizePhone($code, $data['phone']);
         $userId = (string) $request->user()->getAuthIdentifier();
 
@@ -51,7 +51,7 @@ final class AddressController
         $code = $this->code($address->country_id);
         $this->cleanPhone($request);
         $rules = array_map(fn ($r) => array_merge(['sometimes'], array_values(array_filter((array) $r, fn ($x) => $x !== 'required'))), $this->rules->rules($code));
-        $data = $request->validate($rules + ['is_default' => ['sometimes', 'boolean']]);
+        $data = $request->validate($rules + ['is_default' => ['sometimes', 'boolean']] + ['latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'], 'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude']]);
         if (isset($data['phone'])) {
             $data['phone'] = $this->rules->normalizePhone($code, $data['phone']);
         }
@@ -101,6 +101,7 @@ final class AddressController
     private function present(CustomerAddress $a): array
     {
         return ['id' => $a->id, 'country' => $this->code($a->country_id)]
-            + $a->only(['full_name', 'phone', 'address_line_1', 'address_line_2', 'district', 'city', 'state', 'postal_code', 'national_address_code', 'is_default']);
+            + $a->only(['full_name', 'phone', 'address_line_1', 'address_line_2', 'district', 'city', 'state', 'postal_code', 'national_address_code', 'is_default'])
+            + ['latitude' => $a->latitude !== null ? (float) $a->latitude : null, 'longitude' => $a->longitude !== null ? (float) $a->longitude : null];
     }
 }

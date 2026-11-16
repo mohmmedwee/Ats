@@ -1104,5 +1104,15 @@
     "collected_done": "Cash recorded; the invoice is issued.",
     "refused_done": "Order cancelled and the refusal recorded.",
     "refused_confirm": "The customer refused the parcel? The order will be cancelled and cash on delivery blocked for this customer."
+  },
+  "map": {
+    "title": "Location on the map (optional)",
+    "use_location": "Use my location",
+    "locating": "Finding you…",
+    "clear": "Remove pin",
+    "pinned": "Pinned. Drag the pin to adjust.",
+    "hint": "Tap the map where the courier should come.",
+    "failed": "Could not get your location. Tap the map instead.",
+    "open": "Open in Google Maps"
   }
 }
